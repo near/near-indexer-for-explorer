@@ -12,17 +12,12 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn new(
-        account_id: String,
-        index: i32,
-        receipt_id: String,
-        timestamp: BigDecimal
-    ) -> Self {
+    pub fn new(account_id: String, index: i32, receipt_id: String, timestamp: BigDecimal) -> Self {
         Self {
             account_id,
             index,
             created_by_receipt_id: receipt_id,
-            created_at_timestamp: timestamp
+            created_at_timestamp: timestamp,
         }
     }
 }

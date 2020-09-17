@@ -1,5 +1,4 @@
-
-use near_indexer::near_primitives::views::{AccessKeyView, AccessKeyPermissionView};
+use near_indexer::near_primitives::views::{AccessKeyPermissionView, AccessKeyView};
 
 use crate::schema;
 use schema::access_keys;
@@ -17,7 +16,9 @@ impl AccessKey {
             account_id,
             public_key: public_key,
             access_key_type: match access_key_type.permission {
-                ref _data @ AccessKeyPermissionView::FunctionCall { .. } => "function_call".to_string(),
+                ref _data @ AccessKeyPermissionView::FunctionCall { .. } => {
+                    "function_call".to_string()
+                }
                 _ => "full_access".to_string(),
             },
         }
