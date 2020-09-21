@@ -1,49 +1,6 @@
 table! {
-    access_keys (account_id) {
-        account_id -> Text,
-        public_key -> Text,
-        access_key_type -> Text,
-    }
-}
+    use diesel::sql_types::*;
 
-table! {
-    accounts (account_id) {
-        account_id -> Text,
-        index -> Int4,
-        created_by_receipt_id -> Varchar,
-        created_at_timestamp -> Nullable<Numeric>,
-    }
-}
-
-table! {
-    actions (id) {
-        id -> Int8,
-        receipt_id -> Varchar,
-        index -> Int4,
-        #[sql_name = "type"]
-        type_ -> Varchar,
-        args -> Nullable<Json>,
-    }
-}
-
-table! {
-    actions_input_data (id) {
-        id -> Numeric,
-        receipt_id -> Varchar,
-        data_id -> Varchar,
-    }
-}
-
-table! {
-    actions_output_data (id) {
-        id -> Numeric,
-        receipt_id -> Varchar,
-        data_id -> Varchar,
-        receiver_id -> Text,
-    }
-}
-
-table! {
     blocks (height) {
         height -> Numeric,
         hash -> Varchar,
@@ -57,6 +14,8 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+
     chunks (hash) {
         block_id -> Numeric,
         hash -> Varchar,
@@ -70,61 +29,73 @@ table! {
 }
 
 table! {
-    receipt_action (id) {
-        id -> Int8,
-        receipt_id -> Varchar,
-        signer_id -> Varchar,
-        signer_public_key -> Text,
-        gas_price -> Nullable<Numeric>,
-    }
-}
+    use diesel::sql_types::*;
+    use crate::models::enums::*;
 
-table! {
-    receipt_data (id) {
+    receipt_action_actions (id) {
         id -> Int8,
-        receipt_id -> Varchar,
-        data_id -> Varchar,
-        data -> Nullable<Text>,
-    }
-}
-
-table! {
-    receipts (receipt_id) {
-        receipt_id -> Varchar,
-        predecessor_id -> Nullable<Text>,
-        receiver_id -> Nullable<Text>,
-        status -> Nullable<Varchar>,
+        receipt_id -> Text,
+        index -> Int4,
         #[sql_name = "type"]
-        type_ -> Nullable<Varchar>,
+        type_ -> Action_type,
+        args -> Nullable<Jsonb>,
     }
 }
 
 table! {
-    transactions (hash) {
-        hash -> Varchar,
-        block_id -> Numeric,
-        block_timestamp -> Numeric,
-        nonce -> Numeric,
+    use diesel::sql_types::*;
+
+    receipt_action_input_data (id) {
+        id -> Int8,
+        receipt_id -> Text,
+        data_id -> Text,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
+    receipt_action_output_data (id) {
+        id -> Int8,
+        receipt_id -> Text,
+        data_id -> Varchar,
+        receiver_id -> Text,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
+    receipt_actions (id) {
+        id -> Int8,
+        receipt_id -> Text,
         signer_id -> Text,
         signer_public_key -> Text,
-        signature -> Text,
-        receiver_id -> Text,
-        receipt_conversion_gas_burnt -> Nullable<Numeric>,
-        receipt_conversion_tokens_burnt -> Nullable<Numeric>,
-        receipt_id -> Nullable<Varchar>,
+        gas_price -> Numeric,
     }
 }
 
-allow_tables_to_appear_in_same_query!(
-    access_keys,
-    accounts,
-    actions,
-    actions_input_data,
-    actions_output_data,
-    blocks,
-    chunks,
-    receipt_action,
-    receipt_data,
-    receipts,
-    transactions,
-);
+table! {
+    use diesel::sql_types::*;
+
+    receipt_data (id) {
+        id -> Int8,
+        receipt_id -> Text,
+        data_id -> Text,
+        data -> Nullable<Bytea>,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+    use crate::models::enums::*;
+
+    receipts (receipt_id) {
+        receipt_id -> Text,
+        block_height -> Nullable<Numeric>,
+        predecessor_id -> Text,
+        receiver_id -> Text,
+        #[sql_name = "type"]
+        type_ -> Receipt_type,
+    }
+}

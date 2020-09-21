@@ -1,21 +1,47 @@
 use num_traits::cast::FromPrimitive;
+use std::convert::TryFrom;
 
 use bigdecimal::BigDecimal;
+use serde_json::{json, Value};
 
-use near_indexer;
-use near_indexer::near_primitives::views::DataReceiverView;
+use near_indexer::near_primitives::views::{ActionView, DataReceiverView};
 
+use crate::models::enums::{ActionType, ReceiptType};
 use crate::schema;
-use schema::{actions_input_data, actions_output_data, receipt_action, receipt_data, receipts};
+use schema::{
+    receipt_action_actions, receipt_action_input_data, receipt_action_output_data, receipt_actions,
+    receipt_data, receipts,
+};
 
-#[derive(Insertable, Queryable, AsChangeset)]
-#[primary_key("receipt_id")]
+#[derive(Insertable)]
 pub struct Receipt {
     pub receipt_id: String,
-    pub predecessor_id: Option<String>,
-    pub receiver_id: Option<String>,
-    pub status: String,
-    pub type_: Option<String>,
+    pub block_height: BigDecimal,
+    pub predecessor_id: String,
+    pub receiver_id: String,
+    pub type_: ReceiptType,
+}
+
+impl Receipt {
+    pub fn from_receipt_view(
+        receipt: &near_indexer::near_primitives::views::ReceiptView,
+        block_height: u64,
+    ) -> Self {
+        Self {
+            receipt_id: receipt.receipt_id.to_string(),
+            block_height: block_height.into(),
+            predecessor_id: receipt.predecessor_id.to_string(),
+            receiver_id: receipt.receiver_id.to_string(),
+            type_: match receipt.receipt {
+                near_indexer::near_primitives::views::ReceiptEnumView::Action { .. } => {
+                    ReceiptType::Action
+                }
+                near_indexer::near_primitives::views::ReceiptEnumView::Data { .. } => {
+                    ReceiptType::Data
+                }
+            },
+        }
+    }
 }
 
 #[derive(Insertable)]
@@ -23,110 +49,145 @@ pub struct Receipt {
 pub struct ReceiptData {
     pub receipt_id: String,
     pub data_id: String,
-    pub data: Option<String>,
+    pub data: Option<Vec<u8>>,
+}
+
+impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptData {
+    type Error = &'static str;
+
+    fn try_from(
+        receipt_view: &near_indexer::near_primitives::views::ReceiptView,
+    ) -> Result<Self, Self::Error> {
+        if let near_indexer::near_primitives::views::ReceiptEnumView::Data { data_id, data } =
+            &receipt_view.receipt
+        {
+            Ok(Self {
+                receipt_id: receipt_view.receipt_id.to_string(),
+                data_id: data_id.to_string(),
+                data: data.clone(),
+            })
+        } else {
+            Err("Given ReceiptView is not Data type")
+        }
+    }
 }
 
 #[derive(Insertable)]
-#[table_name = "receipt_action"]
 pub struct ReceiptAction {
     pub receipt_id: String,
     pub signer_id: String,
     pub signer_public_key: String,
-    pub gas_price: Option<BigDecimal>,
+    pub gas_price: BigDecimal,
+}
+
+impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptAction {
+    type Error = &'static str;
+
+    fn try_from(
+        receipt_view: &near_indexer::near_primitives::views::ReceiptView,
+    ) -> Result<Self, Self::Error> {
+        if let near_indexer::near_primitives::views::ReceiptEnumView::Action {
+            signer_id,
+            signer_public_key,
+            gas_price,
+            ..
+        } = &receipt_view.receipt {
+            Ok(
+                Self {
+                    receipt_id: receipt_view.receipt_id.to_string(),
+                    signer_id: signer_id.to_string(),
+                    signer_public_key: signer_public_key.to_string(),
+                    gas_price: BigDecimal::from_u128(*gas_price).unwrap_or_else(||0.into()),
+                }
+            )
+        } else {
+            Err("Given ReceiptView is not Action type")
+        }
+    }
 }
 
 #[derive(Insertable)]
-#[table_name = "actions_input_data"]
+#[table_name = "receipt_action_actions"]
+pub struct ReceiptActionAction {
+    pub receipt_id: String,
+    pub index: i32,
+    pub type_: ActionType,
+    pub args: Option<serde_json::Value>,
+}
+
+impl ReceiptActionAction {
+    pub fn from_action_view(
+        receipt_id: String,
+        index: i32,
+        action_view: &near_indexer::near_primitives::views::ActionView,
+    ) -> Self {
+        let (type_, args): (ActionType, Option<Value>) = match &action_view {
+            ActionView::CreateAccount => (ActionType::CreateAccount, None),
+            ActionView::DeployContract { code } => {
+                (ActionType::DeployContract, Some(json!({ "code": code })))
+            }
+            ActionView::FunctionCall {
+                method_name,
+                args,
+                gas,
+                deposit,
+            } => (
+                ActionType::FunctionCall,
+                Some(json!({
+                    "method_name": method_name,
+                    "args": args,
+                    "gas": gas,
+                    "deposit": deposit.to_string(),
+                })),
+            ),
+            ActionView::Transfer { deposit } => (
+                ActionType::Transfer,
+                Some(json!({ "deposit": deposit.to_string() })),
+            ),
+            ActionView::Stake { stake, public_key } => (
+                ActionType::Stake,
+                Some(json!({
+                    "stake": stake.to_string(),
+                    "public_key": public_key,
+                })),
+            ),
+            ActionView::AddKey {
+                public_key,
+                access_key,
+            } => (
+                ActionType::AddKey,
+                Some(json!({
+                    "public_key": public_key,
+                    "access_key": access_key,
+                })),
+            ),
+            ActionView::DeleteKey { public_key } => (
+                ActionType::DeleteKey,
+                Some(json!({
+                    "public_key": public_key,
+                })),
+            ),
+            ActionView::DeleteAccount { beneficiary_id } => (
+                ActionType::DeleteAccount,
+                Some(json!({
+                    "beneficiary_id": beneficiary_id,
+                })),
+            ),
+        };
+        Self {
+            receipt_id,
+            index,
+            args,
+            type_,
+        }
+    }
+}
+
+#[derive(Insertable)]
+#[table_name = "receipt_action_input_data"]
 pub struct ReceiptActionInputData {
     pub receipt_id: String,
     pub data_id: String,
-}
-
-#[derive(Insertable)]
-#[table_name = "actions_output_data"]
-pub struct ReceiptActionOutputData {
-    pub receipt_id: String,
-    pub data_id: String,
-    pub receiver_id: String,
-}
-
-impl Receipt {
-    pub fn from_receipt(receipt_view: &near_indexer::near_primitives::views::ReceiptView) -> Self {
-        Self {
-            receipt_id: receipt_view.receipt_id.to_string(),
-            predecessor_id: Some(receipt_view.predecessor_id.to_string()),
-            receiver_id: Some(receipt_view.receiver_id.to_string()),
-            status: "empty".to_string(),
-            type_: match &receipt_view.receipt {
-                ref
-                _entity
-                @
-                near_indexer::near_primitives::views::ReceiptEnumView::Action {
-                    ..
-                } => Some("action".to_string()),
-                ref
-                _entity
-                @
-                near_indexer::near_primitives::views::ReceiptEnumView::Data {
-                    ..
-                } => Some("data".to_string()),
-            },
-        }
-    }
-
-    pub fn from_receipt_id(receipt_id: String) -> Self {
-        Self {
-            receipt_id: receipt_id,
-            predecessor_id: None,
-            receiver_id: None,
-            status: "empty".to_string(),
-            type_: None,
-        }
-    }
-}
-
-impl ReceiptData {
-    pub fn from_receipt(
-        receipt_view: &near_indexer::near_primitives::views::ReceiptView,
-    ) -> Result<Self, &str> {
-        match &receipt_view.receipt {
-            near_indexer::near_primitives::views::ReceiptEnumView::Data { data_id, data } => {
-                Ok(Self {
-                    receipt_id: receipt_view.receipt_id.to_string(),
-                    data_id: data_id.to_string(),
-                    data: if let Some(data_) = data {
-                        Some(std::str::from_utf8(&data_[..]).unwrap().to_string())
-                    } else {
-                        None
-                    },
-                })
-            }
-            _ => Err("This Receipt is not Data"),
-        }
-    }
-}
-
-impl ReceiptAction {
-    pub fn from_receipt(
-        receipt_view: &near_indexer::near_primitives::views::ReceiptView,
-    ) -> Result<Self, &str> {
-        match &receipt_view.receipt {
-            near_indexer::near_primitives::views::ReceiptEnumView::Action {
-                signer_id,
-                signer_public_key,
-                gas_price,
-                output_data_receivers: _,
-                input_data_ids: _,
-                actions: _,
-            } => Ok(Self {
-                receipt_id: receipt_view.receipt_id.to_string(),
-                signer_id: signer_id.to_string(),
-                signer_public_key: signer_public_key.to_string(),
-                gas_price: BigDecimal::from_u128(*gas_price),
-            }),
-            _ => Err("This Receipt is not Action"),
-        }
-    }
 }
 
 impl ReceiptActionInputData {
@@ -138,12 +199,20 @@ impl ReceiptActionInputData {
     }
 }
 
+#[derive(Insertable)]
+#[table_name = "receipt_action_output_data"]
+pub struct ReceiptActionOutputData {
+    pub receipt_id: String,
+    pub data_id: String,
+    pub receiver_id: String,
+}
+
 impl ReceiptActionOutputData {
     pub fn from_data_receiver(receipt_id: String, data_receiver: &DataReceiverView) -> Self {
         Self {
             receipt_id,
-            data_id: data_receiver.data_id.to_string().clone(),
-            receiver_id: data_receiver.receiver_id.to_string().clone(),
+            data_id: data_receiver.data_id.to_string(),
+            receiver_id: data_receiver.receiver_id.to_string(),
         }
     }
 }

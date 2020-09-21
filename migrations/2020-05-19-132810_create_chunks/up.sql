@@ -7,6 +7,5 @@ CREATE TABLE chunks (
 	gas_limit numeric(45) NOT NULL,
 	gas_used numeric(45) NOT NULL,
 	height_created numeric(45) NOT NULL,
-	height_included numeric(45) NOT NULL,
-	CONSTRAINT chunks_fk FOREIGN KEY (block_id) REFERENCES blocks(height) ON DELETE CASCADE
+	height_included numeric(45) NOT NULL
 );

@@ -3,3 +3,5 @@
 
 [print_schema]
 file = "src/schema.rs"
+import_types = ["diesel::sql_types::*", "crate::models::enums::*"]
+filter = { only_tables = ["blocks", "chunks", "receipts", "receipt_data", "receipt_actions", "receipt_action_actions", "receipt_action_input_data", "receipt_action_output_data", ] }

@@ -940,6 +940,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel-derive-enum"
+version = "1.1.0"
+source = "git+https://github.com/khorolets/diesel-derive-enum.git?branch=lookup-hack#f15b35927291d1e3be725fb2321da6edb91704aa"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "diesel_derives"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1510,7 +1521,9 @@ dependencies = [
  "bigdecimal",
  "clap 3.0.0-beta.1",
  "diesel",
+ "diesel-derive-enum",
  "dotenv",
+ "futures",
  "near-indexer",
  "num-traits",
  "openssl-probe",

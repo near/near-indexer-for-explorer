@@ -19,17 +19,20 @@ pub struct Block {
     pub gas_price: BigDecimal,
 }
 
-impl Block {
-    pub fn from_block_view(block_view: &near_primitives::views::BlockView) -> Self {
+impl From<&near_primitives::views::BlockView> for Block {
+    fn from(block_view: &near_primitives::views::BlockView) -> Self {
         Self {
             height: block_view.header.height.into(),
             hash: block_view.header.hash.to_string(),
             prev_hash: block_view.header.prev_hash.to_string(),
-            timestamp: BigDecimal::from_u64(block_view.header.timestamp).unwrap_or(0.into()),
-            total_supply: BigDecimal::from_u128(block_view.header.total_supply).unwrap_or(0.into()),
-            gas_limit: 0.into(),
-            gas_used: 0.into(),
-            gas_price: BigDecimal::from_u128(block_view.header.gas_price).unwrap_or(0.into()),
+            timestamp: BigDecimal::from_u64(block_view.header.timestamp)
+                .unwrap_or_else(|| 0.into()),
+            total_supply: BigDecimal::from_u128(block_view.header.total_supply)
+                .unwrap_or_else(|| 0.into()),
+            gas_limit: 0.into(), // TODO: find out what to put here
+            gas_used: 0.into(),  // TODO: find out what to put here
+            gas_price: BigDecimal::from_u128(block_view.header.gas_price)
+                .unwrap_or_else(|| 0.into()),
         }
     }
 }

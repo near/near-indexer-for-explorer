@@ -1,54 +1,52 @@
-use actix;
-
 use clap::derive::Clap;
 #[macro_use]
 extern crate diesel;
+use futures::join;
 use tokio::sync::mpsc;
-use tokio_diesel::*;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-
-use near_indexer;
 
 use crate::configs::{Opts, SubCommand};
 
 mod configs;
 mod models;
+mod process;
 mod schema;
 
 async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>) {
     let pool = models::establish_connection();
 
     while let Some(streamer_message) = stream.recv().await {
-        // TODO: handle data as you need
         // Block
         info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
-        match diesel::insert_into(schema::blocks::table)
-            .values(models::Block::from_block_view(&streamer_message.block))
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => {}
-            Err(_) => continue,
-        };
+        let process_block_future = process::blocks::process_block(&pool, &streamer_message.block);
 
         // Chunks
-        match diesel::insert_into(schema::chunks::table)
-            .values(
-                streamer_message
-                    .chunks
-                    .iter()
-                    .map(|chunk| models::Chunk::from_chunk_view(streamer_message.block.header.height, chunk))
-                    .collect::<Vec<models::Chunk>>(),
-            )
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => {}
-            Err(_) => {
-                eprintln!("Unable to save chunk, skipping");
-            }
-        };
+        let process_chunks_future = process::chunks::process_chunks(
+            &pool,
+            &streamer_message.chunks,
+            streamer_message.block.header.height,
+        );
+
+        // Receipts
+        let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> = streamer_message
+            .chunks
+            .iter()
+            .flat_map(|chunk| &chunk.receipts)
+            .chain(streamer_message.local_receipts.iter())
+            .collect();
+
+        let process_receipts_futures = process::receipts::process_receipts(
+            &pool,
+            receipts,
+            streamer_message.block.header.height,
+        );
+
+        join!(
+            process_block_future,
+            process_chunks_future,
+            process_receipts_futures
+        );
     }
 }
 

@@ -4,23 +4,23 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use dotenv::dotenv;
 
-pub mod access_keys;
-pub mod accounts;
-pub mod actions;
+pub mod enums;
+// pub mod access_keys;
+// pub mod accounts;
 pub mod blocks;
 pub mod chunks;
 pub mod receipts;
-pub mod transactions;
+// pub mod transactions;
 
-pub use access_keys::AccessKey;
-pub use accounts::Account;
-pub use actions::Action;
+// pub use access_keys::AccessKey;
+// pub use accounts::Account;
 pub use blocks::Block;
 pub use chunks::Chunk;
 pub use receipts::{
-    Receipt, ReceiptAction, ReceiptActionInputData, ReceiptActionOutputData, ReceiptData,
+    Receipt, ReceiptAction, ReceiptActionAction, ReceiptActionInputData, ReceiptActionOutputData,
+    ReceiptData,
 };
-pub use transactions::Transaction;
+// pub use transactions::Transaction;
 
 pub(crate) fn establish_connection() -> Pool<ConnectionManager<PgConnection>> {
     dotenv().ok();
