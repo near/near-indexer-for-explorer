@@ -22,7 +22,7 @@ pub struct Chunk {
 impl Chunk {
     pub fn from_chunk_view(
         block_height: u64,
-        chunk_view: &near_indexer::near_primitives::views::ChunkView,
+        chunk_view: &near_indexer::IndexerChunkView,
     ) -> Self {
         Self {
             block_id: BigDecimal::from_u64(block_height).unwrap_or(0.into()),
