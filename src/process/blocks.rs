@@ -9,19 +9,28 @@ use crate::models;
 use crate::schema;
 
 /// Saves block to database
-/// Returns `AsyncError` in case if something go wrong
 pub(crate) async fn process_block(
     pool: &Pool<ConnectionManager<PgConnection>>,
     block: &near_primitives::views::BlockView,
 ) {
-    match diesel::insert_into(schema::blocks::table)
-        .values(models::blocks::Block::from(block))
-        .execute_async(&pool)
-        .await
-    {
-        Ok(_) => (),
-        Err(async_error) => {
-            error!(target: "indexer_for_explorer", "Error occurred while Block was adding to database... \n {:#?}", async_error)
+    let block_model = models::blocks::Block::from(block);
+    loop {
+        match diesel::insert_into(schema::blocks::table)
+            .values(block_model.clone())
+            .on_conflict_do_nothing()
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while Block was adding to database. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
         }
     }
 }

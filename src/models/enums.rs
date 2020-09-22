@@ -10,7 +10,7 @@ pub enum ReceiptType {
 }
 
 #[derive(Debug, DbEnum, Clone)]
-#[DbValueStyle = "PascalCase"]
+#[DbValueStyle = "SCREAMING_SNAKE_CASE"]
 #[DieselType = "Action_type"]
 #[PgType = "action_type"]
 pub enum ActionType {

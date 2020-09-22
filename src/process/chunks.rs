@@ -12,19 +12,28 @@ pub(crate) async fn process_chunks(
     chunks: &[near_indexer::IndexerChunkView],
     block_height: u64,
 ) {
-    match diesel::insert_into(schema::chunks::table)
-        .values(
-            chunks
-                .iter()
-                .map(|chunk| models::chunks::Chunk::from_chunk_view(block_height, chunk))
-                .collect::<Vec<models::chunks::Chunk>>(),
-        )
-        .execute_async(&pool)
-        .await
-    {
-        Ok(_) => (),
-        Err(async_error) => {
-            error!(target: "indexer_for_explorer", "Error occurred while Chunks were adding to database... \n {:#?}", async_error)
+    let chunk_models: Vec<models::chunks::Chunk> = chunks
+        .iter()
+        .map(|chunk| models::chunks::Chunk::from_chunk_view(block_height, chunk))
+        .collect();
+
+    loop {
+        match diesel::insert_into(schema::chunks::table)
+            .values(chunk_models.clone())
+            .on_conflict_do_nothing()
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while Chunks were adding to database. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
         }
     }
 }

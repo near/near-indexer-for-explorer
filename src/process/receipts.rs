@@ -39,16 +39,24 @@ async fn save_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     receipts: Vec<models::Receipt>,
 ) {
-    match diesel::insert_into(schema::receipts::table)
-        .values(receipts)
-        .execute_async(&pool)
-        .await
-    {
-        Ok(_) => (),
-        Err(async_error) => {
-            error!(target: "indexer_for_explorer", "Error occured while Receipt were adding to database... \n {:#?}", async_error);
-        }
-    };
+    loop {
+        match diesel::insert_into(schema::receipts::table)
+            .values(receipts.clone())
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while Receipt were adding to database. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        };
+    }
 }
 
 async fn process_receipt_actions(
@@ -78,20 +86,20 @@ async fn process_receipt_actions(
                 for (index, action) in actions.iter().enumerate() {
                     receipt_action_input_data.extend(input_data_ids.iter().map(|data_id| {
                         models::ReceiptActionInputData::from_data_id(
-                            receipt.receipt_id.to_string(),
-                            data_id.to_string(),
+                            receipt.receipt_id.as_ref().to_vec(),
+                            data_id.as_ref().to_vec(),
                         )
                     }));
                     receipt_action_output_data.extend(output_data_receivers.iter().map(
                         |receiver| {
                             models::ReceiptActionOutputData::from_data_receiver(
-                                receipt.receipt_id.to_string(),
+                                receipt.receipt_id.as_ref().to_vec(),
                                 receiver,
                             )
                         },
                     ));
                     receipt_action_actions.push(models::ReceiptActionAction::from_action_view(
-                        receipt.receipt_id.to_string(),
+                        receipt.receipt_id.as_ref().to_vec(),
                         i32::from_usize(index).unwrap(),
                         action,
                     ));
@@ -100,49 +108,81 @@ async fn process_receipt_actions(
         }
     }
 
-    match diesel::insert_into(schema::receipt_actions::table)
-        .values(receipt_actions)
-        .execute_async(&pool)
-        .await
-    {
-        Ok(_) => (),
-        Err(async_error) => {
-            error!(target: "indexer_for_explorer", "Error occurred while ReceiptActions were saving... \n {:#?}", async_error);
-        }
-    };
+    loop {
+        match diesel::insert_into(schema::receipt_actions::table)
+            .values(receipt_actions.clone())
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while ReceiptActions were saving. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        };
+    }
 
-    match diesel::insert_into(schema::receipt_action_actions::table)
-        .values(receipt_action_actions)
-        .execute_async(&pool)
-        .await
-    {
-        Ok(_) => (),
-        Err(async_error) => {
-            error!(target: "indexer_for_explorer", "Error occurred while ReceiptActionActions were saving... \n {:#?}", async_error);
-        }
-    };
+    loop {
+        match diesel::insert_into(schema::receipt_action_actions::table)
+            .values(receipt_action_actions.clone())
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while ReceiptActionActions were saving. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        };
+    }
 
-    match diesel::insert_into(schema::receipt_action_output_data::table)
-        .values(receipt_action_output_data)
-        .execute_async(&pool)
-        .await
-    {
-        Ok(_) => (),
-        Err(async_error) => {
-            error!(target: "indexer_for_explorer", "Error occurred while ReceiptActionOutputData were saving... \n {:#?}", async_error);
-        }
-    };
+    loop {
+        match diesel::insert_into(schema::receipt_action_output_data::table)
+            .values(receipt_action_output_data.clone())
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while ReceiptActionOutputData were saving. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        };
+    }
 
-    match diesel::insert_into(schema::receipt_action_input_data::table)
-        .values(receipt_action_input_data)
-        .execute_async(&pool)
-        .await
-    {
-        Ok(_) => (),
-        Err(async_error) => {
-            error!(target: "indexer_for_explorer", "Error occurred while ReceiptActionInputData were saving... \n {:#?}", async_error);
-        }
-    };
+    loop {
+        match diesel::insert_into(schema::receipt_action_input_data::table)
+            .values(receipt_action_input_data.clone())
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while ReceiptActionInputData were saving. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        };
+    }
 }
 
 async fn process_receipt_data(
@@ -157,14 +197,22 @@ async fn process_receipt_data(
         })
         .collect();
 
-    match diesel::insert_into(schema::receipt_data::table)
-        .values(receipt_data_models)
-        .execute_async(&pool)
-        .await
-    {
-        Ok(_) => (),
-        Err(async_error) => {
-            error!(target: "indexer_for_explorer", "Error occurred while ReceiptData were saving... \n {:#?}", async_error);
-        }
-    };
+    loop {
+        match diesel::insert_into(schema::receipt_data::table)
+            .values(receipt_data_models.clone())
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while ReceiptData were saving. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        };
+    }
 }

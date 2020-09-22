@@ -13,13 +13,13 @@ use schema::{
     receipt_data, receipts,
 };
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone)]
 pub struct Receipt {
-    pub receipt_id: String,
+    pub receipt_id: Vec<u8>,
     pub block_height: BigDecimal,
     pub predecessor_id: String,
     pub receiver_id: String,
-    pub type_: ReceiptType,
+    pub receipt_kind: ReceiptType,
 }
 
 impl Receipt {
@@ -28,11 +28,11 @@ impl Receipt {
         block_height: u64,
     ) -> Self {
         Self {
-            receipt_id: receipt.receipt_id.to_string(),
+            receipt_id: receipt.receipt_id.as_ref().to_vec(),
             block_height: block_height.into(),
             predecessor_id: receipt.predecessor_id.to_string(),
             receiver_id: receipt.receiver_id.to_string(),
-            type_: match receipt.receipt {
+            receipt_kind: match receipt.receipt {
                 near_indexer::near_primitives::views::ReceiptEnumView::Action { .. } => {
                     ReceiptType::Action
                 }
@@ -44,11 +44,11 @@ impl Receipt {
     }
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone)]
 #[table_name = "receipt_data"]
 pub struct ReceiptData {
-    pub receipt_id: String,
-    pub data_id: String,
+    pub data_id: Vec<u8>,
+    pub receipt_id: Vec<u8>,
     pub data: Option<Vec<u8>>,
 }
 
@@ -62,8 +62,8 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptData
             &receipt_view.receipt
         {
             Ok(Self {
-                receipt_id: receipt_view.receipt_id.to_string(),
-                data_id: data_id.to_string(),
+                receipt_id: receipt_view.receipt_id.as_ref().to_vec(),
+                data_id: data_id.as_ref().to_vec(),
                 data: data.clone(),
             })
         } else {
@@ -72,9 +72,9 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptData
     }
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone)]
 pub struct ReceiptAction {
-    pub receipt_id: String,
+    pub receipt_id: Vec<u8>,
     pub signer_id: String,
     pub signer_public_key: String,
     pub gas_price: BigDecimal,
@@ -94,7 +94,7 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
         } = &receipt_view.receipt {
             Ok(
                 Self {
-                    receipt_id: receipt_view.receipt_id.to_string(),
+                    receipt_id: receipt_view.receipt_id.as_ref().to_vec(),
                     signer_id: signer_id.to_string(),
                     signer_public_key: signer_public_key.to_string(),
                     gas_price: BigDecimal::from_u128(*gas_price).unwrap_or_else(||0.into()),
@@ -106,25 +106,25 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
     }
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone)]
 #[table_name = "receipt_action_actions"]
 pub struct ReceiptActionAction {
-    pub receipt_id: String,
+    pub receipt_id: Vec<u8>,
     pub index: i32,
-    pub type_: ActionType,
-    pub args: Option<serde_json::Value>,
+    pub action_kind: ActionType,
+    pub args: serde_json::Value,
 }
 
 impl ReceiptActionAction {
     pub fn from_action_view(
-        receipt_id: String,
+        receipt_id: Vec<u8>,
         index: i32,
         action_view: &near_indexer::near_primitives::views::ActionView,
     ) -> Self {
-        let (type_, args): (ActionType, Option<Value>) = match &action_view {
-            ActionView::CreateAccount => (ActionType::CreateAccount, None),
+        let (action_kind, args): (ActionType, Value) = match &action_view {
+            ActionView::CreateAccount => (ActionType::CreateAccount, json!({})),
             ActionView::DeployContract { code } => {
-                (ActionType::DeployContract, Some(json!({ "code": code })))
+                (ActionType::DeployContract, json!({ "code": code }))
             }
             ActionView::FunctionCall {
                 method_name,
@@ -133,65 +133,65 @@ impl ReceiptActionAction {
                 deposit,
             } => (
                 ActionType::FunctionCall,
-                Some(json!({
+                json!({
                     "method_name": method_name,
                     "args": args,
                     "gas": gas,
                     "deposit": deposit.to_string(),
-                })),
+                }),
             ),
             ActionView::Transfer { deposit } => (
                 ActionType::Transfer,
-                Some(json!({ "deposit": deposit.to_string() })),
+                json!({ "deposit": deposit.to_string() }),
             ),
             ActionView::Stake { stake, public_key } => (
                 ActionType::Stake,
-                Some(json!({
+                json!({
                     "stake": stake.to_string(),
                     "public_key": public_key,
-                })),
+                }),
             ),
             ActionView::AddKey {
                 public_key,
                 access_key,
             } => (
                 ActionType::AddKey,
-                Some(json!({
+                json!({
                     "public_key": public_key,
                     "access_key": access_key,
-                })),
+                }),
             ),
             ActionView::DeleteKey { public_key } => (
                 ActionType::DeleteKey,
-                Some(json!({
+                json!({
                     "public_key": public_key,
-                })),
+                }),
             ),
             ActionView::DeleteAccount { beneficiary_id } => (
                 ActionType::DeleteAccount,
-                Some(json!({
+                json!({
                     "beneficiary_id": beneficiary_id,
-                })),
+                }),
             ),
         };
         Self {
             receipt_id,
             index,
             args,
-            type_,
+            action_kind,
         }
     }
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone)]
 #[table_name = "receipt_action_input_data"]
 pub struct ReceiptActionInputData {
-    pub receipt_id: String,
-    pub data_id: String,
+    pub receipt_id: Vec<u8>,
+    pub data_id: Vec<u8>,
 }
 
 impl ReceiptActionInputData {
-    pub fn from_data_id(receipt_id: String, data_id: String) -> Self {
+    pub fn from_data_id(receipt_id: Vec<u8>, data_id: Vec<u8>) -> Self {
         Self {
             receipt_id,
             data_id,
@@ -199,19 +199,19 @@ impl ReceiptActionInputData {
     }
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone)]
 #[table_name = "receipt_action_output_data"]
 pub struct ReceiptActionOutputData {
-    pub receipt_id: String,
-    pub data_id: String,
+    pub receipt_id: Vec<u8>,
+    pub data_id: Vec<u8>,
     pub receiver_id: String,
 }
 
 impl ReceiptActionOutputData {
-    pub fn from_data_receiver(receipt_id: String, data_receiver: &DataReceiverView) -> Self {
+    pub fn from_data_receiver(receipt_id: Vec<u8>, data_receiver: &DataReceiverView) -> Self {
         Self {
             receipt_id,
-            data_id: data_receiver.data_id.to_string(),
+            data_id: data_receiver.data_id.as_ref().to_vec(),
             receiver_id: data_receiver.receiver_id.to_string(),
         }
     }

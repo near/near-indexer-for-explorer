@@ -13,13 +13,19 @@ mod models;
 mod process;
 mod schema;
 
+const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
+const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
+
 async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>) {
     let pool = models::establish_connection();
 
     while let Some(streamer_message) = stream.recv().await {
         // Block
         info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
-        let process_block_future = process::blocks::process_block(&pool, &streamer_message.block);
+        let process_block_future = process::blocks::process_block(
+            &pool,
+            &streamer_message.block
+        );
 
         // Chunks
         let process_chunks_future = process::chunks::process_chunks(
