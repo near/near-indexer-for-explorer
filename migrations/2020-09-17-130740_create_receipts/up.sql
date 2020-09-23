@@ -13,9 +13,12 @@ CREATE TYPE action_type AS ENUM (
 CREATE TABLE receipts (
     receipt_id bytea PRIMARY KEY,
     block_height numeric(45, 0), -- numeric(precision) 45 digits should be enough to store u128::MAX
+--     chunk_hash bytea NOT NULL,
     predecessor_id text NOT NULL,
     receiver_id text NOT NULL,
-    receipt_kind receipt_type NOT NULL
+    receipt_kind receipt_type NOT NULL,
+    CONSTRAINT block_receipts_fk FOREIGN KEY (block_height) REFERENCES blocks(height) ON DELETE CASCADE
+--     CONSTRAINT chunk_receipts_fk FOREIGN KEY (chunk_hash) REFERENCES chunks(hash) ON DELETE CASCADE
 );
 CREATE TABLE receipt_data (
     data_id bytea PRIMARY KEY,

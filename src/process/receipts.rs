@@ -69,41 +69,36 @@ async fn process_receipt_actions(
     let mut receipt_action_output_data: Vec<models::ReceiptActionOutputData> = vec![];
 
     for receipt in receipts {
-        if matches!(receipt.receipt, near_indexer::near_primitives::views::ReceiptEnumView::Action { .. })
+        if let near_indexer::near_primitives::views::ReceiptEnumView::Action {
+            actions,
+            input_data_ids,
+            output_data_receivers,
+            ..
+        } = &receipt.receipt
         {
             match models::ReceiptAction::try_from(*receipt) {
                 Ok(model) => receipt_actions.push(model),
                 Err(_) => continue,
             }
 
-            if let near_indexer::near_primitives::views::ReceiptEnumView::Action {
-                actions,
-                input_data_ids,
-                output_data_receivers,
-                ..
-            } = &receipt.receipt
-            {
-                for (index, action) in actions.iter().enumerate() {
-                    receipt_action_input_data.extend(input_data_ids.iter().map(|data_id| {
-                        models::ReceiptActionInputData::from_data_id(
-                            receipt.receipt_id.as_ref().to_vec(),
-                            data_id.as_ref().to_vec(),
-                        )
-                    }));
-                    receipt_action_output_data.extend(output_data_receivers.iter().map(
-                        |receiver| {
-                            models::ReceiptActionOutputData::from_data_receiver(
-                                receipt.receipt_id.as_ref().to_vec(),
-                                receiver,
-                            )
-                        },
-                    ));
-                    receipt_action_actions.push(models::ReceiptActionAction::from_action_view(
+            for (index, action) in actions.iter().enumerate() {
+                receipt_action_input_data.extend(input_data_ids.iter().map(|data_id| {
+                    models::ReceiptActionInputData::from_data_id(
                         receipt.receipt_id.as_ref().to_vec(),
-                        i32::from_usize(index).unwrap(),
-                        action,
-                    ));
-                }
+                        data_id.as_ref().to_vec(),
+                    )
+                }));
+                receipt_action_output_data.extend(output_data_receivers.iter().map(|receiver| {
+                    models::ReceiptActionOutputData::from_data_receiver(
+                        receipt.receipt_id.as_ref().to_vec(),
+                        receiver,
+                    )
+                }));
+                receipt_action_actions.push(models::ReceiptActionAction::from_action_view(
+                    receipt.receipt_id.as_ref().to_vec(),
+                    i32::from_usize(index).unwrap(),
+                    action,
+                ));
             }
         }
     }
@@ -191,10 +186,7 @@ async fn process_receipt_data(
 ) {
     let receipt_data_models: Vec<models::ReceiptData> = receipts
         .iter()
-        .filter_map(|receipt| match models::ReceiptData::try_from(*receipt) {
-            Ok(model) => Some(model),
-            Err(_) => None,
-        })
+        .filter_map(|receipt| models::ReceiptData::try_from(*receipt).ok())
         .collect();
 
     loop {

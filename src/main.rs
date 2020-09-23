@@ -22,13 +22,17 @@ async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>
     while let Some(streamer_message) = stream.recv().await {
         // Block
         info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
-        let process_block_future = process::blocks::process_block(
-            &pool,
-            &streamer_message.block
-        );
+        let process_block_future = process::blocks::process_block(&pool, &streamer_message.block);
 
         // Chunks
         let process_chunks_future = process::chunks::process_chunks(
+            &pool,
+            &streamer_message.chunks,
+            streamer_message.block.header.height,
+        );
+
+        // Transaction
+        let process_transactions_future = process::transactions::process_transactions(
             &pool,
             &streamer_message.chunks,
             streamer_message.block.header.height,
@@ -48,10 +52,21 @@ async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>
             streamer_message.block.header.height,
         );
 
+        // ExecutionOutcomes
+        let process_execution_outcomes_future = process::execution_outcomes::process_execution_outcomes(
+            &pool,
+            streamer_message.receipt_execution_outcomes
+                .values()
+                .map(|outcome| outcome)
+                .collect::<Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>>()
+        );
+
         join!(
             process_block_future,
             process_chunks_future,
-            process_receipts_futures
+            process_receipts_futures,
+            process_execution_outcomes_future,
+            process_transactions_future,
         );
     }
 }

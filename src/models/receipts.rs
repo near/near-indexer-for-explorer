@@ -1,7 +1,7 @@
-use num_traits::cast::FromPrimitive;
 use std::convert::TryFrom;
 
 use bigdecimal::BigDecimal;
+use num_traits::cast::FromPrimitive;
 use serde_json::{json, Value};
 
 use near_indexer::near_primitives::views::{ActionView, DataReceiverView};
@@ -17,6 +17,7 @@ use schema::{
 pub struct Receipt {
     pub receipt_id: Vec<u8>,
     pub block_height: BigDecimal,
+    // pub chunk_hash: Vec<u8>,
     pub predecessor_id: String,
     pub receiver_id: String,
     pub receipt_kind: ReceiptType,
@@ -25,11 +26,13 @@ pub struct Receipt {
 impl Receipt {
     pub fn from_receipt_view(
         receipt: &near_indexer::near_primitives::views::ReceiptView,
-        block_height: u64,
+        block_height: near_indexer::near_primitives::types::BlockHeight,
+        // chunk_header: &near_indexer::near_primitives::views::ChunkHeaderView,
     ) -> Self {
         Self {
             receipt_id: receipt.receipt_id.as_ref().to_vec(),
             block_height: block_height.into(),
+            // chunk_hash: chunk_header.chunk_hash.as_ref().to_vec(),
             predecessor_id: receipt.predecessor_id.to_string(),
             receiver_id: receipt.receiver_id.to_string(),
             receipt_kind: match receipt.receipt {
@@ -91,15 +94,14 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
             signer_public_key,
             gas_price,
             ..
-        } = &receipt_view.receipt {
-            Ok(
-                Self {
-                    receipt_id: receipt_view.receipt_id.as_ref().to_vec(),
-                    signer_id: signer_id.to_string(),
-                    signer_public_key: signer_public_key.to_string(),
-                    gas_price: BigDecimal::from_u128(*gas_price).unwrap_or_else(||0.into()),
-                }
-            )
+        } = &receipt_view.receipt
+        {
+            Ok(Self {
+                receipt_id: receipt_view.receipt_id.as_ref().to_vec(),
+                signer_id: signer_id.to_string(),
+                signer_public_key: signer_public_key.to_string(),
+                gas_price: BigDecimal::from_u128(*gas_price).unwrap_or_else(|| 0.into()),
+            })
         } else {
             Err("Given ReceiptView is not Action type")
         }

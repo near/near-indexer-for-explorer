@@ -9,18 +9,20 @@ pub mod enums;
 // pub mod accounts;
 pub mod blocks;
 pub mod chunks;
+pub mod execution_outcomes;
 pub mod receipts;
-// pub mod transactions;
+pub mod transactions;
 
 // pub use access_keys::AccessKey;
 // pub use accounts::Account;
 pub use blocks::Block;
 pub use chunks::Chunk;
+pub use execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt};
 pub use receipts::{
     Receipt, ReceiptAction, ReceiptActionAction, ReceiptActionInputData, ReceiptActionOutputData,
     ReceiptData,
 };
-// pub use transactions::Transaction;
+pub use transactions::{Transaction, TransactionAction};
 
 pub(crate) fn establish_connection() -> Pool<ConnectionManager<PgConnection>> {
     dotenv().ok();
