@@ -1,10 +1,10 @@
 use std::convert::TryFrom;
 
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
+use diesel::{PgConnection, QueryDsl, JoinOnDsl, ExpressionMethods};
 use futures::join;
 use num_traits::cast::FromPrimitive;
-use tokio_diesel::AsyncRunQueryDsl;
+use tokio_diesel::{AsyncRunQueryDsl};
 use tracing::error;
 
 use crate::models;
@@ -16,12 +16,50 @@ pub(crate) async fn process_receipts(
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
     block_height: u64,
 ) {
+    let mut receipt_models: Vec<models::receipts::Receipt> = vec![];
+    for receipt in &receipts {
+        eprintln!("RECEIPT ID {}", receipt.receipt_id.to_string());
+        let mut transaction_hash: Option<String> = None;
+        let tx_lookup_through_outcomes: Result<Vec<String>, tokio_diesel::AsyncError> = schema::execution_outcome_receipts::table
+            .inner_join(schema::receipts::table)
+            .filter(
+                schema::execution_outcome_receipts::dsl::receipt_id.eq(receipt.receipt_id.to_string())
+            )
+            .select(schema::receipts::dsl::transaction_hash)
+            .load_async(&pool)
+            .await;
+
+        match tx_lookup_through_outcomes {
+            Ok(result) => {
+                eprintln!("{:#?}", result);
+                if !result.is_empty() {
+                    transaction_hash = Some(result.get(0).unwrap().clone());
+                }
+            },
+            Err(_) => {},
+        }
+
+        if transaction_hash.is_none() {
+            let tx_lookup_through_transactions: Result<Vec<String>, tokio_diesel::AsyncError> = schema::transactions::table
+                    .filter(
+                        schema::transactions::dsl::receipt_id.eq(receipt.receipt_id.to_string())
+                    )
+                    .select(schema::transactions::transaction_hash)
+                    .load_async(&pool)
+                    .await;
+            match tx_lookup_through_transactions {
+                Ok(result) => {
+                    transaction_hash = Some(result.get(0).expect("At least one element is expected").clone());
+                },
+                Err(_) => {},
+            }
+        }
+
+        receipt_models.push(models::Receipt::from_receipt_view(receipt, block_height, transaction_hash.expect("`transaction_hash` expected here.")));
+    }
     let save_receipts_future = save_receipts(
         &pool,
-        receipts
-            .iter()
-            .map(|receipt| models::Receipt::from_receipt_view(receipt, block_height))
-            .collect::<Vec<models::Receipt>>(),
+        receipt_models
     );
 
     let process_receipt_actions_future = process_receipt_actions(&pool, &receipts);
@@ -84,18 +122,18 @@ async fn process_receipt_actions(
             for (index, action) in actions.iter().enumerate() {
                 receipt_action_input_data.extend(input_data_ids.iter().map(|data_id| {
                     models::ReceiptActionInputData::from_data_id(
-                        receipt.receipt_id.as_ref().to_vec(),
-                        data_id.as_ref().to_vec(),
+                        receipt.receipt_id.to_string(),
+                        data_id.to_string(),
                     )
                 }));
                 receipt_action_output_data.extend(output_data_receivers.iter().map(|receiver| {
                     models::ReceiptActionOutputData::from_data_receiver(
-                        receipt.receipt_id.as_ref().to_vec(),
+                        receipt.receipt_id.to_string(),
                         receiver,
                     )
                 }));
                 receipt_action_actions.push(models::ReceiptActionAction::from_action_view(
-                    receipt.receipt_id.as_ref().to_vec(),
+                    receipt.receipt_id.to_string(),
                     i32::from_usize(index).unwrap(),
                     action,
                 ));

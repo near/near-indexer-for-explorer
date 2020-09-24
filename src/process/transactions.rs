@@ -74,7 +74,7 @@ async fn process_chunk_transactions(
                 .enumerate()
                 .map(move |(index, action)| {
                     models::transactions::TransactionAction::from_action_view(
-                        tx.transaction.hash.as_ref().to_vec(),
+                        tx.transaction.hash.to_string(),
                         index as i32,
                         action,
                     )

@@ -8,7 +8,7 @@ use schema::chunks;
 #[derive(Insertable, Clone)]
 pub struct Chunk {
     pub block_id: BigDecimal,
-    pub hash: Vec<u8>,
+    pub hash: String,
     pub shard_id: BigDecimal,
     pub signature: String,
     pub gas_limit: BigDecimal,
@@ -27,7 +27,7 @@ impl Chunk {
         );
         Self {
             block_id: BigDecimal::from_u64(block_height).unwrap_or_else(|| 0.into()),
-            hash: chunk_view.header.chunk_hash.as_ref().to_vec(),
+            hash: chunk_view.header.chunk_hash.to_string(),
             shard_id: BigDecimal::from_u64(chunk_view.header.shard_id).unwrap_or_else(|| 0.into()),
             signature: chunk_view.header.signature.to_string(),
             gas_limit: BigDecimal::from_u64(chunk_view.header.gas_limit)

@@ -11,16 +11,16 @@ use schema::{transaction_actions, transactions};
 
 #[derive(Insertable, Clone)]
 pub struct Transaction {
-    pub transaction_hash: Vec<u8>,
+    pub transaction_hash: String,
     pub block_height: BigDecimal,
-    pub chunk_hash: Vec<u8>,
+    pub chunk_hash: String,
     pub signer_id: String,
     pub public_key: String,
     pub nonce: BigDecimal,
     pub receiver_id: String,
     pub signature: String,
     pub status: ExecutionOutcomeStatus,
-    pub receipt_id: Vec<u8>,
+    pub receipt_id: String,
     pub receipt_conversion_gas_burnt: BigDecimal,
     pub receipt_conversion_tokens_burnt: BigDecimal,
 }
@@ -32,7 +32,7 @@ impl Transaction {
         chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     ) -> Self {
         Self {
-            transaction_hash: tx.transaction.hash.as_ref().to_vec(),
+            transaction_hash: tx.transaction.hash.to_string(),
             block_height: block_height.into(),
             nonce: tx.transaction.nonce.into(),
             signer_id: tx.transaction.signer_id.to_string(),
@@ -45,9 +45,8 @@ impl Transaction {
                 .receipt_ids
                 .first()
                 .expect("`receipt_ids` must contain one Receipt Id")
-                .as_ref()
-                .to_vec(),
-            chunk_hash: chunk_hash.as_ref().to_vec(),
+                .to_string(),
+            chunk_hash: chunk_hash.to_string(),
             status: tx.outcome.outcome.status.clone().into(),
             receipt_conversion_gas_burnt: tx.outcome.outcome.gas_burnt.into(),
             receipt_conversion_tokens_burnt: BigDecimal::from_str(tx.outcome.outcome.tokens_burnt.to_string().as_str())
@@ -58,7 +57,7 @@ impl Transaction {
 
 #[derive(Insertable, Clone)]
 pub struct TransactionAction {
-    pub transaction_hash: Vec<u8>,
+    pub transaction_hash: String,
     pub index: i32,
     pub action_kind: ActionType,
     pub args: serde_json::Value,
@@ -66,7 +65,7 @@ pub struct TransactionAction {
 
 impl TransactionAction {
     pub fn from_action_view(
-        transaction_hash: Vec<u8>,
+        transaction_hash: String,
         index: i32,
         action_view: &near_indexer::near_primitives::views::ActionView,
     ) -> Self {

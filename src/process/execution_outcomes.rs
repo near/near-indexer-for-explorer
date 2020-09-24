@@ -41,9 +41,9 @@ pub(crate) async fn process_execution_outcomes(
                 .enumerate()
                 .map(
                     |(index, receipt_id)| models::execution_outcomes::ExecutionOutcomeReceipt {
-                        execution_outcome_receipt_id: outcome.id.as_ref().to_vec(),
+                        execution_outcome_receipt_id: outcome.id.to_string(),
                         index: index as i32,
-                        receipt_id: receipt_id.as_ref().to_vec(),
+                        receipt_id: receipt_id.to_string(),
                     },
                 )
                 .collect();

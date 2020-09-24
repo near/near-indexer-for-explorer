@@ -10,8 +10,8 @@ use schema::{execution_outcome_receipts, execution_outcomes};
 
 #[derive(Insertable, Clone)]
 pub struct ExecutionOutcome {
-    pub receipt_id: Vec<u8>,
-    pub block_hash: Vec<u8>,
+    pub receipt_id: String,
+    pub block_hash: String,
     pub gas_burnt: BigDecimal,
     pub tokens_burnt: BigDecimal,
     pub executor_id: String,
@@ -23,8 +23,8 @@ impl From<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView> for
         execution_outcome: &near_indexer::near_primitives::views::ExecutionOutcomeWithIdView,
     ) -> Self {
         Self {
-            block_hash: execution_outcome.block_hash.as_ref().to_vec(),
-            receipt_id: execution_outcome.id.as_ref().to_vec(),
+            block_hash: execution_outcome.block_hash.to_string(),
+            receipt_id: execution_outcome.id.to_string(),
             gas_burnt: execution_outcome.outcome.gas_burnt.into(),
             tokens_burnt: BigDecimal::from_str(
                 execution_outcome.outcome.tokens_burnt.to_string().as_str(),
@@ -36,9 +36,9 @@ impl From<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView> for
     }
 }
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Queryable, Clone)]
 pub struct ExecutionOutcomeReceipt {
-    pub execution_outcome_receipt_id: Vec<u8>,
+    pub execution_outcome_receipt_id: String,
     pub index: i32,
-    pub receipt_id: Vec<u8>,
+    pub receipt_id: String,
 }
