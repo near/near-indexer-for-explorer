@@ -1,6 +1,5 @@
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     blocks (height) {
         height -> Numeric,
@@ -14,7 +13,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     chunks (hash) {
         block_id -> Numeric,
@@ -30,7 +28,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     execution_outcome_receipts (execution_outcome_receipt_id, index, receipt_id) {
         execution_outcome_receipt_id -> Text,
@@ -68,7 +65,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_action_input_data (data_id) {
         data_id -> Text,
@@ -78,7 +74,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_action_output_data (data_id) {
         data_id -> Text,
@@ -89,7 +84,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_actions (receipt_id) {
         receipt_id -> Text,
@@ -101,7 +95,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_data (data_id) {
         data_id -> Text,
