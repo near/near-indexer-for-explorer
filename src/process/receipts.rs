@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::{PgConnection, QueryDsl, ExpressionMethods};
+use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::join;
 use num_traits::cast::FromPrimitive;
-use tokio_diesel::{AsyncRunQueryDsl};
+use tokio_diesel::AsyncRunQueryDsl;
 use tracing::{error, warn};
 
 use crate::models;
@@ -19,20 +19,42 @@ pub(crate) async fn process_receipts(
 ) {
     let mut skipping_receipt_ids: Vec<near_indexer::near_primitives::hash::CryptoHash> = vec![];
 
-    let tx_hashes_for_receipts_via_outcomes: Result<Vec<(String, String)>, tokio_diesel::AsyncError> = schema::execution_outcome_receipts::table
+    let tx_hashes_for_receipts_via_outcomes: Result<
+        Vec<(String, String)>,
+        tokio_diesel::AsyncError,
+    > = schema::execution_outcome_receipts::table
         .inner_join(schema::receipts::table)
         .filter(
-            schema::execution_outcome_receipts::dsl::receipt_id.eq_any(receipts.iter().map(|r| r.receipt_id.to_string()).collect::<Vec<_>>())
+            schema::execution_outcome_receipts::dsl::receipt_id.eq_any(
+                receipts
+                    .iter()
+                    .map(|r| r.receipt_id.to_string())
+                    .collect::<Vec<_>>(),
+            ),
         )
-        .select((schema::execution_outcome_receipts::dsl::receipt_id, schema::receipts::dsl::transaction_hash))
+        .select((
+            schema::execution_outcome_receipts::dsl::receipt_id,
+            schema::receipts::dsl::transaction_hash,
+        ))
         .load_async(&pool)
         .await;
 
-    let tx_hashes_for_receipt_via_transactions: Result<Vec<(String, String)>, tokio_diesel::AsyncError> = schema::transactions::table
+    let tx_hashes_for_receipt_via_transactions: Result<
+        Vec<(String, String)>,
+        tokio_diesel::AsyncError,
+    > = schema::transactions::table
         .filter(
-            schema::transactions::dsl::receipt_id.eq_any(receipts.iter().map(|r| r.receipt_id.to_string()).collect::<Vec<_>>())
+            schema::transactions::dsl::receipt_id.eq_any(
+                receipts
+                    .iter()
+                    .map(|r| r.receipt_id.to_string())
+                    .collect::<Vec<_>>(),
+            ),
         )
-        .select((schema::transactions::dsl::receipt_id, schema::transactions::dsl::transaction_hash))
+        .select((
+            schema::transactions::dsl::receipt_id,
+            schema::transactions::dsl::transaction_hash,
+        ))
         .load_async(&pool)
         .await;
 
@@ -40,11 +62,11 @@ pub(crate) async fn process_receipts(
 
     match tx_hashes_for_receipts_via_outcomes {
         Ok(result) => tx_hashes_for_receipts.extend(result),
-        Err(_) => {}, // TODO: handle error
+        Err(_) => {} // TODO: handle error
     };
     match tx_hashes_for_receipt_via_transactions {
         Ok(result) => tx_hashes_for_receipts.extend(result),
-        Err(_) => {}, // TODO: handle error
+        Err(_) => {} // TODO: handle error
     };
 
     let receipt_models: Vec<models::receipts::Receipt> = receipts
@@ -57,7 +79,7 @@ pub(crate) async fn process_receipts(
                     tx_hashes_for_receipts
                         .get(r.receipt_id.to_string().as_str())
                         .expect("transaction hash expected as we have check for it earlier")
-                        .clone()
+                        .clone(),
                 ))
             } else {
                 warn!(
@@ -111,10 +133,7 @@ pub(crate) async fn process_receipts(
     //
     //     receipt_models.push(models::Receipt::from_receipt_view(receipt, block_height, transaction_hash.expect("`transaction_hash` expected here.")));
     // }
-    let save_receipts_future = save_receipts(
-        &pool,
-        receipt_models
-    );
+    let save_receipts_future = save_receipts(&pool, receipt_models);
 
     let receipts_to_process: Vec<&near_indexer::near_primitives::views::ReceiptView> = receipts
         .into_iter()

@@ -42,12 +42,14 @@ CREATE TABLE receipt_action_actions (
 );
 
 CREATE TABLE receipt_action_output_data (
-    data_id text PRIMARY KEY,
+    id bigserial PRIMARY KEY,
+    data_id text NOT NULL,
     receipt_id text NOT NULL,
     receiver_id text NOT NULL
 );
 
 CREATE TABLE receipt_action_input_data (
-    data_id text PRIMARY KEY,
+    id bigserial PRIMARY KEY,
+    data_id text NOT NULL,
     receipt_id text NOT NULL
 );

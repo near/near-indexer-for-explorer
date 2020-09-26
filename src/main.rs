@@ -31,42 +31,74 @@ async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>
             streamer_message.block.header.height,
         );
 
-        // Transaction
-        let process_transactions_future = process::transactions::process_transactions(
-            &pool,
-            &streamer_message.chunks,
-            streamer_message.block.header.height,
-        );
+        let tx_outcomes_and_receipts_future = async {
+            process::execution_outcomes::process_execution_outcomes(
+                &pool,
+                streamer_message.receipt_execution_outcomes
+                    .values()
+                    .map(|outcome| outcome)
+                    .collect::<Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>>()
+            ).await;
 
-        // Receipts
-        let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> = streamer_message
-            .chunks
-            .iter()
-            .flat_map(|chunk| &chunk.receipts)
-            .chain(streamer_message.local_receipts.iter())
-            .collect();
+            process::transactions::process_transactions(
+                &pool,
+                &streamer_message.chunks,
+                streamer_message.block.header.height,
+            )
+            .await;
 
-        let process_receipts_futures = process::receipts::process_receipts(
-            &pool,
-            receipts,
-            streamer_message.block.header.height,
-        );
+            let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> =
+                streamer_message
+                    .chunks
+                    .iter()
+                    .flat_map(|chunk| &chunk.receipts)
+                    .chain(streamer_message.local_receipts.iter())
+                    .collect();
 
+            process::receipts::process_receipts(
+                &pool,
+                receipts,
+                streamer_message.block.header.height,
+            )
+            .await;
+        };
         // ExecutionOutcomes
-        let process_execution_outcomes_future = process::execution_outcomes::process_execution_outcomes(
-            &pool,
-            streamer_message.receipt_execution_outcomes
-                .values()
-                .map(|outcome| outcome)
-                .collect::<Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>>()
-        );
+        // let process_execution_outcomes_future = process::execution_outcomes::process_execution_outcomes(
+        //     &pool,
+        //     streamer_message.receipt_execution_outcomes
+        //         .values()
+        //         .map(|outcome| outcome)
+        //         .collect::<Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>>()
+        // );
+
+        // // Transaction
+        // let process_transactions_future = process::transactions::process_transactions(
+        //     &pool,
+        //     &streamer_message.chunks,
+        //     streamer_message.block.header.height,
+        // );
+
+        // // Receipts
+        // let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> = streamer_message
+        //     .chunks
+        //     .iter()
+        //     .flat_map(|chunk| &chunk.receipts)
+        //     .chain(streamer_message.local_receipts.iter())
+        //     .collect();
+
+        // let process_receipts_futures = process::receipts::process_receipts(
+        //     &pool,
+        //     receipts,
+        //     streamer_message.block.header.height,
+        // );
 
         join!(
             process_block_future,
             process_chunks_future,
-            process_receipts_futures,
-            process_execution_outcomes_future,
-            process_transactions_future,
+            tx_outcomes_and_receipts_future,
+            // process_receipts_futures,
+            // process_execution_outcomes_future,
+            // process_transactions_future,
         );
     }
 }
