@@ -74,7 +74,7 @@ impl TransactionAction {
         let (action_kind, args): (ActionType, Value) = match &action_view {
             ActionView::CreateAccount => (ActionType::CreateAccount, json!({})),
             ActionView::DeployContract { code } => {
-                (ActionType::DeployContract, json!({ "code": code }))
+                (ActionType::DeployContract, json!({ "code": "Contract code skipped..." }))
             }
             ActionView::FunctionCall {
                 method_name,
