@@ -57,7 +57,7 @@ impl Transaction {
     }
 }
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 pub struct TransactionAction {
     pub transaction_hash: String,
     pub index: i32,
