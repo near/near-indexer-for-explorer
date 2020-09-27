@@ -84,8 +84,14 @@ impl TransactionAction {
             } => (
                 ActionType::FunctionCall,
                 json!({
-                    "method_name": method_name,
-                    "args": args,
+                    "method_name": match utf8::decode(method_name.as_bytes()) {
+                        Ok(decoded) => decoded,
+                        Err(_) => "unable to decode",
+                    },
+                    "args": match utf8::decode(args.as_bytes()) {
+                        Ok(decoded) => decoded,
+                        Err(_) => "unable to decode",
+                    },
                     "gas": gas,
                     "deposit": deposit.to_string(),
                 }),
