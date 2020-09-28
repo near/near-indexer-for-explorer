@@ -74,7 +74,7 @@ impl TransactionAction {
         let (action_kind, args): (ActionType, Value) = match &action_view {
             ActionView::CreateAccount => (ActionType::CreateAccount, json!({})),
             ActionView::DeployContract { code } => {
-                (ActionType::DeployContract, json!({ "code": code.escape_default() }))
+                (ActionType::DeployContract, json!({ "code": code.escape_default().to_string() }))
             }
             ActionView::FunctionCall {
                 method_name,
@@ -84,8 +84,8 @@ impl TransactionAction {
             } => (
                 ActionType::FunctionCall,
                 json!({
-                    "method_name": method_name.escape_default(),
-                    "args": args.escape_default(),
+                    "method_name": method_name.escape_default().to_string(),
+                    "args": args.escape_default().to_string(),
                     "gas": gas,
                     "deposit": deposit.to_string(),
                 }),
