@@ -1,6 +1,5 @@
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     blocks (height) {
         height -> Numeric,
@@ -14,7 +13,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     chunks (hash) {
         block_id -> Numeric,
@@ -30,7 +28,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     execution_outcome_receipts (execution_outcome_receipt_id, index, receipt_id) {
         execution_outcome_receipt_id -> Text,
@@ -68,7 +65,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_action_input_data (id) {
         id -> Int8,
@@ -79,7 +75,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_action_output_data (id) {
         id -> Int8,
@@ -91,7 +86,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_actions (receipt_id) {
         receipt_id -> Text,
@@ -103,7 +97,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_data (data_id) {
         data_id -> Text,
@@ -157,16 +150,6 @@ table! {
         receipt_conversion_tokens_burnt -> Nullable<Numeric>,
     }
 }
-
-joinable!(execution_outcome_receipts -> execution_outcomes (execution_outcome_receipt_id));
-joinable!(execution_outcome_receipts -> receipts (execution_outcome_receipt_id));
-joinable!(execution_outcomes -> receipts (receipt_id));
-joinable!(chunks -> blocks (block_id));
-joinable!(receipts -> blocks (block_height));
-joinable!(receipts -> transactions (transaction_hash));
-joinable!(transaction_actions -> transactions (transaction_hash));
-joinable!(transactions -> blocks (block_height));
-joinable!(transactions -> chunks (chunk_hash));
 
 allow_tables_to_appear_in_same_query!(
     blocks,

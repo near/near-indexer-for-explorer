@@ -16,9 +16,7 @@ CREATE TABLE receipts (
 --     chunk_hash bytea NOT NULL,
     predecessor_id text NOT NULL,
     receiver_id text NOT NULL,
-    receipt_kind receipt_type NOT NULL,
-    CONSTRAINT block_receipts_fk FOREIGN KEY (block_height) REFERENCES blocks(height) ON DELETE CASCADE
---     CONSTRAINT chunk_receipts_fk FOREIGN KEY (chunk_hash) REFERENCES chunks(hash) ON DELETE CASCADE
+    receipt_kind receipt_type NOT NULL
 );
 CREATE TABLE receipt_data (
     data_id text PRIMARY KEY,

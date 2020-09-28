@@ -98,7 +98,6 @@ async fn process_chunk_transactions(
                     async_error,
                     &transaction_action_models,
                 );
-                panic!("Panic for debug purpose");
                 tokio::time::delay_for(crate::INTERVAL).await;
             }
         }
