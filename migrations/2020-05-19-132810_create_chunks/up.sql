@@ -7,5 +7,6 @@ CREATE TABLE chunks (
 	gas_limit numeric(45) NOT NULL, -- numeric(precision) 45 digits should be enough to store u128::MAX
 	gas_used numeric(45) NOT NULL, -- numeric(precision) 45 digits should be enough to store u128::MAX
 	height_created numeric(45) NOT NULL, -- numeric(precision) 45 digits should be enough to store u128::MAX
-	height_included numeric(45) NOT NULL -- numeric(precision) 45 digits should be enough to store u128::MAX
+	height_included numeric(45) NOT NULL, -- numeric(precision) 45 digits should be enough to store u128::MAX
+	CONSTRAINT chunks_fk FOREIGN KEY (block_id) REFERENCES blocks(height) ON DELETE CASCADE
 );

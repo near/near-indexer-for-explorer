@@ -1,7 +1,8 @@
 use clap::Clap;
 #[macro_use]
 extern crate diesel;
-use futures::join;
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
 use tokio::sync::mpsc;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -16,58 +17,58 @@ mod schema;
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 
+async fn handle_message(
+    pool: std::sync::Arc<Pool<ConnectionManager<PgConnection>>>,
+    streamer_message: near_indexer::StreamerMessage,
+) {
+    process::blocks::process_block(&pool, &streamer_message.block).await;
+
+    // Chunks
+    process::chunks::process_chunks(
+        &pool,
+        &streamer_message.chunks,
+        streamer_message.block.header.height,
+    )
+    .await;
+
+    // Transaction
+    process::transactions::process_transactions(
+        &pool,
+        &streamer_message.chunks,
+        streamer_message.block.header.height,
+    )
+    .await;
+
+    // Receipts
+    let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> = streamer_message
+        .chunks
+        .iter()
+        .flat_map(|chunk| &chunk.receipts)
+        .chain(streamer_message.local_receipts.iter())
+        .collect();
+
+    process::receipts::process_receipts(&pool, receipts, streamer_message.block.header.height)
+        .await;
+
+    // ExecutionOutcomes
+    process::execution_outcomes::process_execution_outcomes(
+        &pool,
+        streamer_message
+            .receipt_execution_outcomes
+            .values()
+            .map(|outcome| outcome)
+            .collect::<Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>>(),
+    )
+    .await;
+}
+
 async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>) {
-    let pool = models::establish_connection();
+    let pool = std::sync::Arc::new(models::establish_connection());
 
     while let Some(streamer_message) = stream.recv().await {
         // Block
         info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
-        let process_block_future = process::blocks::process_block(&pool, &streamer_message.block);
-
-        // Chunks
-        let process_chunks_future = process::chunks::process_chunks(
-            &pool,
-            &streamer_message.chunks,
-            streamer_message.block.header.height,
-        );
-
-        // ExecutionOutcomes
-        let process_execution_outcomes_future = process::execution_outcomes::process_execution_outcomes(
-            &pool,
-            streamer_message.receipt_execution_outcomes
-                .values()
-                .map(|outcome| outcome)
-                .collect::<Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>>()
-        );
-
-        // Transaction
-        let process_transactions_future = process::transactions::process_transactions(
-            &pool,
-            &streamer_message.chunks,
-            streamer_message.block.header.height,
-        );
-
-        // Receipts
-        let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> = streamer_message
-            .chunks
-            .iter()
-            .flat_map(|chunk| &chunk.receipts)
-            .chain(streamer_message.local_receipts.iter())
-            .collect();
-
-        let process_receipts_futures = process::receipts::process_receipts(
-            &pool,
-            receipts,
-            streamer_message.block.header.height,
-        );
-
-        join!(
-            process_block_future,
-            process_chunks_future,
-            process_receipts_futures,
-            process_execution_outcomes_future,
-            process_transactions_future,
-        );
+        actix::spawn(handle_message(pool.clone(), streamer_message));
     }
 }
 

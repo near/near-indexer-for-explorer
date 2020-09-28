@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::{ExpressionMethods, PgConnection, QueryDsl, JoinOnDsl};
+use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
 use futures::join;
 use num_traits::cast::FromPrimitive;
 use tokio_diesel::AsyncRunQueryDsl;
@@ -23,9 +23,12 @@ pub(crate) async fn process_receipts(
         Vec<(String, String)>,
         tokio_diesel::AsyncError,
     > = schema::execution_outcome_receipts::table
-        .inner_join(schema::receipts::table.on(
-            schema::execution_outcome_receipts::dsl::execution_outcome_receipt_id.eq(schema::receipts::dsl::receipt_id)
-        ))
+        .inner_join(
+            schema::receipts::table.on(
+                schema::execution_outcome_receipts::dsl::execution_outcome_receipt_id
+                    .eq(schema::receipts::dsl::receipt_id),
+            ),
+        )
         .filter(
             schema::execution_outcome_receipts::dsl::receipt_id.eq_any(
                 receipts
