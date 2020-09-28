@@ -56,9 +56,10 @@ async fn process_chunk_transactions(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Transaction were adding to database. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while Transaction were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    &transaction_models
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }

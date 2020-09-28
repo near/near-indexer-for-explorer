@@ -28,9 +28,10 @@ pub(crate) async fn process_chunks(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Chunks were adding to database. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while Chunks were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    &chunk_models
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }

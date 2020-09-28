@@ -8,7 +8,7 @@ use crate::models::enums::ExecutionOutcomeStatus;
 use crate::schema;
 use schema::{execution_outcome_receipts, execution_outcomes};
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 pub struct ExecutionOutcome {
     pub receipt_id: String,
     pub block_hash: String,
@@ -36,7 +36,7 @@ impl From<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView> for
     }
 }
 
-#[derive(Insertable, Queryable, Clone)]
+#[derive(Insertable, Queryable, Clone, Debug)]
 pub struct ExecutionOutcomeReceipt {
     pub execution_outcome_receipt_id: String,
     pub index: i32,

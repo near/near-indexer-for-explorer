@@ -13,7 +13,7 @@ use schema::{
     receipt_data, receipts,
 };
 
-#[derive(Insertable, Queryable, Clone)]
+#[derive(Insertable, Queryable, Clone, Debug)]
 pub struct Receipt {
     pub receipt_id: String,
     pub block_height: BigDecimal,
@@ -50,7 +50,7 @@ impl Receipt {
     }
 }
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 #[table_name = "receipt_data"]
 pub struct ReceiptData {
     pub data_id: String,
@@ -78,7 +78,7 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptData
     }
 }
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 pub struct ReceiptAction {
     pub receipt_id: String,
     pub signer_id: String,
@@ -111,7 +111,7 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
     }
 }
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 #[table_name = "receipt_action_actions"]
 pub struct ReceiptActionAction {
     pub receipt_id: String,
@@ -189,7 +189,7 @@ impl ReceiptActionAction {
     }
 }
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 #[table_name = "receipt_action_input_data"]
 pub struct ReceiptActionInputData {
     pub receipt_id: String,
@@ -205,7 +205,7 @@ impl ReceiptActionInputData {
     }
 }
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 #[table_name = "receipt_action_output_data"]
 pub struct ReceiptActionOutputData {
     pub receipt_id: String,

@@ -9,7 +9,7 @@ use crate::models::enums::{ActionType, ExecutionOutcomeStatus};
 use crate::schema;
 use schema::{transaction_actions, transactions};
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 pub struct Transaction {
     pub transaction_hash: String,
     pub block_height: BigDecimal,

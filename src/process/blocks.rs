@@ -25,9 +25,10 @@ pub(crate) async fn process_block(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Block was adding to database. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while Block was adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    &block_model
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }

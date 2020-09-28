@@ -22,11 +22,19 @@ pub(crate) async fn process_execution_outcomes(
             {
                 Ok(_) => break,
                 Err(async_error) => {
+                    match &async_error {
+                        tokio_diesel::AsyncError::Error(error) => match error {
+                            diesel::result::Error::DatabaseError(kind, _) => if matches!(kind, diesel::result::DatabaseErrorKind::ForeignKeyViolation) { break },
+                            _ => {},
+                        },
+                        _ => {},
+                    }
                     error!(
                         target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while ExecutionOutcome were adding to database. Retrying in {} milliseconds... \n {:#?}",
+                        "Error occurred while ExecutionOutcome were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                         crate::INTERVAL.as_millis(),
-                        async_error
+                        async_error,
+                        &model,
                     );
                     tokio::time::delay_for(crate::INTERVAL).await;
                 }
@@ -59,9 +67,10 @@ pub(crate) async fn process_execution_outcomes(
                 Err(async_error) => {
                     error!(
                         target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while ExecutionOutcomeReceipt were adding to database. Retrying in {} milliseconds... \n {:#?}",
+                        "Error occurred while ExecutionOutcomeReceipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                         crate::INTERVAL.as_millis(),
-                        async_error
+                        async_error,
+                        &child_receipt_models
                     );
                     tokio::time::delay_for(crate::INTERVAL).await;
                 }

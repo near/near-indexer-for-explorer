@@ -130,9 +130,10 @@ async fn save_receipts(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Receipt were adding to database. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while Receipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n{:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    receipts,
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }
@@ -194,9 +195,10 @@ async fn process_receipt_actions(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptActions were saving. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while ReceiptActions were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    &receipt_actions,
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }
@@ -213,9 +215,10 @@ async fn process_receipt_actions(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptActionActions were saving. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while ReceiptActionActions were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    &receipt_action_actions
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }
@@ -232,9 +235,10 @@ async fn process_receipt_actions(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptActionOutputData were saving. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while ReceiptActionOutputData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    &receipt_action_output_data
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }
@@ -251,9 +255,10 @@ async fn process_receipt_actions(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptActionInputData were saving. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while ReceiptActionInputData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    &receipt_action_input_data
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }
@@ -280,9 +285,10 @@ async fn process_receipt_data(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptData were saving. Retrying in {} milliseconds... \n {:#?}",
+                    "Error occurred while ReceiptData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
-                    async_error
+                    async_error,
+                    &receipt_data_models
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }

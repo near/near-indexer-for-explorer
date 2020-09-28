@@ -5,7 +5,7 @@ use bigdecimal::BigDecimal;
 use crate::schema;
 use schema::chunks;
 
-#[derive(Insertable, Clone)]
+#[derive(Insertable, Clone, Debug)]
 pub struct Chunk {
     pub block_id: BigDecimal,
     pub hash: String,
