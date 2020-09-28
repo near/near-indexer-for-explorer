@@ -9,7 +9,7 @@ CREATE TABLE transactions (
     signature text NOT NULL,
     status execution_outcome_status NOT NULL,
     receipt_id text NOT NULL,
-    receipt_conversion_gas_burnt numeric(45, 0), -- numeric(precision) 45 digits should be enough to store u128::MAX
+    receipt_conversion_gas_burnt numeric(20, 0), -- numeric(precision) 20 digits should be enough to store u64::MAX
     receipt_conversion_tokens_burnt numeric(45, 0), -- numeric(precision) 45 digits should be enough to store u128::MAX
     CONSTRAINT block_tx_fk FOREIGN KEY (block_height) REFERENCES blocks(height) ON DELETE CASCADE,
     CONSTRAINT chunk_tx_fk FOREIGN KEY (chunk_hash) REFERENCES chunks(hash) ON DELETE CASCADE
