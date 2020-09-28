@@ -11,7 +11,7 @@ pub(crate) async fn process_execution_outcomes(
     pool: &Pool<ConnectionManager<PgConnection>>,
     execution_outcomes: Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>,
 ) {
-    for outcome in execution_outcomes {
+    'outcome: for outcome in execution_outcomes {
         let model = models::execution_outcomes::ExecutionOutcome::from(outcome);
         loop {
             match diesel::insert_into(schema::execution_outcomes::table)
@@ -24,7 +24,7 @@ pub(crate) async fn process_execution_outcomes(
                 Err(async_error) => {
                     match &async_error {
                         tokio_diesel::AsyncError::Error(error) => match error {
-                            diesel::result::Error::DatabaseError(kind, _) => if matches!(kind, diesel::result::DatabaseErrorKind::ForeignKeyViolation) { break },
+                            diesel::result::Error::DatabaseError(kind, _) => if matches!(kind, diesel::result::DatabaseErrorKind::ForeignKeyViolation) { continue 'outcome },
                             _ => {},
                         },
                         _ => {},
