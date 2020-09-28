@@ -21,6 +21,5 @@ tokio = { version = "0.2", features = ["sync", "time"] }
 tokio-diesel = "0.3.0"
 tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
-utf-8 = "0.7.5"
 
 near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="b881dff947e5844950624a2ad68c9e14d477b838" }
