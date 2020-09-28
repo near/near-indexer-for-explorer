@@ -11,37 +11,13 @@ pub(crate) async fn process_execution_outcomes(
     pool: &Pool<ConnectionManager<PgConnection>>,
     execution_outcomes: Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>,
 ) {
-    'outcome: for outcome in execution_outcomes {
+    let mut outcome_models: Vec<models::execution_outcomes::ExecutionOutcome> = vec![];
+    let mut outcome_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> = vec![];
+    for outcome in execution_outcomes {
         let model = models::execution_outcomes::ExecutionOutcome::from(outcome);
-        loop {
-            match diesel::insert_into(schema::execution_outcomes::table)
-                .values(model.clone())
-                .on_conflict_do_nothing()
-                .execute_async(&pool)
-                .await
-            {
-                Ok(_) => break,
-                Err(async_error) => {
-                    match &async_error {
-                        tokio_diesel::AsyncError::Error(error) => match error {
-                            diesel::result::Error::DatabaseError(kind, _) => if matches!(kind, diesel::result::DatabaseErrorKind::ForeignKeyViolation) { continue 'outcome },
-                            _ => {},
-                        },
-                        _ => {},
-                    }
-                    error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while ExecutionOutcome were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                        crate::INTERVAL.as_millis(),
-                        async_error,
-                        &model,
-                    );
-                    tokio::time::delay_for(crate::INTERVAL).await;
-                }
-            }
-        }
+        outcome_models.push(model);
 
-        let child_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> =
+        outcome_receipt_models.extend(
             outcome
                 .outcome
                 .receipt_ids
@@ -54,26 +30,88 @@ pub(crate) async fn process_execution_outcomes(
                         receipt_id: receipt_id.to_string(),
                     },
                 )
-                .collect();
+        );
+        // loop {
+        //     match diesel::insert_into(schema::execution_outcomes::table)
+        //         .values(model.clone())
+        //         .on_conflict_do_nothing()
+        //         .execute_async(&pool)
+        //         .await
+        //     {
+        //         Ok(_) => break,
+        //         Err(async_error) => {
+        //             match &async_error {
+        //                 tokio_diesel::AsyncError::Error(error) => match error {
+        //                     diesel::result::Error::DatabaseError(kind, _) => if matches!(kind, diesel::result::DatabaseErrorKind::ForeignKeyViolation) { continue 'outcome },
+        //                     _ => {},
+        //                 },
+        //                 _ => {},
+        //             }
+        //             error!(
+        //                 target: crate::INDEXER_FOR_EXPLORER,
+        //                 "Error occurred while ExecutionOutcome were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
+        //                 crate::INTERVAL.as_millis(),
+        //                 async_error,
+        //                 &model,
+        //             );
+        //             tokio::time::delay_for(crate::INTERVAL).await;
+        //         }
+        //     }
+        // }
+    }
 
-        loop {
-            match diesel::insert_into(schema::execution_outcome_receipts::table)
-                .values(child_receipt_models.clone())
-                .on_conflict_do_nothing()
-                .execute_async(&pool)
-                .await
-            {
-                Ok(_) => break,
-                Err(async_error) => {
-                    error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while ExecutionOutcomeReceipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                        crate::INTERVAL.as_millis(),
-                        async_error,
-                        &child_receipt_models
-                    );
-                    tokio::time::delay_for(crate::INTERVAL).await;
+    loop {
+        match diesel::insert_into(schema::execution_outcomes::table)
+            .values(outcome_models.clone())
+            .on_conflict_do_nothing()
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                match &async_error {
+                    tokio_diesel::AsyncError::Error(error) => match error {
+                        diesel::result::Error::DatabaseError(kind, _) => if matches!(kind, diesel::result::DatabaseErrorKind::ForeignKeyViolation) { break },
+                        _ => {},
+                    },
+                    _ => {},
                 }
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while ExecutionOutcome were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error,
+                    &outcome_models,
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        }
+    }
+
+    loop {
+        match diesel::insert_into(schema::execution_outcome_receipts::table)
+            .values(outcome_receipt_models.clone())
+            .on_conflict_do_nothing()
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                match &async_error {
+                    tokio_diesel::AsyncError::Error(error) => match error {
+                        diesel::result::Error::DatabaseError(kind, _) => if matches!(kind, diesel::result::DatabaseErrorKind::ForeignKeyViolation) { break },
+                        _ => {},
+                    },
+                    _ => {},
+                }
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while ExecutionOutcomeReceipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error,
+                    &outcome_receipt_models
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
             }
         }
     }
