@@ -15,9 +15,9 @@ use crate::schema;
 pub(crate) async fn process_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
-    block_height: u64,
+    block_height: near_indexer::near_primitives::types::BlockHeight,
 ) {
-    let mut skipping_receipt_ids: Vec<near_indexer::near_primitives::hash::CryptoHash> = vec![];
+    let mut skipping_receipt_ids = std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
     let tx_hashes_for_receipts_via_outcomes: Result<
         Vec<(String, String)>,
@@ -76,15 +76,8 @@ pub(crate) async fn process_receipts(
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
         .filter_map(|r| {
-            if tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()) {
-                Some(models::Receipt::from_receipt_view(
-                    r,
-                    block_height,
-                    tx_hashes_for_receipts
-                        .get(r.receipt_id.to_string().as_str())
-                        .expect("transaction hash expected as we have check for it earlier")
-                        .clone(),
-                ))
+            if let Some(transaction_hash) = tx_hashes_for_receipts.get(r.receipt_id.to_string().as_str()) {
+                Some(models::Receipt::from_receipt_view(r, block_height, transaction_hash))
             } else {
                 warn!(
                     target: crate::INDEXER_FOR_EXPLORER,

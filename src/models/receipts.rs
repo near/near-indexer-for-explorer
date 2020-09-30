@@ -72,7 +72,7 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptData
                 data: data.clone(),
             })
         } else {
-            Err("Given ReceiptView is not Data type")
+            Err("Given ReceiptView is not of Data variant")
         }
     }
 }
@@ -106,7 +106,7 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
                     .expect("gas_price expected to be u128"),
             })
         } else {
-            Err("Given ReceiptView is not Action type")
+            Err("Given ReceiptView is not of Action variant")
         }
     }
 }
