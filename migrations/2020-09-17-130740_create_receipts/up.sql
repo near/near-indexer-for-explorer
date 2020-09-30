@@ -34,22 +34,23 @@ CREATE TABLE receipt_actions (
 );
 
 CREATE TABLE receipt_action_actions (
-    id bigserial PRIMARY KEY,
     receipt_id text NOT NULL,
     index integer NOT NULL,
     action_kind action_type NOT NULL,
-    args jsonb NOT NULL
+    args jsonb NOT NULL,
+    CONSTRAINT action_receipt_fk FOREIGN KEY (receipt_id) REFERENCES receipts(receipt_id) ON DELETE CASCADE,
+    CONSTRAINT receipt_action_action_pk PRIMARY KEY (receipt_id, index)
 );
 
 CREATE TABLE receipt_action_output_data (
-    id bigserial PRIMARY KEY,
     data_id text NOT NULL,
     receipt_id text NOT NULL,
-    receiver_id text NOT NULL
+    receiver_id text NOT NULL,
+    CONSTRAINT action_output_pk PRIMARY KEY (data_id, receipt_id)
 );
 
 CREATE TABLE receipt_action_input_data (
-    id bigserial PRIMARY KEY,
     data_id text NOT NULL,
-    receipt_id text NOT NULL
+    receipt_id text NOT NULL,
+    CONSTRAINT action_input_pk PRIMARY KEY (data_id, receipt_id)
 );

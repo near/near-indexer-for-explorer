@@ -10,10 +10,10 @@ use crate::schema;
 /// Saves Transaction to database
 pub(crate) async fn process_transactions(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    chunks: &Vec<near_indexer::IndexerChunkView>,
+    chunks: &[near_indexer::IndexerChunkView],
     block_height: u64,
 ) {
-    let futures = chunks.into_iter().map(|chunk| {
+    let futures = chunks.iter().map(|chunk| {
         process_chunk_transactions(
             &pool,
             chunk

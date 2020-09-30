@@ -1,4 +1,3 @@
-use num_traits::cast::FromPrimitive;
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
@@ -24,8 +23,7 @@ impl From<&near_primitives::views::BlockView> for Block {
             height: block_view.header.height.into(),
             hash: block_view.header.hash.to_string(),
             prev_hash: block_view.header.prev_hash.to_string(),
-            timestamp: BigDecimal::from_u64(block_view.header.timestamp)
-                .expect("`timestamp` expected to be u64"),
+            timestamp: block_view.header.timestamp.into(),
             total_supply: BigDecimal::from_str(block_view.header.total_supply.to_string().as_str())
                 .expect("`total_supply` expected to be u128"),
             gas_price: BigDecimal::from_str(block_view.header.gas_price.to_string().as_str())

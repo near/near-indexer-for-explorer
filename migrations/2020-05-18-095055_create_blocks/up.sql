@@ -1,6 +1,6 @@
 -- Your SQL goes here
 CREATE TABLE blocks (
-	height numeric(45, 0) PRIMARY KEY  NOT NULL, -- numeric(precision) 45 digits should be enough to store u128::MAX
+	height numeric(20, 0) PRIMARY KEY  NOT NULL, -- numeric(precision) 20 digits should be enough to store u64::MAX
 	hash text NOT NULL,
 	prev_hash text NOT NULL,
 	timestamp numeric(20, 0) NOT NULL, -- numeric(precision) 20 digits should be enough to store u64::MAX

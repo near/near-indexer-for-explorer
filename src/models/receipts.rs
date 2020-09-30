@@ -1,10 +1,9 @@
 use std::convert::TryFrom;
+use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
-use num_traits::cast::FromPrimitive;
-use serde_json::{json, Value};
 
-use near_indexer::near_primitives::views::{ActionView, DataReceiverView};
+use near_indexer::near_primitives::views::DataReceiverView;
 
 use crate::models::enums::{ActionType, ReceiptType};
 use crate::schema;
@@ -103,7 +102,8 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
                 receipt_id: receipt_view.receipt_id.to_string(),
                 signer_id: signer_id.to_string(),
                 signer_public_key: signer_public_key.to_string(),
-                gas_price: BigDecimal::from_u128(*gas_price).unwrap_or_else(|| 0.into()),
+                gas_price: BigDecimal::from_str(gas_price.to_string().as_str())
+                    .expect("gas_price expected to be u128"),
             })
         } else {
             Err("Given ReceiptView is not Action type")
@@ -126,60 +126,8 @@ impl ReceiptActionAction {
         index: i32,
         action_view: &near_indexer::near_primitives::views::ActionView,
     ) -> Self {
-        let (action_kind, args): (ActionType, Value) = match &action_view {
-            ActionView::CreateAccount => (ActionType::CreateAccount, json!({})),
-            ActionView::DeployContract { code } => (
-                ActionType::DeployContract,
-                json!({ "code": code.escape_default().to_string() }),
-            ),
-            ActionView::FunctionCall {
-                method_name,
-                args,
-                gas,
-                deposit,
-            } => (
-                ActionType::FunctionCall,
-                json!({
-                    "method_name": method_name.escape_default().to_string(),
-                    "args": args.escape_default().to_string(),
-                    "gas": gas,
-                    "deposit": deposit.to_string(),
-                }),
-            ),
-            ActionView::Transfer { deposit } => (
-                ActionType::Transfer,
-                json!({ "deposit": deposit.to_string() }),
-            ),
-            ActionView::Stake { stake, public_key } => (
-                ActionType::Stake,
-                json!({
-                    "stake": stake.to_string(),
-                    "public_key": public_key,
-                }),
-            ),
-            ActionView::AddKey {
-                public_key,
-                access_key,
-            } => (
-                ActionType::AddKey,
-                json!({
-                    "public_key": public_key,
-                    "access_key": access_key,
-                }),
-            ),
-            ActionView::DeleteKey { public_key } => (
-                ActionType::DeleteKey,
-                json!({
-                    "public_key": public_key,
-                }),
-            ),
-            ActionView::DeleteAccount { beneficiary_id } => (
-                ActionType::DeleteAccount,
-                json!({
-                    "beneficiary_id": beneficiary_id,
-                }),
-            ),
-        };
+        let (action_kind, args) =
+            crate::models::extract_action_type_and_value_from_action_view(&action_view);
         Self {
             receipt_id,
             index,

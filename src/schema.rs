@@ -1,6 +1,5 @@
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     blocks (height) {
         height -> Numeric,
@@ -14,7 +13,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     chunks (hash) {
         block_id -> Numeric,
@@ -30,7 +28,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     execution_outcome_receipts (execution_outcome_receipt_id, index, receipt_id) {
         execution_outcome_receipt_id -> Text,
@@ -57,8 +54,7 @@ table! {
     use diesel::sql_types::*;
     use crate::models::enums::*;
 
-    receipt_action_actions (id) {
-        id -> Int8,
+    receipt_action_actions (receipt_id, index) {
         receipt_id -> Text,
         index -> Int4,
         action_kind -> Action_type,
@@ -68,10 +64,8 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
-    receipt_action_input_data (id) {
-        id -> Int8,
+    receipt_action_input_data (data_id, receipt_id) {
         data_id -> Text,
         receipt_id -> Text,
     }
@@ -79,10 +73,8 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
-    receipt_action_output_data (id) {
-        id -> Int8,
+    receipt_action_output_data (data_id, receipt_id) {
         data_id -> Text,
         receipt_id -> Text,
         receiver_id -> Text,
@@ -91,7 +83,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_actions (receipt_id) {
         receipt_id -> Text,
@@ -103,7 +94,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     receipt_data (data_id) {
         data_id -> Text,
@@ -162,6 +152,7 @@ joinable!(chunks -> blocks (block_id));
 joinable!(execution_outcome_receipts -> execution_outcomes (execution_outcome_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (execution_outcome_receipt_id));
 joinable!(execution_outcomes -> receipts (receipt_id));
+joinable!(receipt_action_actions -> receipts (receipt_id));
 joinable!(receipts -> blocks (block_height));
 joinable!(receipts -> transactions (transaction_hash));
 joinable!(transaction_actions -> transactions (transaction_hash));

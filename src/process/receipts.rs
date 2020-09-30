@@ -65,14 +65,13 @@ pub(crate) async fn process_receipts(
 
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
 
-    match tx_hashes_for_receipts_via_outcomes {
-        Ok(result) => tx_hashes_for_receipts.extend(result),
-        Err(_) => {} // TODO: handle error
-    };
-    match tx_hashes_for_receipt_via_transactions {
-        Ok(result) => tx_hashes_for_receipts.extend(result),
-        Err(_) => {} // TODO: handle error
-    };
+    if let Ok(result) = tx_hashes_for_receipts_via_outcomes {
+        tx_hashes_for_receipts.extend(result);
+    }
+
+    if let Ok(result) = tx_hashes_for_receipt_via_transactions {
+        tx_hashes_for_receipts.extend(result);
+    }
 
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
@@ -92,7 +91,7 @@ pub(crate) async fn process_receipts(
                     "Skipping Receipt {} as we can't find parent Transaction for it.",
                     r.receipt_id.to_string()
                 );
-                skipping_receipt_ids.push(r.receipt_id.clone());
+                skipping_receipt_ids.push(r.receipt_id);
                 None
             }
         })
@@ -158,29 +157,30 @@ async fn process_receipt_actions(
             ..
         } = &receipt.receipt
         {
-            match models::ReceiptAction::try_from(*receipt) {
-                Ok(model) => receipt_actions.push(model),
-                Err(_) => continue,
-            }
+            if let Ok(model) = models::ReceiptAction::try_from(*receipt) {
+                receipt_actions.push(model);
 
-            for (index, action) in actions.iter().enumerate() {
-                receipt_action_input_data.extend(input_data_ids.iter().map(|data_id| {
-                    models::ReceiptActionInputData::from_data_id(
+                for (index, action) in actions.iter().enumerate() {
+                    receipt_action_input_data.extend(input_data_ids.iter().map(|data_id| {
+                        models::ReceiptActionInputData::from_data_id(
+                            receipt.receipt_id.to_string(),
+                            data_id.to_string(),
+                        )
+                    }));
+                    receipt_action_output_data.extend(output_data_receivers.iter().map(
+                        |receiver| {
+                            models::ReceiptActionOutputData::from_data_receiver(
+                                receipt.receipt_id.to_string(),
+                                receiver,
+                            )
+                        },
+                    ));
+                    receipt_action_actions.push(models::ReceiptActionAction::from_action_view(
                         receipt.receipt_id.to_string(),
-                        data_id.to_string(),
-                    )
-                }));
-                receipt_action_output_data.extend(output_data_receivers.iter().map(|receiver| {
-                    models::ReceiptActionOutputData::from_data_receiver(
-                        receipt.receipt_id.to_string(),
-                        receiver,
-                    )
-                }));
-                receipt_action_actions.push(models::ReceiptActionAction::from_action_view(
-                    receipt.receipt_id.to_string(),
-                    i32::from_usize(index).unwrap(),
-                    action,
-                ));
+                        i32::from_usize(index).unwrap(),
+                        action,
+                    ));
+                }
             }
         }
     }

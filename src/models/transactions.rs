@@ -1,9 +1,6 @@
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
-use serde_json::{json, Value};
-
-use near_indexer::near_primitives::views::ActionView;
 
 use crate::models::enums::{ActionType, ExecutionOutcomeStatus};
 use crate::schema;
@@ -28,7 +25,7 @@ pub struct Transaction {
 impl Transaction {
     pub fn from_indexer_transaction(
         tx: &near_indexer::IndexerTransactionWithOutcome,
-        block_height: u64,
+        block_height: near_indexer::near_primitives::types::BlockHeight,
         chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     ) -> Self {
         Self {
@@ -71,60 +68,8 @@ impl TransactionAction {
         index: i32,
         action_view: &near_indexer::near_primitives::views::ActionView,
     ) -> Self {
-        let (action_kind, args): (ActionType, Value) = match &action_view {
-            ActionView::CreateAccount => (ActionType::CreateAccount, json!({})),
-            ActionView::DeployContract { code } => (
-                ActionType::DeployContract,
-                json!({ "code": code.escape_default().to_string() }),
-            ),
-            ActionView::FunctionCall {
-                method_name,
-                args,
-                gas,
-                deposit,
-            } => (
-                ActionType::FunctionCall,
-                json!({
-                    "method_name": method_name.escape_default().to_string(),
-                    "args": args.escape_default().to_string(),
-                    "gas": gas,
-                    "deposit": deposit.to_string(),
-                }),
-            ),
-            ActionView::Transfer { deposit } => (
-                ActionType::Transfer,
-                json!({ "deposit": deposit.to_string() }),
-            ),
-            ActionView::Stake { stake, public_key } => (
-                ActionType::Stake,
-                json!({
-                    "stake": stake.to_string(),
-                    "public_key": public_key,
-                }),
-            ),
-            ActionView::AddKey {
-                public_key,
-                access_key,
-            } => (
-                ActionType::AddKey,
-                json!({
-                    "public_key": public_key,
-                    "access_key": access_key,
-                }),
-            ),
-            ActionView::DeleteKey { public_key } => (
-                ActionType::DeleteKey,
-                json!({
-                    "public_key": public_key,
-                }),
-            ),
-            ActionView::DeleteAccount { beneficiary_id } => (
-                ActionType::DeleteAccount,
-                json!({
-                    "beneficiary_id": beneficiary_id,
-                }),
-            ),
-        };
+        let (action_kind, args) =
+            crate::models::extract_action_type_and_value_from_action_view(&action_view);
         Self {
             transaction_hash,
             index,

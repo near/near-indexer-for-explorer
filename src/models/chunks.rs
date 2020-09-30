@@ -1,5 +1,3 @@
-use num_traits::cast::FromPrimitive;
-
 use bigdecimal::BigDecimal;
 
 use crate::schema;
@@ -18,25 +16,19 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn from_chunk_view(block_height: u64, chunk_view: &near_indexer::IndexerChunkView) -> Self {
-        eprintln!(
-            "{:?} | {:?} | {:?}",
-            chunk_view.header.height_created,
-            chunk_view.header.height_included,
-            chunk_view.header.gas_used,
-        );
+    pub fn from_chunk_view(
+        block_height: near_indexer::near_primitives::types::BlockHeight,
+        chunk_view: &near_indexer::IndexerChunkView,
+    ) -> Self {
         Self {
-            block_id: BigDecimal::from_u64(block_height).unwrap_or_else(|| 0.into()),
+            block_id: block_height.into(),
             hash: chunk_view.header.chunk_hash.to_string(),
-            shard_id: BigDecimal::from_u64(chunk_view.header.shard_id).unwrap_or_else(|| 0.into()),
+            shard_id: chunk_view.header.shard_id.into(),
             signature: chunk_view.header.signature.to_string(),
-            gas_limit: BigDecimal::from_u64(chunk_view.header.gas_limit)
-                .unwrap_or_else(|| 0.into()),
-            gas_used: BigDecimal::from_u64(chunk_view.header.gas_used).unwrap_or_else(|| 0.into()),
-            height_created: BigDecimal::from_u64(chunk_view.header.height_created)
-                .unwrap_or_else(|| 0.into()),
-            height_included: BigDecimal::from_u64(chunk_view.header.height_included)
-                .unwrap_or_else(|| 0.into()),
+            gas_limit: chunk_view.header.gas_limit.into(),
+            gas_used: chunk_view.header.gas_used.into(),
+            height_created: chunk_view.header.height_created.into(),
+            height_included: chunk_view.header.height_included.into(),
         }
     }
 }
