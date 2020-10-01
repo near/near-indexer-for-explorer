@@ -10,8 +10,8 @@ use tracing_subscriber::EnvFilter;
 use crate::configs::{Opts, SubCommand};
 
 mod configs;
+mod db_adapters;
 mod models;
-mod process;
 mod schema;
 
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
@@ -21,18 +21,18 @@ async fn handle_message(
     pool: std::sync::Arc<Pool<ConnectionManager<PgConnection>>>,
     streamer_message: near_indexer::StreamerMessage,
 ) {
-    process::blocks::process_block(&pool, &streamer_message.block).await;
+    db_adapters::blocks::store_block(&pool, &streamer_message.block).await;
 
     // Chunks
-    process::chunks::process_chunks(
+    db_adapters::chunks::store_chunks(
         &pool,
         &streamer_message.chunks,
-        streamer_message.block.header.height,
+        &streamer_message.block.header.hash,
     )
     .await;
 
     // Transaction
-    process::transactions::process_transactions(
+    db_adapters::transactions::store_transactions(
         &pool,
         &streamer_message.chunks,
         streamer_message.block.header.height,
@@ -47,11 +47,11 @@ async fn handle_message(
         .chain(streamer_message.local_receipts.iter())
         .collect();
 
-    process::receipts::process_receipts(&pool, receipts, streamer_message.block.header.height)
+    db_adapters::receipts::store_receipts(&pool, receipts, streamer_message.block.header.height)
         .await;
 
     // ExecutionOutcomes
-    process::execution_outcomes::process_execution_outcomes(
+    db_adapters::execution_outcomes::store_execution_outcomes(
         &pool,
         streamer_message
             .receipt_execution_outcomes

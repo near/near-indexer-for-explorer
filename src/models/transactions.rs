@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 
-use crate::models::enums::{ActionType, ExecutionOutcomeStatus};
+use crate::models::enums::{ActionKind, ExecutionOutcomeStatus};
 use crate::schema;
 use schema::{transaction_actions, transactions};
 
@@ -58,7 +58,7 @@ impl Transaction {
 pub struct TransactionAction {
     pub transaction_hash: String,
     pub index: i32,
-    pub action_kind: ActionType,
+    pub action_kind: ActionKind,
     pub args: serde_json::Value,
 }
 

@@ -15,14 +15,12 @@ table! {
     use diesel::sql_types::*;
 
     chunks (hash) {
-        block_id -> Numeric,
+        block_hash -> Text,
         hash -> Text,
         shard_id -> Numeric,
         signature -> Text,
         gas_limit -> Numeric,
         gas_used -> Numeric,
-        height_created -> Numeric,
-        height_included -> Numeric,
     }
 }
 
@@ -148,7 +146,6 @@ table! {
     }
 }
 
-joinable!(chunks -> blocks (block_id));
 joinable!(execution_outcome_receipts -> execution_outcomes (execution_outcome_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (execution_outcome_receipt_id));
 joinable!(execution_outcomes -> receipts (receipt_id));

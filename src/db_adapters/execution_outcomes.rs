@@ -7,7 +7,7 @@ use crate::models;
 use crate::schema;
 
 /// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
-pub(crate) async fn process_execution_outcomes(
+pub(crate) async fn store_execution_outcomes(
     pool: &Pool<ConnectionManager<PgConnection>>,
     execution_outcomes: Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>,
 ) {
@@ -36,7 +36,7 @@ pub(crate) async fn process_execution_outcomes(
         {
             Ok(_) => break,
             Err(async_error) => {
-                if crate::process::break_on_foreignkey_violation(&async_error) {
+                if crate::db_adapters::is_foreignkey_violation(&async_error) {
                     break;
                 }
                 error!(
@@ -60,7 +60,7 @@ pub(crate) async fn process_execution_outcomes(
         {
             Ok(_) => break,
             Err(async_error) => {
-                if crate::process::break_on_foreignkey_violation(&async_error) {
+                if crate::db_adapters::is_foreignkey_violation(&async_error) {
                     break;
                 }
                 error!(

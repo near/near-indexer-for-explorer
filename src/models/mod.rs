@@ -7,7 +7,7 @@ use serde_json::json;
 
 use near_indexer::near_primitives::views::ActionView;
 
-use enums::ActionType;
+use enums::ActionKind;
 // pub use access_keys::AccessKey;
 // pub use accounts::Account;
 pub use blocks::Block;
@@ -41,12 +41,12 @@ pub(crate) fn establish_connection() -> Pool<ConnectionManager<PgConnection>> {
 
 pub(crate) fn extract_action_type_and_value_from_action_view(
     action_view: &near_indexer::near_primitives::views::ActionView,
-) -> (enums::ActionType, serde_json::Value) {
+) -> (enums::ActionKind, serde_json::Value) {
     match action_view {
-        ActionView::CreateAccount => (ActionType::CreateAccount, json!({})),
+        ActionView::CreateAccount => (ActionKind::CreateAccount, json!({})),
         ActionView::DeployContract { code } => (
-            ActionType::DeployContract,
-            json!({ "code": code.escape_default().to_string() }),
+            ActionKind::DeployContract,
+            json!({ "code_sha254": code.escape_default().to_string() }),
         ),
         ActionView::FunctionCall {
             method_name,
@@ -54,20 +54,20 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
             gas,
             deposit,
         } => (
-            ActionType::FunctionCall,
+            ActionKind::FunctionCall,
             json!({
                 "method_name": method_name.escape_default().to_string(),
-                "args": args.escape_default().to_string(),
+                "args_sha254": args.escape_default().to_string(),
                 "gas": gas,
                 "deposit": deposit.to_string(),
             }),
         ),
         ActionView::Transfer { deposit } => (
-            ActionType::Transfer,
+            ActionKind::Transfer,
             json!({ "deposit": deposit.to_string() }),
         ),
         ActionView::Stake { stake, public_key } => (
-            ActionType::Stake,
+            ActionKind::Stake,
             json!({
                 "stake": stake.to_string(),
                 "public_key": public_key,
@@ -77,20 +77,20 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
             public_key,
             access_key,
         } => (
-            ActionType::AddKey,
+            ActionKind::AddKey,
             json!({
                 "public_key": public_key,
                 "access_key": access_key,
             }),
         ),
         ActionView::DeleteKey { public_key } => (
-            ActionType::DeleteKey,
+            ActionKind::DeleteKey,
             json!({
                 "public_key": public_key,
             }),
         ),
         ActionView::DeleteAccount { beneficiary_id } => (
-            ActionType::DeleteAccount,
+            ActionKind::DeleteAccount,
             json!({
                 "beneficiary_id": beneficiary_id,
             }),

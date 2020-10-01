@@ -3,23 +3,20 @@ use diesel::PgConnection;
 use tokio_diesel::AsyncRunQueryDsl;
 use tracing::error;
 
+use near_indexer::near_primitives;
+
 use crate::models;
 use crate::schema;
 
-/// Saves chunks to database
-pub(crate) async fn process_chunks(
+/// Saves block to database
+pub(crate) async fn store_block(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    chunks: &[near_indexer::IndexerChunkView],
-    block_height: u64,
+    block: &near_primitives::views::BlockView,
 ) {
-    let chunk_models: Vec<models::chunks::Chunk> = chunks
-        .iter()
-        .map(|chunk| models::chunks::Chunk::from_chunk_view(block_height, chunk))
-        .collect();
-
+    let block_model = models::blocks::Block::from(block);
     loop {
-        match diesel::insert_into(schema::chunks::table)
-            .values(chunk_models.clone())
+        match diesel::insert_into(schema::blocks::table)
+            .values(block_model.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool)
             .await
@@ -28,10 +25,10 @@ pub(crate) async fn process_chunks(
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Chunks were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
+                    "Error occurred while Block was adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
                     crate::INTERVAL.as_millis(),
                     async_error,
-                    &chunk_models
+                    &block_model
                 );
                 tokio::time::delay_for(crate::INTERVAL).await;
             }

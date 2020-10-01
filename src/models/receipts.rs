@@ -5,7 +5,7 @@ use bigdecimal::BigDecimal;
 
 use near_indexer::near_primitives::views::DataReceiverView;
 
-use crate::models::enums::{ActionType, ReceiptType};
+use crate::models::enums::{ActionKind, ReceiptKind};
 use crate::schema;
 use schema::{
     receipt_action_actions, receipt_action_input_data, receipt_action_output_data, receipt_actions,
@@ -19,7 +19,7 @@ pub struct Receipt {
     // pub chunk_hash: Vec<u8>,
     pub predecessor_id: String,
     pub receiver_id: String,
-    pub receipt_kind: ReceiptType,
+    pub receipt_kind: ReceiptKind,
     pub transaction_hash: String,
 }
 
@@ -27,7 +27,7 @@ impl Receipt {
     pub fn from_receipt_view(
         receipt: &near_indexer::near_primitives::views::ReceiptView,
         block_height: near_indexer::near_primitives::types::BlockHeight,
-        transaction_hash: String,
+        transaction_hash: &String,
         // chunk_header: &near_indexer::near_primitives::views::ChunkHeaderView,
     ) -> Self {
         Self {
@@ -36,15 +36,8 @@ impl Receipt {
             // chunk_hash: chunk_header.chunk_hash.as_ref().to_vec(),
             predecessor_id: receipt.predecessor_id.to_string(),
             receiver_id: receipt.receiver_id.to_string(),
-            receipt_kind: match receipt.receipt {
-                near_indexer::near_primitives::views::ReceiptEnumView::Action { .. } => {
-                    ReceiptType::Action
-                }
-                near_indexer::near_primitives::views::ReceiptEnumView::Data { .. } => {
-                    ReceiptType::Data
-                }
-            },
-            transaction_hash,
+            receipt_kind: (&receipt.receipt).into(),
+            transaction_hash: transaction_hash.to_string(),
         }
     }
 }
@@ -116,7 +109,7 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
 pub struct ReceiptActionAction {
     pub receipt_id: String,
     pub index: i32,
-    pub action_kind: ActionType,
+    pub action_kind: ActionKind,
     pub args: serde_json::Value,
 }
 

@@ -4,16 +4,25 @@ use diesel_derive_enum::DbEnum;
 #[DbValueStyle = "SCREAMING_SNAKE_CASE"]
 #[DieselType = "Receipt_type"]
 #[PgType = "receipt_type"]
-pub enum ReceiptType {
+pub enum ReceiptKind {
     Action,
     Data,
+}
+
+impl From<&near_indexer::near_primitives::views::ReceiptEnumView> for ReceiptKind {
+    fn from(receipt_enum_view: &near_indexer::near_primitives::views::ReceiptEnumView) -> Self {
+        match receipt_enum_view {
+            near_indexer::near_primitives::views::ReceiptEnumView::Action { .. } => Self::Action,
+            near_indexer::near_primitives::views::ReceiptEnumView::Data { .. } => Self::Data,
+        }
+    }
 }
 
 #[derive(Debug, DbEnum, Clone)]
 #[DbValueStyle = "SCREAMING_SNAKE_CASE"]
 #[DieselType = "Action_type"]
 #[PgType = "action_type"]
-pub enum ActionType {
+pub enum ActionKind {
     CreateAccount,
     DeployContract,
     FunctionCall,

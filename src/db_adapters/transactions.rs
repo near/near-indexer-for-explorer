@@ -8,13 +8,13 @@ use crate::models;
 use crate::schema;
 
 /// Saves Transaction to database
-pub(crate) async fn process_transactions(
+pub(crate) async fn store_transactions(
     pool: &Pool<ConnectionManager<PgConnection>>,
     chunks: &[near_indexer::IndexerChunkView],
     block_height: u64,
 ) {
     let futures = chunks.iter().map(|chunk| {
-        process_chunk_transactions(
+        store_chunk_transactions(
             &pool,
             chunk
                 .transactions
@@ -28,7 +28,7 @@ pub(crate) async fn process_transactions(
     join_all(futures).await;
 }
 
-async fn process_chunk_transactions(
+async fn store_chunk_transactions(
     pool: &Pool<ConnectionManager<PgConnection>>,
     transactions: Vec<&near_indexer::IndexerTransactionWithOutcome>,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
