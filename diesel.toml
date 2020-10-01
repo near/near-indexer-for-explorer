@@ -3,3 +3,6 @@
 
 [print_schema]
 file = "src/schema.rs"
+import_types = ["diesel::sql_types::*", "crate::models::enums::*"]
+# Exclicitly setting `only_tables` to avoid technical tables created by diesel to be included in schema
+filter = { only_tables = ["blocks", "chunks", "receipts", "receipt_data", "receipt_actions", "receipt_action_actions", "receipt_action_input_data", "receipt_action_output_data", "execution_outcomes", "execution_outcome_receipts", "transactions", "transaction_actions"] }

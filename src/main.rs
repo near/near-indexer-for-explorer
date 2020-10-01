@@ -1,54 +1,82 @@
-use actix;
+use std::collections::HashMap;
 
-use clap::derive::Clap;
+use clap::Clap;
 #[macro_use]
 extern crate diesel;
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
 use tokio::sync::mpsc;
-use tokio_diesel::*;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-
-use near_indexer;
 
 use crate::configs::{Opts, SubCommand};
 
 mod configs;
+mod db_adapters;
 mod models;
 mod schema;
 
+const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
+const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
+
+/// Map Receipt ID to Execution Outcome
+pub type ExecutionOutcomesByReceiptId = HashMap<
+    near_indexer::near_primitives::hash::CryptoHash,
+    near_indexer::near_primitives::views::ExecutionOutcomeWithIdView,
+>;
+
+async fn handle_message(
+    pool: std::sync::Arc<Pool<ConnectionManager<PgConnection>>>,
+    streamer_message: near_indexer::StreamerMessage,
+) {
+    db_adapters::blocks::store_block(&pool, &streamer_message.block).await;
+
+    // Chunks
+    db_adapters::chunks::store_chunks(
+        &pool,
+        &streamer_message.chunks,
+        &streamer_message.block.header.hash,
+    )
+    .await;
+
+    // Transaction
+    db_adapters::transactions::store_transactions(
+        &pool,
+        &streamer_message.chunks,
+        &streamer_message.block.header.hash.to_string(),
+    )
+    .await;
+
+    // Receipts
+    let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> = streamer_message
+        .chunks
+        .iter()
+        .flat_map(|chunk| &chunk.receipts)
+        .chain(streamer_message.local_receipts.iter())
+        .collect();
+
+    db_adapters::receipts::store_receipts(
+        &pool,
+        receipts,
+        &streamer_message.block.header.hash.to_string(),
+    )
+    .await;
+
+    // ExecutionOutcomes
+    db_adapters::execution_outcomes::store_execution_outcomes(
+        &pool,
+        &streamer_message.receipt_execution_outcomes,
+    )
+    .await;
+}
+
 async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>) {
-    let pool = models::establish_connection();
+    let pool = std::sync::Arc::new(models::establish_connection());
 
     while let Some(streamer_message) = stream.recv().await {
-        // TODO: handle data as you need
         // Block
         info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
-        match diesel::insert_into(schema::blocks::table)
-            .values(models::Block::from_block_view(&streamer_message.block))
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => {}
-            Err(_) => continue,
-        };
-
-        // Chunks
-        match diesel::insert_into(schema::chunks::table)
-            .values(
-                streamer_message
-                    .chunks
-                    .iter()
-                    .map(|chunk| models::Chunk::from_chunk_view(streamer_message.block.header.height, chunk))
-                    .collect::<Vec<models::Chunk>>(),
-            )
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => {}
-            Err(_) => {
-                eprintln!("Unable to save chunk, skipping");
-            }
-        };
+        actix::spawn(handle_message(pool.clone(), streamer_message));
     }
 }
 
