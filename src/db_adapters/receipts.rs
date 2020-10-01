@@ -48,7 +48,7 @@ pub(crate) async fn store_receipts(
             Err(async_error) => {
                 error!(
                         target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while fetching the parent receipt for ExecutionOutcome. Retrying in {} milliseconds... \n {:#?}",
+                        "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
                         crate::INTERVAL.as_millis(),
                         async_error,
                     );

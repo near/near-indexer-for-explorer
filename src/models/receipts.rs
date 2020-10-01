@@ -27,7 +27,7 @@ impl Receipt {
     pub fn from_receipt_view(
         receipt: &near_indexer::near_primitives::views::ReceiptView,
         block_height: near_indexer::near_primitives::types::BlockHeight,
-        transaction_hash: &String,
+        transaction_hash: &str,
         // chunk_header: &near_indexer::near_primitives::views::ChunkHeaderView,
     ) -> Self {
         Self {

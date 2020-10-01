@@ -1,20 +1,51 @@
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
+use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use tokio_diesel::AsyncRunQueryDsl;
 use tracing::error;
 
 use crate::models;
 use crate::schema;
+use diesel::pg::expression::array_comparison::any;
 
 /// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
 pub(crate) async fn store_execution_outcomes(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    execution_outcomes: Vec<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView>,
+    execution_outcomes: &crate::ExecutionOutcomesByReceiptId,
 ) {
+    let receipt_ids: Vec<String> = loop {
+        match schema::receipts::table
+            .filter(
+                schema::receipts::dsl::receipt_id.eq(any(execution_outcomes
+                    .keys()
+                    .map(|key| key.to_string())
+                    .collect::<Vec<_>>())),
+            )
+            .select(schema::receipts::dsl::receipt_id)
+            .load_async(&pool)
+            .await
+        {
+            Ok(res) => {
+                break res;
+            }
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while fetching the parent receipt for ExecutionOutcome. Retrying in {} milliseconds... \n {:#?}",
+                    crate::INTERVAL.as_millis(),
+                    async_error,
+                );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        }
+    };
+
     let mut outcome_models: Vec<models::execution_outcomes::ExecutionOutcome> = vec![];
     let mut outcome_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> =
         vec![];
-    for outcome in execution_outcomes {
+    for outcome in execution_outcomes
+        .values()
+        .filter(|outcome| receipt_ids.contains(&(outcome.id).to_string()))
+    {
         let model = models::execution_outcomes::ExecutionOutcome::from(outcome);
         outcome_models.push(model);
 
@@ -36,9 +67,6 @@ pub(crate) async fn store_execution_outcomes(
         {
             Ok(_) => break,
             Err(async_error) => {
-                if crate::db_adapters::is_foreignkey_violation(&async_error) {
-                    break;
-                }
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ExecutionOutcome were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
@@ -60,9 +88,6 @@ pub(crate) async fn store_execution_outcomes(
         {
             Ok(_) => break,
             Err(async_error) => {
-                if crate::db_adapters::is_foreignkey_violation(&async_error) {
-                    break;
-                }
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ExecutionOutcomeReceipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",

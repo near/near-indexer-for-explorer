@@ -57,7 +57,7 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
             ActionKind::FunctionCall,
             json!({
                 "method_name": method_name.escape_default().to_string(),
-                "args_sha254": args.escape_default().to_string(),
+                "args_base64": args,
                 "gas": gas,
                 "deposit": deposit.to_string(),
             }),
