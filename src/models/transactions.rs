@@ -9,7 +9,7 @@ use schema::{transaction_actions, transactions};
 #[derive(Insertable, Clone, Debug)]
 pub struct Transaction {
     pub transaction_hash: String,
-    pub block_height: BigDecimal,
+    pub block_hash: String,
     pub chunk_hash: String,
     pub signer_id: String,
     pub public_key: String,
@@ -25,12 +25,12 @@ pub struct Transaction {
 impl Transaction {
     pub fn from_indexer_transaction(
         tx: &near_indexer::IndexerTransactionWithOutcome,
-        block_height: near_indexer::near_primitives::types::BlockHeight,
+        block_hash: &str,
         chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     ) -> Self {
         Self {
             transaction_hash: tx.transaction.hash.to_string(),
-            block_height: block_height.into(),
+            block_hash: block_hash.to_string(),
             nonce: tx.transaction.nonce.into(),
             signer_id: tx.transaction.signer_id.to_string(),
             public_key: tx.transaction.public_key.to_string(),

@@ -11,7 +11,7 @@ use crate::schema;
 pub(crate) async fn store_transactions(
     pool: &Pool<ConnectionManager<PgConnection>>,
     chunks: &[near_indexer::IndexerChunkView],
-    block_height: u64,
+    block_hash: &str,
 ) {
     let futures = chunks.iter().map(|chunk| {
         store_chunk_transactions(
@@ -21,7 +21,7 @@ pub(crate) async fn store_transactions(
                 .iter()
                 .collect::<Vec<&near_indexer::IndexerTransactionWithOutcome>>(),
             &chunk.header.chunk_hash,
-            block_height,
+            block_hash,
         )
     });
 
@@ -32,16 +32,12 @@ async fn store_chunk_transactions(
     pool: &Pool<ConnectionManager<PgConnection>>,
     transactions: Vec<&near_indexer::IndexerTransactionWithOutcome>,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
-    block_height: u64,
+    block_hash: &str,
 ) {
     let transaction_models: Vec<models::transactions::Transaction> = transactions
         .iter()
         .map(|tx| {
-            models::transactions::Transaction::from_indexer_transaction(
-                tx,
-                block_height,
-                chunk_hash,
-            )
+            models::transactions::Transaction::from_indexer_transaction(tx, block_hash, chunk_hash)
         })
         .collect();
 

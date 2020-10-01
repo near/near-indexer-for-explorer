@@ -43,7 +43,7 @@ async fn handle_message(
     db_adapters::transactions::store_transactions(
         &pool,
         &streamer_message.chunks,
-        streamer_message.block.header.height,
+        &streamer_message.block.header.hash.to_string(),
     )
     .await;
 
@@ -55,8 +55,12 @@ async fn handle_message(
         .chain(streamer_message.local_receipts.iter())
         .collect();
 
-    db_adapters::receipts::store_receipts(&pool, receipts, streamer_message.block.header.height)
-        .await;
+    db_adapters::receipts::store_receipts(
+        &pool,
+        receipts,
+        &streamer_message.block.header.hash.to_string(),
+    )
+    .await;
 
     // ExecutionOutcomes
     db_adapters::execution_outcomes::store_execution_outcomes(

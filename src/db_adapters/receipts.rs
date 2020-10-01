@@ -16,7 +16,7 @@ use diesel::pg::expression::array_comparison::any;
 pub(crate) async fn store_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
-    block_height: near_indexer::near_primitives::types::BlockHeight,
+    block_hash: &str,
 ) {
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
@@ -100,7 +100,7 @@ pub(crate) async fn store_receipts(
             {
                 Some(models::Receipt::from_receipt_view(
                     r,
-                    block_height,
+                    block_hash,
                     transaction_hash,
                 ))
             } else {

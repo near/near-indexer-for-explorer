@@ -15,7 +15,7 @@ use schema::{
 #[derive(Insertable, Queryable, Clone, Debug)]
 pub struct Receipt {
     pub receipt_id: String,
-    pub block_height: BigDecimal,
+    pub block_hash: String,
     // pub chunk_hash: Vec<u8>,
     pub predecessor_id: String,
     pub receiver_id: String,
@@ -26,13 +26,13 @@ pub struct Receipt {
 impl Receipt {
     pub fn from_receipt_view(
         receipt: &near_indexer::near_primitives::views::ReceiptView,
-        block_height: near_indexer::near_primitives::types::BlockHeight,
+        block_hash: &str,
         transaction_hash: &str,
         // chunk_header: &near_indexer::near_primitives::views::ChunkHeaderView,
     ) -> Self {
         Self {
             receipt_id: receipt.receipt_id.to_string(),
-            block_height: block_height.into(),
+            block_hash: block_hash.to_string(),
             // chunk_hash: chunk_header.chunk_hash.as_ref().to_vec(),
             predecessor_id: receipt.predecessor_id.to_string(),
             receiver_id: receipt.receiver_id.to_string(),

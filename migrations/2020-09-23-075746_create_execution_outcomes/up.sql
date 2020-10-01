@@ -3,11 +3,12 @@ CREATE TYPE execution_outcome_status AS ENUM ('UNKNOWN', 'FAILURE', 'SUCCESS_VAL
 CREATE TABLE execution_outcomes (
     receipt_id text PRIMARY KEY,
     block_hash text NOT NULL,
-    gas_burnt numeric(45, 0) NOT NULL, -- numeric(precision) 45 digits should be enough to store u128::MAX
+    gas_burnt numeric(20, 0) NOT NULL, -- numeric(precision) 20 digits should be enough to store u64::MAX
     tokens_burnt numeric(45,0) NOT NULL, -- numeric(precision) 45 digits should be enough to store u128::MAX
     executor_id text NOT NULL,
     status execution_outcome_status NOT NULL,
-    CONSTRAINT receipt_execution_outcome_fk FOREIGN KEY (receipt_id) REFERENCES receipts(receipt_id) ON DELETE CASCADE
+    CONSTRAINT receipt_execution_outcome_fk FOREIGN KEY (receipt_id) REFERENCES receipts(receipt_id) ON DELETE CASCADE,
+    CONSTRAINT block_hash_execution_outcome_fk FOREIGN KEY (block_hash) REFERENCES blocks(hash) ON DELETE CASCADE
 );
 
 CREATE TABLE execution_outcome_receipts (

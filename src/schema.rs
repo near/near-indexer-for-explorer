@@ -1,7 +1,7 @@
 table! {
     use diesel::sql_types::*;
 
-    blocks (height) {
+    blocks (hash) {
         height -> Numeric,
         hash -> Text,
         prev_hash -> Text,
@@ -106,7 +106,7 @@ table! {
 
     receipts (receipt_id) {
         receipt_id -> Text,
-        block_height -> Nullable<Numeric>,
+        block_hash -> Text,
         predecessor_id -> Text,
         receiver_id -> Text,
         receipt_kind -> Receipt_type,
@@ -132,7 +132,7 @@ table! {
 
     transactions (transaction_hash) {
         transaction_hash -> Text,
-        block_height -> Numeric,
+        block_hash -> Text,
         chunk_hash -> Text,
         signer_id -> Text,
         public_key -> Text,
@@ -146,14 +146,16 @@ table! {
     }
 }
 
+joinable!(chunks -> blocks (block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (execution_outcome_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (execution_outcome_receipt_id));
+joinable!(execution_outcomes -> blocks (block_hash));
 joinable!(execution_outcomes -> receipts (receipt_id));
 joinable!(receipt_action_actions -> receipts (receipt_id));
-joinable!(receipts -> blocks (block_height));
+joinable!(receipts -> blocks (block_hash));
 joinable!(receipts -> transactions (transaction_hash));
 joinable!(transaction_actions -> transactions (transaction_hash));
-joinable!(transactions -> blocks (block_height));
+joinable!(transactions -> blocks (block_hash));
 joinable!(transactions -> chunks (chunk_hash));
 
 allow_tables_to_appear_in_same_query!(
