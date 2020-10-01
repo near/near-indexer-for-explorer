@@ -1556,12 +1556,14 @@ name = "indexer-explorer"
 version = "0.1.0"
 dependencies = [
  "actix",
+ "base64 0.11.0",
  "bigdecimal",
  "clap 3.0.0-beta.2",
  "diesel",
  "diesel-derive-enum",
  "dotenv",
  "futures",
+ "hex",
  "near-indexer",
  "num-traits",
  "openssl-probe",

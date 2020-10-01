@@ -12,7 +12,7 @@ pub(crate) async fn store_execution_outcomes(
     pool: &Pool<ConnectionManager<PgConnection>>,
     execution_outcomes: &crate::ExecutionOutcomesByReceiptId,
 ) {
-    let receipt_ids: Vec<String> = loop {
+    let known_receipt_ids: std::collections::HashSet<String> = loop {
         match schema::receipts::table
             .filter(
                 schema::receipts::dsl::receipt_id.eq(any(execution_outcomes
@@ -25,7 +25,7 @@ pub(crate) async fn store_execution_outcomes(
             .await
         {
             Ok(res) => {
-                break res;
+                break res.into_iter().collect();
             }
             Err(async_error) => {
                 error!(
@@ -44,7 +44,7 @@ pub(crate) async fn store_execution_outcomes(
         vec![];
     for outcome in execution_outcomes
         .values()
-        .filter(|outcome| receipt_ids.contains(&(outcome.id).to_string()))
+        .filter(|outcome| known_receipt_ids.contains(&(outcome.id).to_string()))
     {
         let model = models::execution_outcomes::ExecutionOutcome::from(outcome);
         outcome_models.push(model);
