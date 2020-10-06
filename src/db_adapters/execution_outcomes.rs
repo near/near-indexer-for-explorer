@@ -10,7 +10,7 @@ use diesel::pg::expression::array_comparison::any;
 /// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
 pub(crate) async fn store_execution_outcomes(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    execution_outcomes: &crate::ExecutionOutcomesByReceiptId,
+    execution_outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
 ) {
     let known_receipt_ids: std::collections::HashSet<String> = loop {
         match schema::receipts::table
@@ -44,18 +44,26 @@ pub(crate) async fn store_execution_outcomes(
         vec![];
     for outcome in execution_outcomes
         .values()
-        .filter(|outcome| known_receipt_ids.contains(&(outcome.id).to_string()))
+        .filter(|outcome| known_receipt_ids.contains(&(outcome.execution_outcome.id).to_string()))
     {
-        let model = models::execution_outcomes::ExecutionOutcome::from(outcome);
+        let model = models::execution_outcomes::ExecutionOutcome::from(&outcome.execution_outcome);
         outcome_models.push(model);
 
-        outcome_receipt_models.extend(outcome.outcome.receipt_ids.iter().enumerate().map(
-            |(index, receipt_id)| models::execution_outcomes::ExecutionOutcomeReceipt {
-                execution_outcome_receipt_id: outcome.id.to_string(),
-                index: index as i32,
-                receipt_id: receipt_id.to_string(),
-            },
-        ));
+        outcome_receipt_models.extend(
+            outcome
+                .execution_outcome
+                .outcome
+                .receipt_ids
+                .iter()
+                .enumerate()
+                .map(
+                    |(index, receipt_id)| models::execution_outcomes::ExecutionOutcomeReceipt {
+                        execution_outcome_receipt_id: outcome.execution_outcome.id.to_string(),
+                        index: index as i32,
+                        receipt_id: receipt_id.to_string(),
+                    },
+                ),
+        );
     }
 
     loop {
