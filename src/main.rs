@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use clap::Clap;
 #[macro_use]
 extern crate diesel;
@@ -18,12 +16,6 @@ mod schema;
 
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
-
-/// Map Receipt ID to Execution Outcome
-pub type ExecutionOutcomesByReceiptId = HashMap<
-    near_indexer::near_primitives::hash::CryptoHash,
-    near_indexer::near_primitives::views::ExecutionOutcomeWithIdView,
->;
 
 async fn handle_message(
     pool: std::sync::Arc<Pool<ConnectionManager<PgConnection>>>,
@@ -68,6 +60,10 @@ async fn handle_message(
         &streamer_message.receipt_execution_outcomes,
     )
     .await;
+
+    // Accounts
+    db_adapters::accounts::handle_accounts(&pool, &streamer_message.receipt_execution_outcomes)
+        .await;
 }
 
 async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>) {

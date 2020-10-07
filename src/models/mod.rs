@@ -9,7 +9,7 @@ use near_indexer::near_primitives::views::ActionView;
 
 use enums::ActionKind;
 // pub use access_keys::AccessKey;
-// pub use accounts::Account;
+pub use accounts::Account;
 pub use blocks::Block;
 pub use chunks::Chunk;
 pub use execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt};
@@ -21,7 +21,7 @@ pub use transactions::{Transaction, TransactionAction};
 
 pub mod enums;
 // pub mod access_keys;
-// pub mod accounts;
+pub mod accounts;
 pub mod blocks;
 pub mod chunks;
 pub mod execution_outcomes;

@@ -1,6 +1,17 @@
 table! {
     use diesel::sql_types::*;
 
+    accounts (id) {
+        id -> Int8,
+        account_id -> Text,
+        created_by_receipt_id -> Text,
+        deleted_by_receipt_id -> Nullable<Text>,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
     blocks (hash) {
         height -> Numeric,
         hash -> Text,
@@ -159,6 +170,7 @@ joinable!(transactions -> blocks (block_hash));
 joinable!(transactions -> chunks (chunk_hash));
 
 allow_tables_to_appear_in_same_query!(
+    accounts,
     blocks,
     chunks,
     execution_outcome_receipts,
