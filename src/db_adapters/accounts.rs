@@ -92,7 +92,6 @@ async fn remove_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
 ) {
-    eprintln!("{:#?}", &outcomes);
     let accounts_to_delete: Vec<(String, String)> = outcomes
         .iter()
         .filter_map(|outcome_with_receipt| {
@@ -106,12 +105,10 @@ async fn remove_accounts(
                                     ..
                                 } = action
                                 {
-                                    Some(
-                                        (
-                                            (&receipt.receiver_id).to_string(),
-                                            receipt.receipt_id.to_string(),
-                                        )
-                                    )
+                                    Some((
+                                        (&receipt.receiver_id).to_string(),
+                                        receipt.receipt_id.to_string(),
+                                    ))
                                 } else {
                                     None
                                 }
@@ -128,15 +125,11 @@ async fn remove_accounts(
         .flatten()
         .collect();
 
-    eprintln!("ACCOUNT_TO_DELETE:\n {:#?}", &accounts_to_delete);
-
     for (account_id, deleted_by_receipt_id) in accounts_to_delete {
         loop {
             match diesel::update(schema::accounts::table)
                 .filter(schema::accounts::dsl::account_id.eq(account_id.clone()))
-                .set(
-                    schema::accounts::dsl::deleted_by_receipt_id.eq(deleted_by_receipt_id.clone())
-                )
+                .set(schema::accounts::dsl::deleted_by_receipt_id.eq(deleted_by_receipt_id.clone()))
                 .execute_async(&pool)
                 .await
             {

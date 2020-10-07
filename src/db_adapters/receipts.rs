@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
+use diesel::pg::expression::array_comparison::any;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
-use diesel::pg::expression::array_comparison::any;
 use futures::join;
 use num_traits::cast::FromPrimitive;
 use tokio_diesel::AsyncRunQueryDsl;
