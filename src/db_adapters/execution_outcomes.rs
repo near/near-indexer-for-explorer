@@ -1,7 +1,7 @@
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use tokio_diesel::AsyncRunQueryDsl;
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::models;
 use crate::schema;
@@ -73,7 +73,10 @@ pub(crate) async fn store_execution_outcomes(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "outcomes added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
@@ -94,7 +97,10 @@ pub(crate) async fn store_execution_outcomes(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "outcome related receipts added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,

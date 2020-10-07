@@ -2,7 +2,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use futures::future::join_all;
 use tokio_diesel::AsyncRunQueryDsl;
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::models;
 use crate::schema;
@@ -48,7 +48,10 @@ async fn store_chunk_transactions(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "transactions added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
@@ -86,7 +89,10 @@ async fn store_chunk_transactions(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "transaction actions added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,

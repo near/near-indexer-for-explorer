@@ -2,7 +2,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection};
 use futures::join;
 use tokio_diesel::AsyncRunQueryDsl;
-use tracing::error;
+use tracing::{error, debug};
 
 use near_indexer::near_primitives;
 
@@ -86,7 +86,10 @@ async fn store_accounts(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "account added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
@@ -126,7 +129,10 @@ async fn remove_accounts(
                 .execute_async(&pool)
                 .await
             {
-                Ok(_) => break,
+                Ok(affected_rows) => {
+                    debug!(target: crate::INDEXER_FOR_EXPLORER, "account removed {}", affected_rows);
+                    break;
+                },
                 Err(async_error) => {
                     error!(
                         target: crate::INDEXER_FOR_EXPLORER,

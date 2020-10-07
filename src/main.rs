@@ -4,7 +4,7 @@ extern crate diesel;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use tokio::sync::mpsc;
-use tracing::info;
+use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
 
 use crate::configs::{Opts, SubCommand};
@@ -21,8 +21,11 @@ async fn handle_message(
     pool: std::sync::Arc<Pool<ConnectionManager<PgConnection>>>,
     streamer_message: near_indexer::StreamerMessage,
 ) {
+    debug!(target: INDEXER_FOR_EXPLORER, "Block height {} handling started", streamer_message.block.header.height);
     db_adapters::blocks::store_block(&pool, &streamer_message.block).await;
+    debug!(target: INDEXER_FOR_EXPLORER, "Block height {} saved", streamer_message.block.header.height);
 
+    debug!(target: INDEXER_FOR_EXPLORER, "Handle chunks of block height {}", streamer_message.block.header.height);
     // Chunks
     db_adapters::chunks::store_chunks(
         &pool,
@@ -30,7 +33,9 @@ async fn handle_message(
         &streamer_message.block.header.hash,
     )
     .await;
+    debug!(target: INDEXER_FOR_EXPLORER, "Chunks of block height {} handled", streamer_message.block.header.height);
 
+    debug!(target: INDEXER_FOR_EXPLORER, "Handle Transaction of block height {}", streamer_message.block.header.height);
     // Transaction
     db_adapters::transactions::store_transactions(
         &pool,
@@ -38,7 +43,9 @@ async fn handle_message(
         &streamer_message.block.header.hash.to_string(),
     )
     .await;
+    debug!(target: INDEXER_FOR_EXPLORER, "Transaction of block height {} handled", streamer_message.block.header.height);
 
+    debug!(target: INDEXER_FOR_EXPLORER, "Handle Receipts of block height {}", streamer_message.block.header.height);
     // Receipts
     let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> = streamer_message
         .chunks
@@ -53,6 +60,7 @@ async fn handle_message(
         &streamer_message.block.header.hash.to_string(),
     )
     .await;
+    debug!(target: INDEXER_FOR_EXPLORER, "Receipts of block height {} handled", streamer_message.block.header.height);
 
     // ExecutionOutcomes
     db_adapters::execution_outcomes::store_execution_outcomes(
@@ -60,10 +68,13 @@ async fn handle_message(
         &streamer_message.receipt_execution_outcomes,
     )
     .await;
+    debug!(target: INDEXER_FOR_EXPLORER, "Receipts of block height {} handled", streamer_message.block.header.height);
 
+    debug!(target: INDEXER_FOR_EXPLORER, "Handle Accounts of block height {}", streamer_message.block.header.height);
     // Accounts
     db_adapters::accounts::handle_accounts(&pool, &streamer_message.receipt_execution_outcomes)
         .await;
+    debug!(target: INDEXER_FOR_EXPLORER, "Accounts of block height {} handled", streamer_message.block.header.height);
 }
 
 async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>) {
@@ -82,7 +93,7 @@ fn main() {
     openssl_probe::init_ssl_cert_env_vars();
 
     let env_filter = EnvFilter::new(
-        "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer_for_explorer=info",
+        "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer_for_explorer=debug",
     );
     tracing_subscriber::fmt::Subscriber::builder()
         .with_env_filter(env_filter)

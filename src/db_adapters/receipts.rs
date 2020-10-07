@@ -7,7 +7,7 @@ use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
 use futures::join;
 use num_traits::cast::FromPrimitive;
 use tokio_diesel::AsyncRunQueryDsl;
-use tracing::{error, warn};
+use tracing::{debug, error, warn};
 
 use crate::models;
 use crate::schema;
@@ -143,7 +143,10 @@ async fn save_receipts(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "receipts added {}", affected_rows);
+                break
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
@@ -236,7 +239,10 @@ async fn store_receipt_actions(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "receipts actions added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
@@ -256,7 +262,10 @@ async fn store_receipt_actions(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "receipts action actions added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
@@ -276,7 +285,10 @@ async fn store_receipt_actions(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "receipts action output data added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
@@ -296,7 +308,10 @@ async fn store_receipt_actions(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "receipts action input data added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
@@ -326,7 +341,10 @@ async fn store_receipt_data(
             .execute_async(&pool)
             .await
         {
-            Ok(_) => break,
+            Ok(affected_rows) => {
+                debug!(target: crate::INDEXER_FOR_EXPLORER, "receipts data added {}", affected_rows);
+                break;
+            },
             Err(async_error) => {
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
