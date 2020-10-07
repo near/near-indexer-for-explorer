@@ -24,4 +24,4 @@ tokio-diesel = "0.3.0"
 tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 
-near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="61ae22755b8c80f661528046ccdd7f405c21ae96" }
+near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="e76b8dd1f7aca44e348844303d290c3b9c9a4387" }

@@ -14,7 +14,7 @@ pub(crate) async fn handle_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
 ) {
-    let successful_outcomes: Vec<near_indexer::IndexerExecutionOutcomeWithReceipt> = outcomes
+    let successful_receipts_with_actions: Vec<(&near_primitives::views::ReceiptView, &Vec<near_primitives::views::ActionView>)> = outcomes
         .values()
         .filter(|outcome_with_receipt| {
             match outcome_with_receipt.execution_outcome.outcome.status {
@@ -23,47 +23,38 @@ pub(crate) async fn handle_accounts(
                 _ => false,
             }
         })
-        .cloned()
+        .filter_map(|outcome_with_receipt| outcome_with_receipt.receipt.as_ref())
+        .filter_map(|receipt| if let near_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
+            Some((receipt, actions))
+        } else {
+            None
+        })
         .collect();
 
-    let store_accounts_future = store_accounts(&pool, &successful_outcomes);
-    let remove_accounts_future = remove_accounts(&pool, &successful_outcomes);
+    let store_accounts_future = store_accounts(&pool, &successful_receipts_with_actions);
+    let remove_accounts_future = remove_accounts(&pool, &successful_receipts_with_actions);
 
+    // Joining it unless we can't execute it in the correct order
+    // see https://github.com/nearprotocol/nearcore/issues/3467
     join!(store_accounts_future, remove_accounts_future);
 }
 
 async fn store_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
+    outcomes: &Vec<(&near_primitives::views::ReceiptView, &Vec<near_primitives::views::ActionView>)>,
 ) {
     let accounts_to_create: Vec<models::accounts::Account> = outcomes
         .iter()
-        .filter_map(|outcome_with_receipt| {
-            if let Some(receipt) = &outcome_with_receipt.receipt {
-                match &receipt.receipt {
-                    near_primitives::views::ReceiptEnumView::Action { actions, .. } => {
-                        let accounts: Vec<models::accounts::Account> = actions
-                            .iter()
-                            .filter_map(|action| {
-                                if let near_primitives::views::ActionView::CreateAccount = action {
-                                    Some(models::accounts::Account::new(
-                                        receipt.receiver_id.to_string(),
-                                        &receipt.receipt_id,
-                                    ))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect();
-                        Some(accounts)
-                    }
-                    _ => None,
-                }
-            } else {
-                None
-            }
-        })
-        .flatten()
+        .filter_map(|(receipt, actions)| actions
+            .iter()
+            .filter(|action| matches!(action, near_primitives::views::ActionView::CreateAccount))
+            .map(|_create_account_action| models::accounts::Account::new(
+                receipt.receiver_id.to_string(),
+                &receipt.receipt_id,
+                )
+            )
+            .next()
+        )
         .collect();
 
     loop {
@@ -90,39 +81,16 @@ async fn store_accounts(
 
 async fn remove_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
+    outcomes: &Vec<(&near_primitives::views::ReceiptView, &Vec<near_primitives::views::ActionView>)>,
 ) {
     let accounts_to_delete: Vec<(String, String)> = outcomes
         .iter()
-        .filter_map(|outcome_with_receipt| {
-            if let Some(receipt) = &outcome_with_receipt.receipt {
-                match &receipt.receipt {
-                    near_primitives::views::ReceiptEnumView::Action { actions, .. } => {
-                        let accounts: Vec<(String, String)> = actions
-                            .iter()
-                            .filter_map(|action| {
-                                if let near_primitives::views::ActionView::DeleteAccount {
-                                    ..
-                                } = action
-                                {
-                                    Some((
-                                        (&receipt.receiver_id).to_string(),
-                                        receipt.receipt_id.to_string(),
-                                    ))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect();
-                        Some(accounts)
-                    }
-                    _ => None,
-                }
-            } else {
-                None
-            }
-        })
-        .flatten()
+        .filter_map(|(receipt, actions)| actions
+            .iter()
+            .filter(|action| matches!(action, near_primitives::views::ActionView::DeleteAccount { .. }))
+            .map(|_delete_account_action| (receipt.receiver_id.to_string(), receipt.receipt_id.to_string()) )
+            .next()
+        )
         .collect();
 
     for (account_id, deleted_by_receipt_id) in accounts_to_delete {

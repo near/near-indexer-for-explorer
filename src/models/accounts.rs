@@ -1,7 +1,7 @@
 use crate::schema;
 use schema::accounts;
 
-#[derive(Insertable, Queryable, Debug, Clone)]
+#[derive(Insertable, Debug, Clone)]
 pub struct Account {
     pub account_id: String,
     pub created_by_receipt_id: String,
