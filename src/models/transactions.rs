@@ -38,16 +38,22 @@ impl Transaction {
             receiver_id: tx.transaction.receiver_id.to_string(),
             receipt_id: tx
                 .outcome
+                .execution_outcome
                 .outcome
                 .receipt_ids
                 .first()
                 .expect("`receipt_ids` must contain one Receipt Id")
                 .to_string(),
             chunk_hash: chunk_hash.to_string(),
-            status: tx.outcome.outcome.status.clone().into(),
-            receipt_conversion_gas_burnt: tx.outcome.outcome.gas_burnt.into(),
+            status: tx.outcome.execution_outcome.outcome.status.clone().into(),
+            receipt_conversion_gas_burnt: tx.outcome.execution_outcome.outcome.gas_burnt.into(),
             receipt_conversion_tokens_burnt: BigDecimal::from_str(
-                tx.outcome.outcome.tokens_burnt.to_string().as_str(),
+                tx.outcome
+                    .execution_outcome
+                    .outcome
+                    .tokens_burnt
+                    .to_string()
+                    .as_str(),
             )
             .expect("`token_burnt` must be u128"),
         }

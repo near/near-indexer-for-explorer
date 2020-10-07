@@ -1,23 +1,22 @@
-use bigdecimal::BigDecimal;
-
 use crate::schema;
 use schema::accounts;
 
-#[derive(Insertable)]
+#[derive(Insertable, Debug, Clone)]
 pub struct Account {
     pub account_id: String,
-    pub index: i32,
     pub created_by_receipt_id: String,
-    pub created_at_timestamp: BigDecimal,
+    pub deleted_by_receipt_id: Option<String>,
 }
 
 impl Account {
-    pub fn new(account_id: String, index: i32, receipt_id: String, timestamp: BigDecimal) -> Self {
+    pub fn new(
+        account_id: String,
+        created_by_receipt_id: &near_indexer::near_primitives::hash::CryptoHash,
+    ) -> Self {
         Self {
             account_id,
-            index,
-            created_by_receipt_id: receipt_id,
-            created_at_timestamp: timestamp,
+            created_by_receipt_id: created_by_receipt_id.to_string(),
+            deleted_by_receipt_id: None,
         }
     }
 }
