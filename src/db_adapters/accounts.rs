@@ -8,13 +8,17 @@ use near_indexer::near_primitives;
 
 use crate::models;
 use crate::schema;
+use diesel::pg::upsert::excluded;
 
 /// Saves new Accounts to database or deletes the ones should be deleted
 pub(crate) async fn handle_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
 ) {
-    let successful_receipts_with_actions: Vec<(&near_primitives::views::ReceiptView, &Vec<near_primitives::views::ActionView>)> = outcomes
+    let successful_receipts_with_actions: Vec<(
+        &near_primitives::views::ReceiptView,
+        &Vec<near_primitives::views::ActionView>,
+    )> = outcomes
         .values()
         .filter(|outcome_with_receipt| {
             match outcome_with_receipt.execution_outcome.outcome.status {
@@ -24,10 +28,14 @@ pub(crate) async fn handle_accounts(
             }
         })
         .filter_map(|outcome_with_receipt| outcome_with_receipt.receipt.as_ref())
-        .filter_map(|receipt| if let near_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
-            Some((receipt, actions))
-        } else {
-            None
+        .filter_map(|receipt| {
+            if let near_primitives::views::ReceiptEnumView::Action { actions, .. } =
+                &receipt.receipt
+            {
+                Some((receipt, actions))
+            } else {
+                None
+            }
         })
         .collect();
 
@@ -41,26 +49,40 @@ pub(crate) async fn handle_accounts(
 
 async fn store_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    outcomes: &Vec<(&near_primitives::views::ReceiptView, &Vec<near_primitives::views::ActionView>)>,
+    outcomes: &[(
+        &near_primitives::views::ReceiptView,
+        &Vec<near_primitives::views::ActionView>,
+    )],
 ) {
     let accounts_to_create: Vec<models::accounts::Account> = outcomes
         .iter()
-        .filter_map(|(receipt, actions)| actions
-            .iter()
-            .filter(|action| matches!(action, near_primitives::views::ActionView::CreateAccount))
-            .map(|_create_account_action| models::accounts::Account::new(
-                receipt.receiver_id.to_string(),
-                &receipt.receipt_id,
-                )
-            )
-            .next()
-        )
+        .filter_map(|(receipt, actions)| {
+            actions
+                .iter()
+                .filter(|action| {
+                    matches!(action, near_primitives::views::ActionView::CreateAccount)
+                })
+                .map(|_create_account_action| {
+                    models::accounts::Account::new(
+                        receipt.receiver_id.to_string(),
+                        &receipt.receipt_id,
+                    )
+                })
+                .next()
+        })
         .collect();
 
     loop {
         match diesel::insert_into(schema::accounts::table)
             .values(accounts_to_create.clone())
-            .on_conflict_do_nothing()
+            .on_conflict(schema::accounts::dsl::account_id)
+            .do_update()
+            .set((
+                schema::accounts::dsl::created_by_receipt_id
+                    .eq(excluded(schema::accounts::dsl::created_by_receipt_id)),
+                schema::accounts::dsl::deleted_by_receipt_id
+                    .eq(excluded(schema::accounts::dsl::deleted_by_receipt_id)),
+            ))
             .execute_async(&pool)
             .await
         {
@@ -81,7 +103,10 @@ async fn store_accounts(
 
 async fn remove_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    outcomes: &Vec<(&near_primitives::views::ReceiptView, &Vec<near_primitives::views::ActionView>)>,
+    outcomes: &[(
+        &near_primitives::views::ReceiptView,
+        &Vec<near_primitives::views::ActionView>,
+    )],
 ) {
     let accounts_to_delete: Vec<(String, String)> = outcomes
         .iter()
