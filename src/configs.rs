@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use clap::Clap;
 
 /// NEAR Indexer for Explorer
@@ -15,9 +17,45 @@ pub(crate) struct Opts {
 #[derive(Clap, Debug)]
 pub(crate) enum SubCommand {
     /// Run NEAR Indexer Example. Start observe the network
-    Run,
+    Run(RunArgs),
     /// Initialize necessary configs
     Init(InitConfigArgs),
+}
+
+#[derive(Clap, Debug)]
+pub(crate) struct RunArgs {
+    #[clap(subcommand)]
+    pub sync_mode: SyncModeSubCommand,
+}
+
+#[allow(clippy::enum_variant_names)] // we want commands to be more explicit
+#[derive(Clap, Debug)]
+pub(crate) enum SyncModeSubCommand {
+    /// continue from the block Indexer was interrupted
+    SyncFromInterruption,
+    /// start from the newest block after node finishes syncing
+    SyncFromLatest,
+    /// start from specified block height
+    SyncFromBlock(BlockArgs),
+}
+
+#[derive(Clap, Debug)]
+pub(crate) struct BlockArgs {
+    /// block height for block sync mode
+    #[clap(long)]
+    pub height: u64,
+}
+
+impl TryFrom<RunArgs> for near_indexer::SyncModeEnum {
+    type Error = &'static str;
+
+    fn try_from(run_args: RunArgs) -> Result<Self, Self::Error> {
+        match run_args.sync_mode {
+            SyncModeSubCommand::SyncFromInterruption => Ok(Self::FromInterruption),
+            SyncModeSubCommand::SyncFromLatest => Ok(Self::LatestSynced),
+            SyncModeSubCommand::SyncFromBlock(args) => Ok(Self::BlockHeight(args.height)),
+        }
+    }
 }
 
 #[derive(Clap, Debug)]
