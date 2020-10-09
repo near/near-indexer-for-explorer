@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use clap::Clap;
 #[macro_use]
 extern crate diesel;
@@ -8,7 +10,6 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 use crate::configs::{Opts, SubCommand};
-use std::convert::TryInto;
 
 mod configs;
 mod db_adapters;

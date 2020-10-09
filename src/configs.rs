@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::str::FromStr;
 
 use clap::Clap;
 
@@ -25,35 +24,26 @@ pub(crate) enum SubCommand {
 
 #[derive(Clap, Debug)]
 pub(crate) struct RunArgs {
-    /// streamer SyncMode. Possible values: from-interruption, last-synced and block. Default: from-interruption
-    #[clap(long, default_value = "from-interruption")]
-    pub sync_mode: SyncMode,
-    /// block height for block sync mode
-    #[clap(long)]
-    pub height: Option<u64>,
+    #[clap(subcommand)]
+    pub sync_mode: SyncModeSubCommand,
+}
+
+#[allow(clippy::enum_variant_names)] // we want commands to be more explicit
+#[derive(Clap, Debug)]
+pub(crate) enum SyncModeSubCommand {
+    /// continue from the block Indexer was interrupted
+    SyncFromInterruption,
+    /// start from the newest block after node finishes syncing
+    SyncFromLatest,
+    /// start from specified block height
+    SyncFromBlock(BlockArgs),
 }
 
 #[derive(Clap, Debug)]
-pub(crate) enum SyncMode {
-    /// continue from the block Indexer was interrupted
-    FromInterruption,
-    /// start from the newest block after node finishes syncing
-    LastSynced,
-    /// start from specified block height
-    Block,
-}
-
-impl FromStr for SyncMode {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "from-interruption" => Ok(Self::FromInterruption),
-            "last-synced" => Ok(Self::LastSynced),
-            "block" => Ok(Self::Block),
-            _ => Err("Not allowed value for sync-mode"),
-        }
-    }
+pub(crate) struct BlockArgs {
+    /// block height for block sync mode
+    #[clap(long)]
+    pub height: u64,
 }
 
 impl TryFrom<RunArgs> for near_indexer::SyncModeEnum {
@@ -61,13 +51,9 @@ impl TryFrom<RunArgs> for near_indexer::SyncModeEnum {
 
     fn try_from(run_args: RunArgs) -> Result<Self, Self::Error> {
         match run_args.sync_mode {
-            SyncMode::FromInterruption => Ok(Self::FromInterruption),
-            SyncMode::LastSynced => Ok(Self::LatestSynced),
-            SyncMode::Block => {
-                Ok(Self::BlockHeight(run_args.height.expect(
-                    "--height must be provided to use block sync-mode",
-                )))
-            }
+            SyncModeSubCommand::SyncFromInterruption => Ok(Self::FromInterruption),
+            SyncModeSubCommand::SyncFromLatest => Ok(Self::LatestSynced),
+            SyncModeSubCommand::SyncFromBlock(args) => Ok(Self::BlockHeight(args.height)),
         }
     }
 }
