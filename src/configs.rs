@@ -25,7 +25,7 @@ pub(crate) enum SubCommand {
 
 #[derive(Clap, Debug)]
 pub(crate) struct RunArgs {
-    /// streamer SyncMode. Possible values
+    /// streamer SyncMode. Possible values: from-interruption, last-synced and block. Default: from-interruption
     #[clap(long, default_value = "from-interruption")]
     pub sync_mode: SyncMode,
     /// block height for block sync mode
