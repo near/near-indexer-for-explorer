@@ -8,6 +8,7 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 use crate::configs::{Opts, SubCommand};
+use std::convert::TryInto;
 
 mod configs;
 mod db_adapters;
@@ -96,11 +97,12 @@ fn main() {
         .unwrap_or_else(|| std::path::PathBuf::from(near_indexer::get_default_home()));
 
     match opts.subcmd {
-        SubCommand::Run => {
+        SubCommand::Run(args) => {
             let indexer_config = near_indexer::IndexerConfig {
                 home_dir,
-                sync_mode: near_indexer::SyncModeEnum::FromInterruption,
+                sync_mode: args.try_into().expect("Error in run arguments"),
             };
+            eprintln!("{:#?}", indexer_config);
             let indexer = near_indexer::Indexer::new(indexer_config);
             let stream = indexer.streamer();
             actix::spawn(listen_blocks(stream));

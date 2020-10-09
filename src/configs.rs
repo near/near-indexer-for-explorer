@@ -1,3 +1,6 @@
+use std::convert::TryFrom;
+use std::str::FromStr;
+
 use clap::Clap;
 
 /// NEAR Indexer for Explorer
@@ -15,9 +18,58 @@ pub(crate) struct Opts {
 #[derive(Clap, Debug)]
 pub(crate) enum SubCommand {
     /// Run NEAR Indexer Example. Start observe the network
-    Run,
+    Run(RunArgs),
     /// Initialize necessary configs
     Init(InitConfigArgs),
+}
+
+#[derive(Clap, Debug)]
+pub(crate) struct RunArgs {
+    /// streamer SyncMode. Possible values
+    #[clap(long, default_value = "from-interruption")]
+    pub sync_mode: SyncMode,
+    /// block height for block sync mode
+    #[clap(long)]
+    pub height: Option<u64>,
+}
+
+#[derive(Clap, Debug)]
+pub(crate) enum SyncMode {
+    /// continue from the block Indexer was interrupted
+    FromInterruption,
+    /// start from the newest block after node finishes syncing
+    LastSynced,
+    /// start from specified block height
+    Block,
+}
+
+impl FromStr for SyncMode {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "from-interruption" => Ok(Self::FromInterruption),
+            "last-synced" => Ok(Self::LastSynced),
+            "block" => Ok(Self::Block),
+            _ => Err("Not allowed value for sync-mode"),
+        }
+    }
+}
+
+impl TryFrom<RunArgs> for near_indexer::SyncModeEnum {
+    type Error = &'static str;
+
+    fn try_from(run_args: RunArgs) -> Result<Self, Self::Error> {
+        match run_args.sync_mode {
+            SyncMode::FromInterruption => Ok(Self::FromInterruption),
+            SyncMode::LastSynced => Ok(Self::LatestSynced),
+            SyncMode::Block => {
+                Ok(Self::BlockHeight(run_args.height.expect(
+                    "--height must be provided to use block sync-mode",
+                )))
+            }
+        }
+    }
 }
 
 #[derive(Clap, Debug)]
