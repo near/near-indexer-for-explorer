@@ -15,6 +15,7 @@ diesel-derive-enum = { git = "https://github.com/khorolets/diesel-derive-enum.gi
 dotenv = "0.15.0"
 futures = "0.3.5"
 hex = "0.4"
+itertools = "0.9.0"
 num-traits = "0.2.11"
 openssl-probe = { version = "0.1.2" }
 r2d2 = "0.8.8"

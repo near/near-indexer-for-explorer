@@ -1,6 +1,7 @@
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection};
-use futures::join;
+use futures::{join, StreamExt};
+use itertools::Itertools;
 use tokio_diesel::AsyncRunQueryDsl;
 use tracing::{error, info};
 
@@ -63,9 +64,9 @@ async fn store_accounts(
                     matches!(action, near_primitives::views::ActionView::CreateAccount)
                 })
                 .map(|_create_account_action| {
-                    models::accounts::Account::new(
+                    models::accounts::Account::new_from_receipt(
                         receipt.receiver_id.to_string(),
-                        Some(&receipt.receipt_id),
+                        &receipt.receipt_id,
                     )
                 })
                 .next()
@@ -149,10 +150,10 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
     );
     let pool = crate::models::establish_connection();
 
-    let accounts_models: Vec<models::accounts::Account> = near_config
+    let accounts_models = near_config
         .genesis
         .records
-        .0
+        .as_ref()
         .iter()
         .filter_map(|record| {
             if let near_indexer::near_primitives::state_record::StateRecord::Account {
@@ -160,43 +161,56 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
                 ..
             } = record
             {
-                Some(models::accounts::Account::new(account_id.to_string(), None))
+                Some(models::accounts::Account::new_from_genesis(
+                    account_id.to_string(),
+                ))
             } else {
                 None
+            }
+        });
+
+    let portion_size = 5000;
+    let total_accounts_chunks = accounts_models.clone().count() / portion_size + 1;
+    let accounts_portion = accounts_models.chunks(portion_size);
+
+    let insert_genesis_accounts: futures::stream::FuturesUnordered<_> = accounts_portion
+        .into_iter()
+        .map(|accounts| async {
+            let collected_accounts = accounts.collect::<Vec<models::accounts::Account>>();
+            loop {
+                match diesel::insert_into(schema::accounts::table)
+                    .values(collected_accounts.clone())
+                    .on_conflict_do_nothing()
+                    .execute_async(&pool)
+                    .await
+                {
+                    Ok(result) => break result,
+                    Err(async_error) => {
+                        error!(
+                            target: crate::INDEXER_FOR_EXPLORER,
+                            "Error occurred while Accounts from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
+                            crate::INTERVAL.as_millis(),
+                            async_error,
+                        );
+                        tokio::time::delay_for(crate::INTERVAL).await;
+                    }
+                }
             }
         })
         .collect();
 
-    loop {
-        match diesel::insert_into(schema::accounts::table)
-            .values(accounts_models.clone())
-            .on_conflict(schema::accounts::dsl::account_id)
-            .do_update()
-            .set((
-                schema::accounts::dsl::created_by_receipt_id
-                    .eq(excluded(schema::accounts::dsl::created_by_receipt_id)),
-                schema::accounts::dsl::deleted_by_receipt_id
-                    .eq(excluded(schema::accounts::dsl::deleted_by_receipt_id)),
-            ))
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while Accounts from genesis were being added to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                        crate::INTERVAL.as_millis(),
-                        async_error,
-                        &accounts_models,
-                    );
-                tokio::time::delay_for(crate::INTERVAL).await;
-            }
-        }
+    let mut insert_genesis_accounts = insert_genesis_accounts.enumerate();
+
+    while let Some((index, _result)) = insert_genesis_accounts.next().await {
+        info!(
+            target: crate::INDEXER_FOR_EXPLORER,
+            "Accounts from genesis adding {}%",
+            index * 100 / total_accounts_chunks
+        );
     }
+
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
-        "{} accounts from genesis were added/updated successful.",
-        accounts_models.len()
+        "Accounts from genesis were added/updated successful."
     );
 }
