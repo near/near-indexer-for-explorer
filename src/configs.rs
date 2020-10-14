@@ -22,14 +22,17 @@ pub(crate) enum SubCommand {
     Init(InitConfigArgs),
 }
 
-#[derive(Clap, Debug)]
+#[derive(Clap, Debug, Clone)]
 pub(crate) struct RunArgs {
+    /// Store initial data from genesis like Accounts, AccessKeys
+    #[clap(long)]
+    pub store_genesis: bool,
     #[clap(subcommand)]
     pub sync_mode: SyncModeSubCommand,
 }
 
 #[allow(clippy::enum_variant_names)] // we want commands to be more explicit
-#[derive(Clap, Debug)]
+#[derive(Clap, Debug, Clone)]
 pub(crate) enum SyncModeSubCommand {
     /// continue from the block Indexer was interrupted
     SyncFromInterruption,
@@ -39,7 +42,7 @@ pub(crate) enum SyncModeSubCommand {
     SyncFromBlock(BlockArgs),
 }
 
-#[derive(Clap, Debug)]
+#[derive(Clap, Debug, Clone)]
 pub(crate) struct BlockArgs {
     /// block height for block sync mode
     #[clap(long)]
