@@ -60,14 +60,24 @@ async fn store_accounts(
         .filter_map(|(receipt, actions)| {
             actions
                 .iter()
-                .filter(|action| {
-                    matches!(action, near_primitives::views::ActionView::CreateAccount)
-                })
-                .map(|_create_account_action| {
-                    models::accounts::Account::new_from_receipt(
-                        receipt.receiver_id.to_string(),
-                        &receipt.receipt_id,
-                    )
+                .filter_map(|action| match action {
+                    near_primitives::views::ActionView::CreateAccount => {
+                        Some(models::accounts::Account::new_from_receipt(
+                            receipt.receiver_id.to_string(),
+                            &receipt.receipt_id,
+                        ))
+                    }
+                    near_primitives::views::ActionView::Transfer { .. } => {
+                        if receipt.receiver_id.len() == 64usize {
+                            Some(models::accounts::Account::new_from_receipt(
+                                receipt.receiver_id.to_string(),
+                                &receipt.receipt_id,
+                            ))
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
                 })
                 .next()
         })
