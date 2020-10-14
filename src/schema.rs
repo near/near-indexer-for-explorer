@@ -4,7 +4,7 @@ table! {
     accounts (id) {
         id -> Int8,
         account_id -> Text,
-        created_by_receipt_id -> Text,
+        created_by_receipt_id -> Nullable<Text>,
         deleted_by_receipt_id -> Nullable<Text>,
     }
 }

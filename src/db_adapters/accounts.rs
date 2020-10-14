@@ -2,7 +2,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection};
 use futures::join;
 use tokio_diesel::AsyncRunQueryDsl;
-use tracing::error;
+use tracing::{error, info};
 
 use near_indexer::near_primitives;
 
@@ -65,7 +65,7 @@ async fn store_accounts(
                 .map(|_create_account_action| {
                     models::accounts::Account::new(
                         receipt.receiver_id.to_string(),
-                        &receipt.receipt_id,
+                        Some(&receipt.receipt_id),
                     )
                 })
                 .next()
@@ -140,4 +140,63 @@ async fn remove_accounts(
             }
         }
     }
+}
+
+pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearConfig) {
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Adding/updating accounts from genesis..."
+    );
+    let pool = crate::models::establish_connection();
+
+    let accounts_models: Vec<models::accounts::Account> = near_config
+        .genesis
+        .records
+        .0
+        .iter()
+        .filter_map(|record| {
+            if let near_indexer::near_primitives::state_record::StateRecord::Account {
+                account_id,
+                ..
+            } = record
+            {
+                Some(models::accounts::Account::new(account_id.to_string(), None))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    loop {
+        match diesel::insert_into(schema::accounts::table)
+            .values(accounts_models.clone())
+            .on_conflict(schema::accounts::dsl::account_id)
+            .do_update()
+            .set((
+                schema::accounts::dsl::created_by_receipt_id
+                    .eq(excluded(schema::accounts::dsl::created_by_receipt_id)),
+                schema::accounts::dsl::deleted_by_receipt_id
+                    .eq(excluded(schema::accounts::dsl::deleted_by_receipt_id)),
+            ))
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                        target: crate::INDEXER_FOR_EXPLORER,
+                        "Error occurred while Accounts from genesis were being added to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
+                        crate::INTERVAL.as_millis(),
+                        async_error,
+                        &accounts_models,
+                    );
+                tokio::time::delay_for(crate::INTERVAL).await;
+            }
+        }
+    }
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "{} accounts from genesis were added/updated successful.",
+        accounts_models.len()
+    );
 }
