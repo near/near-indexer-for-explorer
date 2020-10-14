@@ -101,10 +101,15 @@ fn main() {
         SubCommand::Run(args) => {
             let indexer_config = near_indexer::IndexerConfig {
                 home_dir,
-                sync_mode: args.try_into().expect("Error in run arguments"),
+                sync_mode: args.clone().try_into().expect("Error in run arguments"),
             };
-            eprintln!("{:#?}", indexer_config);
             let indexer = near_indexer::Indexer::new(indexer_config);
+            if args.store_genesis {
+                let near_config = indexer.near_config().clone();
+                actix::spawn(db_adapters::accounts::store_accounts_from_genesis(
+                    near_config,
+                ));
+            }
             let stream = indexer.streamer();
             actix::spawn(listen_blocks(stream));
             indexer.start();
