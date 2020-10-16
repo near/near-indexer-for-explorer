@@ -66,6 +66,12 @@ async fn handle_message(
     // Accounts
     db_adapters::accounts::handle_accounts(&pool, &streamer_message.receipt_execution_outcomes)
         .await;
+    // AccessKeys
+    db_adapters::access_keys::handle_access_keys(
+        &pool,
+        &streamer_message.receipt_execution_outcomes,
+    )
+    .await;
 }
 
 async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>) {

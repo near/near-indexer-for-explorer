@@ -1,5 +1,19 @@
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
+
+    access_keys (public_key, account_id) {
+        public_key -> Text,
+        account_id -> Text,
+        created_by_receipt_id -> Nullable<Text>,
+        deleted_by_receipt_id -> Nullable<Text>,
+        permission -> Access_key_permission_type,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     accounts (id) {
         id -> Int8,
@@ -11,6 +25,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     blocks (hash) {
         height -> Numeric,
@@ -24,6 +39,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     chunks (hash) {
         block_hash -> Text,
@@ -37,6 +53,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     execution_outcome_receipts (execution_outcome_receipt_id, index, receipt_id) {
         execution_outcome_receipt_id -> Text,
@@ -73,6 +90,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     receipt_action_input_data (data_id, receipt_id) {
         data_id -> Text,
@@ -82,6 +100,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     receipt_action_output_data (data_id, receipt_id) {
         data_id -> Text,
@@ -92,6 +111,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     receipt_actions (receipt_id) {
         receipt_id -> Text,
@@ -103,6 +123,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     receipt_data (data_id) {
         data_id -> Text,
@@ -170,6 +191,7 @@ joinable!(transactions -> blocks (block_hash));
 joinable!(transactions -> chunks (chunk_hash));
 
 allow_tables_to_appear_in_same_query!(
+    access_keys,
     accounts,
     blocks,
     chunks,
