@@ -7,11 +7,11 @@ use serde_json::json;
 
 use near_indexer::near_primitives::views::ActionView;
 
-use enums::ActionKind;
-// pub use access_keys::AccessKey;
+pub use access_keys::AccessKey;
 pub use accounts::Account;
 pub use blocks::Block;
 pub use chunks::Chunk;
+use enums::ActionKind;
 pub use execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt};
 pub use receipts::{
     Receipt, ReceiptAction, ReceiptActionAction, ReceiptActionInputData, ReceiptActionOutputData,
@@ -19,11 +19,11 @@ pub use receipts::{
 };
 pub use transactions::{Transaction, TransactionAction};
 
-pub mod enums;
-// pub mod access_keys;
+pub mod access_keys;
 pub mod accounts;
 pub mod blocks;
 pub mod chunks;
+pub mod enums;
 pub mod execution_outcomes;
 pub mod receipts;
 pub mod transactions;

@@ -1565,6 +1565,7 @@ dependencies = [
  "futures",
  "hex",
  "itertools",
+ "near-crypto",
  "near-indexer",
  "num-traits",
  "openssl-probe",

@@ -1,5 +1,18 @@
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
+
+    access_keys (public_key, account_id) {
+        public_key -> Text,
+        account_id -> Text,
+        created_by_receipt_id -> Nullable<Text>,
+        deleted_by_receipt_id -> Nullable<Text>,
+        permission_kind -> Access_key_permission_kind,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
 
     accounts (id) {
         id -> Int8,
@@ -170,6 +183,7 @@ joinable!(transactions -> blocks (block_hash));
 joinable!(transactions -> chunks (chunk_hash));
 
 allow_tables_to_appear_in_same_query!(
+    access_keys,
     accounts,
     blocks,
     chunks,
