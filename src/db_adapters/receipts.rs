@@ -115,7 +115,7 @@ pub(crate) async fn store_receipts(
         })
         .collect();
 
-    let save_receipts_future = save_receipts(&pool, receipt_models);
+    save_receipts(&pool, receipt_models).await;
 
     let (action_receipts, data_receipts): (Vec<&near_indexer::near_primitives::views::ReceiptView>, Vec<&near_indexer::near_primitives::views::ReceiptView>) = receipts
         .into_iter()
@@ -126,11 +126,7 @@ pub(crate) async fn store_receipts(
 
     let process_receipt_data_future = store_receipt_data(&pool, data_receipts);
 
-    join!(
-        save_receipts_future,
-        process_receipt_actions_future,
-        process_receipt_data_future
-    );
+    join!(process_receipt_actions_future, process_receipt_data_future);
 }
 
 async fn save_receipts(

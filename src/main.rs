@@ -5,6 +5,7 @@ use clap::Clap;
 extern crate diesel;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
+use futures::join;
 use tokio::sync::mpsc;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -57,15 +58,26 @@ async fn handle_message(
     .await;
 
     // ExecutionOutcomes
-    db_adapters::execution_outcomes::store_execution_outcomes(
+    let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
         &pool,
         &streamer_message.receipt_execution_outcomes,
-    )
-    .await;
+    );
 
     // Accounts
-    db_adapters::accounts::handle_accounts(&pool, &streamer_message.receipt_execution_outcomes)
-        .await;
+    let accounts_future =
+        db_adapters::accounts::handle_accounts(&pool, &streamer_message.receipt_execution_outcomes);
+
+    // AccessKeys
+    let access_keys_future = db_adapters::access_keys::handle_access_keys(
+        &pool,
+        &streamer_message.receipt_execution_outcomes,
+    );
+
+    join!(
+        execution_outcomes_future,
+        accounts_future,
+        access_keys_future
+    );
 }
 
 async fn listen_blocks(mut stream: mpsc::Receiver<near_indexer::StreamerMessage>) {

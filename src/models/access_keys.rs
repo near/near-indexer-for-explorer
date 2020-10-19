@@ -1,26 +1,29 @@
-use near_indexer::near_primitives::views::{AccessKeyPermissionView, AccessKeyView};
-
+use crate::models::enums::AccessKeyPermission;
 use crate::schema;
 use schema::access_keys;
 
-#[derive(Insertable)]
+#[derive(Insertable, Clone, Debug)]
 pub struct AccessKey {
-    pub account_id: String,
     pub public_key: String,
-    pub access_key_type: String,
+    pub account_id: String,
+    pub created_by_receipt_id: Option<String>,
+    pub deleted_by_receipt_id: Option<String>,
+    pub permission_kind: AccessKeyPermission,
 }
 
 impl AccessKey {
-    pub fn new(account_id: String, public_key: String, access_key_type: &AccessKeyView) -> Self {
+    pub fn from_action_view(
+        public_key: &near_crypto::PublicKey,
+        account_id: &str,
+        access_key: &near_indexer::near_primitives::views::AccessKeyView,
+        create_by_receipt_id: &near_indexer::near_primitives::hash::CryptoHash,
+    ) -> Self {
         Self {
-            account_id,
-            public_key: public_key,
-            access_key_type: match access_key_type.permission {
-                ref _data @ AccessKeyPermissionView::FunctionCall { .. } => {
-                    "function_call".to_string()
-                }
-                _ => "full_access".to_string(),
-            },
+            public_key: public_key.to_string(),
+            account_id: account_id.to_string(),
+            created_by_receipt_id: Some(create_by_receipt_id.to_string()),
+            deleted_by_receipt_id: None,
+            permission_kind: (&access_key.permission).into(),
         }
     }
 }
