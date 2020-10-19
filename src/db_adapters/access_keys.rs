@@ -48,9 +48,13 @@ pub(crate) async fn handle_access_keys(
                         );
                     }
                     near_primitives::views::ActionView::DeleteKey { public_key } => {
-                        access_keys.insert(
-                            (public_key.to_string(), receipt.receiver_id.to_string()),
-                            models::access_keys::AccessKey {
+                        access_keys
+                            .entry((public_key.to_string(), receipt.receiver_id.to_string()))
+                            .and_modify(|existing_access_key| {
+                                existing_access_key.deleted_by_receipt_id =
+                                    Some(receipt.receipt_id.to_string());
+                            })
+                            .or_insert_with(|| models::access_keys::AccessKey {
                                 public_key: public_key.to_string(),
                                 account_id: receipt.receiver_id.to_string(),
                                 created_by_receipt_id: None,
@@ -58,8 +62,7 @@ pub(crate) async fn handle_access_keys(
                                 // this is a workaround to avoid additional struct with optional field
                                 // permission_kind is not supposed to change on delete action
                                 permission_kind: models::enums::AccessKeyPermission::FullAccess,
-                            },
-                        );
+                            });
                     }
                     _ => continue,
                 }
@@ -67,7 +70,7 @@ pub(crate) async fn handle_access_keys(
         }
     }
 
-    let (access_keys_to_insert, access_keys_to_delete): (
+    let (access_keys_to_insert, access_keys_to_update): (
         Vec<models::access_keys::AccessKey>,
         Vec<models::access_keys::AccessKey>,
     ) = access_keys
@@ -75,8 +78,8 @@ pub(crate) async fn handle_access_keys(
         .cloned()
         .partition(|model| model.created_by_receipt_id.is_some());
 
-    let delete_access_keys_future = async {
-        for value in access_keys_to_delete {
+    let update_access_keys_future = async {
+        for value in access_keys_to_update {
             let target = schema::access_keys::table
                 .filter(schema::access_keys::dsl::public_key.eq(value.public_key))
                 .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
@@ -138,5 +141,5 @@ pub(crate) async fn handle_access_keys(
         }
     };
 
-    join!(delete_access_keys_future, add_access_keys_future);
+    join!(update_access_keys_future, add_access_keys_future);
 }
