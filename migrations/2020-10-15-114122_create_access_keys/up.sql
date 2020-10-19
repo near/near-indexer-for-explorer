@@ -1,11 +1,11 @@
-CREATE TYPE access_key_permission_type AS ENUM ('NOT_APPLICABLE', 'FULL_ACCESS', 'FUNCTION_CALL');
+CREATE TYPE access_key_permission_kind AS ENUM ('FULL_ACCESS', 'FUNCTION_CALL');
 
 CREATE TABLE access_keys (
     public_key text NOT NULL,
     account_id text NOT NULL,
     created_by_receipt_id text,
     deleted_by_receipt_id text,
-    "permission" access_key_permission_type NOT NULL,
+    permission_kind access_key_permission_kind NOT NULL,
     CONSTRAINT access_keys_pk PRIMARY KEY (public_key, account_id),
     CONSTRAINT account_fk FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE,
     CONSTRAINT created_by_receipt_fk FOREIGN KEY (created_by_receipt_id) REFERENCES receipts(receipt_id) ON DELETE CASCADE,

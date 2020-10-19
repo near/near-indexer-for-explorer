@@ -61,11 +61,9 @@ impl From<near_indexer::near_primitives::views::ExecutionStatusView> for Executi
 
 #[derive(Debug, DbEnum, Clone)]
 #[DbValueStyle = "SCREAMING_SNAKE_CASE"]
-#[DieselType = "Access_key_permission_type"]
-#[PgType = "access_key_permission_type"]
+#[DieselType = "Access_key_permission_kind"]
+#[PgType = "access_key_permission_kind"]
 pub enum AccessKeyPermission {
-    /// Used only with AccessKeyAction::Delete
-    NotApplicable,
     /// Used only with AccessKeyAction::Add
     FullAccess,
     /// Used only with AccessKeyAction::Add
@@ -79,19 +77,6 @@ impl From<&near_indexer::near_primitives::views::AccessKeyPermissionView> for Ac
                 ..
             } => Self::FunctionCall,
             near_indexer::near_primitives::views::AccessKeyPermissionView::FullAccess => {
-                Self::FullAccess
-            }
-        }
-    }
-}
-
-impl From<&near_indexer::near_primitives::account::AccessKeyPermission> for AccessKeyPermission {
-    fn from(item: &near_indexer::near_primitives::account::AccessKeyPermission) -> Self {
-        match item {
-            near_indexer::near_primitives::account::AccessKeyPermission::FunctionCall(_) => {
-                Self::FunctionCall
-            }
-            near_indexer::near_primitives::account::AccessKeyPermission::FullAccess => {
                 Self::FullAccess
             }
         }
