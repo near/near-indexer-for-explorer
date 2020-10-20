@@ -19,6 +19,8 @@ pub use receipts::{
 };
 pub use transactions::{Transaction, TransactionAction};
 
+use serializer::AccessKeyView;
+
 pub mod access_keys;
 pub mod accounts;
 pub mod blocks;
@@ -27,6 +29,7 @@ pub mod enums;
 pub mod execution_outcomes;
 pub mod receipts;
 pub mod transactions;
+mod serializer;
 
 pub(crate) fn establish_connection() -> Pool<ConnectionManager<PgConnection>> {
     dotenv().ok();
@@ -84,7 +87,7 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
             ActionKind::AddKey,
             json!({
                 "public_key": public_key,
-                "access_key": access_key,
+                "access_key": AccessKeyView::from(access_key),
             }),
         ),
         ActionView::DeleteKey { public_key } => (
