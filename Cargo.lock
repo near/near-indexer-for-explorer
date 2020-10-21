@@ -1570,6 +1570,7 @@ dependencies = [
  "num-traits",
  "openssl-probe",
  "r2d2",
+ "serde",
  "serde_json",
  "tokio",
  "tokio-diesel",
