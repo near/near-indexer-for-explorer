@@ -23,7 +23,7 @@ const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 async fn handle_message(
     pool: std::sync::Arc<Pool<ConnectionManager<PgConnection>>>,
     streamer_message: near_indexer::StreamerMessage,
-    no_strict_mode: bool,
+    strict_mode: bool,
 ) {
     db_adapters::blocks::store_block(&pool, &streamer_message.block).await;
 
@@ -55,7 +55,7 @@ async fn handle_message(
         &pool,
         receipts,
         &streamer_message.block.header.hash.to_string(),
-        no_strict_mode,
+        strict_mode,
     )
     .await;
 
@@ -84,19 +84,19 @@ async fn handle_message(
 
 async fn listen_blocks(
     mut stream: mpsc::Receiver<near_indexer::StreamerMessage>,
-    no_strict_mode: Option<u32>,
+    allow_missing_relation_in_start_blocks: Option<u32>,
 ) {
     let pool = std::sync::Arc::new(models::establish_connection());
-    let mut no_strict_mode = no_strict_mode.unwrap_or_else(|| 0);
+    let mut strict_mode = allow_missing_relation_in_start_blocks.unwrap_or_else(|| 0);
     while let Some(streamer_message) = stream.recv().await {
         // Block
         info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
         actix::spawn(handle_message(
             pool.clone(),
             streamer_message,
-            no_strict_mode > 0,
+            strict_mode <= 0,
         ));
-        no_strict_mode -= 1;
+        strict_mode -= 1;
     }
 }
 

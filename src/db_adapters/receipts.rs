@@ -17,7 +17,7 @@ pub(crate) async fn store_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
     block_hash: &str,
-    no_strict_mode: bool,
+    strict_mode: bool,
 ) {
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
@@ -40,50 +40,57 @@ pub(crate) async fn store_receipts(
                     transaction_hash,
                 ))
             } else {
-                warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Skipping Receipt {} as we can't find parent Transaction for it.",
-                    r.receipt_id.to_string()
-                );
                 skipping_receipt_ids.insert(r.receipt_id);
                 None
             }
         })
         .collect();
 
-    if !no_strict_mode {
-        let receipt_models_ = loop {
+    if strict_mode {
+        let receipt_models_ = {
             let mut models: Vec<models::receipts::Receipt> = vec![];
             let mut new_skipping_receipt_ids =
                 std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
-            if skipping_receipt_ids.is_empty() {
-                break models;
-            } else {
-                let tx_hashes_for_receipts = find_tx_hashes_for_receipts(
-                    &pool,
-                    skipping_receipt_ids.iter().map(|r| r.to_string()).collect(),
-                )
-                .await;
-                models.extend(
-                    receipts
-                        .iter()
-                        .filter(|r| skipping_receipt_ids.contains(&r.receipt_id))
-                        .filter_map(|r| {
-                            if let Some(transaction_hash) =
-                                tx_hashes_for_receipts.get(r.receipt_id.to_string().as_str())
-                            {
-                                Some(models::Receipt::from_receipt_view(
-                                    r,
-                                    block_hash,
-                                    transaction_hash,
-                                ))
-                            } else {
-                                new_skipping_receipt_ids.insert(r.receipt_id);
-                                None
-                            }
-                        }),
-                );
-                skipping_receipt_ids = new_skipping_receipt_ids;
+            loop {
+                if skipping_receipt_ids.is_empty() {
+                    break models;
+                } else {
+                    warn!(
+                        target: crate::INDEXER_FOR_EXPLORER,
+                        "Looking for transaction hashes for receipts again... \n"
+                    );
+                    let tx_hashes_for_receipts = find_tx_hashes_for_receipts(
+                        &pool,
+                        skipping_receipt_ids.iter().map(|r| r.to_string()).collect(),
+                    )
+                    .await;
+                    models.extend(
+                        receipts
+                            .iter()
+                            .filter(|r| skipping_receipt_ids.contains(&r.receipt_id))
+                            .filter_map(|r| {
+                                if let Some(transaction_hash) =
+                                    tx_hashes_for_receipts.get(r.receipt_id.to_string().as_str())
+                                {
+                                    Some(models::Receipt::from_receipt_view(
+                                        r,
+                                        block_hash,
+                                        transaction_hash,
+                                    ))
+                                } else {
+                                    warn!(
+                                        target: crate::INDEXER_FOR_EXPLORER,
+                                        "Skipping Receipt {} as we can't find parent Transaction for it.",
+                                        r.receipt_id.to_string()
+                                    );
+                                    new_skipping_receipt_ids.insert(r.receipt_id);
+                                    None
+                                }
+                            }),
+                    );
+                    skipping_receipt_ids = new_skipping_receipt_ids.clone();
+                    new_skipping_receipt_ids.clear()
+                }
             }
         };
 
