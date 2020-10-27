@@ -72,8 +72,10 @@ async fn find_tx_hashes_for_receipts(
     receipt_ids: Vec<String>,
     strict_mode: bool,
 ) -> HashMap<String, String> {
+    let mut receipts = receipt_ids.clone();
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
 
+    let mut retries_left: u8 = 10; // retry at least times even in no-strict mode to avoid data loss
     loop {
         let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = loop {
             match schema::execution_outcome_receipts::table
@@ -84,11 +86,7 @@ async fn find_tx_hashes_for_receipts(
                     ),
                 )
                 .filter(
-                    schema::execution_outcome_receipts::dsl::receipt_id.eq(any(receipt_ids
-                        .clone()
-                        .into_iter()
-                        .filter(|r| tx_hashes_for_receipts.contains_key(r.as_str()))
-                        .collect::<Vec<String>>())),
+                    schema::execution_outcome_receipts::dsl::receipt_id.eq(any(receipts.clone())),
                 )
                 .select((
                     schema::execution_outcome_receipts::dsl::receipt_id,
@@ -112,15 +110,17 @@ async fn find_tx_hashes_for_receipts(
             }
         };
 
+        tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
+
+        if tx_hashes_for_receipts.len() == receipt_ids.len() {
+            break;
+        }
+
+        receipts.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
+
         let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
             match schema::transactions::table
-                .filter(
-                    schema::transactions::dsl::receipt_id.eq(any(receipt_ids
-                        .clone()
-                        .into_iter()
-                        .filter(|r| tx_hashes_for_receipts.contains_key(r.as_str()))
-                        .collect::<Vec<String>>())),
-                )
+                .filter(schema::transactions::dsl::receipt_id.eq(any(receipts.clone())))
                 .select((
                     schema::transactions::dsl::receipt_id,
                     schema::transactions::dsl::transaction_hash,
@@ -143,17 +143,22 @@ async fn find_tx_hashes_for_receipts(
             }
         };
 
-        tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
         tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_transactions);
 
-        if strict_mode {
-            if tx_hashes_for_receipts.len() == receipt_ids.len() {
-                break;
+        if tx_hashes_for_receipts.len() == receipt_ids.len() {
+            break;
+        }
+
+        receipts.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
+
+        if !strict_mode {
+            if retries_left > 0 {
+                retries_left = retries_left.saturating_sub(1);
             } else {
-                continue;
+                break;
             }
         } else {
-            break;
+            continue;
         }
     }
 
