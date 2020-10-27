@@ -96,7 +96,7 @@ async fn listen_blocks(
             streamer_message,
             strict_mode <= 0,
         ));
-        strict_mode -= strict_mode.saturating_sub(1);
+        strict_mode = strict_mode.saturating_sub(1);
     }
 }
 
