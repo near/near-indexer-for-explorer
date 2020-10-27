@@ -24,8 +24,8 @@ pub mod chunks;
 pub mod enums;
 pub mod execution_outcomes;
 pub mod receipts;
-pub mod transactions;
 mod serializers;
+pub mod transactions;
 
 pub(crate) fn establish_connection() -> Pool<ConnectionManager<PgConnection>> {
     dotenv().ok();

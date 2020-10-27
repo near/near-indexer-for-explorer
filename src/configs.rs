@@ -27,6 +27,8 @@ pub(crate) struct RunArgs {
     /// Store initial data from genesis like Accounts, AccessKeys
     #[clap(long)]
     pub store_genesis: bool,
+    #[clap(long)]
+    pub allow_missing_relations_in_first_blocks: Option<u32>,
     #[clap(subcommand)]
     pub sync_mode: SyncModeSubCommand,
 }
