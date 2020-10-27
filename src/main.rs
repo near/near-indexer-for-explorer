@@ -94,7 +94,7 @@ async fn listen_blocks(
         actix::spawn(handle_message(
             pool.clone(),
             streamer_message,
-            strict_mode <= 0,
+            strict_mode == 0,
         ));
         strict_mode = strict_mode.saturating_sub(1);
     }

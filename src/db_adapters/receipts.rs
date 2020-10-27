@@ -69,10 +69,9 @@ pub(crate) async fn store_receipts(
 /// Looks for already created parent transaction hash for given receipts
 async fn find_tx_hashes_for_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    receipt_ids: Vec<String>,
+    mut receipt_ids: Vec<String>,
     strict_mode: bool,
 ) -> HashMap<String, String> {
-    let mut receipts = receipt_ids.clone();
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
 
     let mut retries_left: u8 = 10; // retry at least times even in no-strict mode to avoid data loss
@@ -86,7 +85,8 @@ async fn find_tx_hashes_for_receipts(
                     ),
                 )
                 .filter(
-                    schema::execution_outcome_receipts::dsl::receipt_id.eq(any(receipts.clone())),
+                    schema::execution_outcome_receipts::dsl::receipt_id
+                        .eq(any(receipt_ids.clone())),
                 )
                 .select((
                     schema::execution_outcome_receipts::dsl::receipt_id,
@@ -110,17 +110,18 @@ async fn find_tx_hashes_for_receipts(
             }
         };
 
+        let found_hashes_len = tx_hashes_for_receipts_via_outcomes.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
 
-        if tx_hashes_for_receipts.len() == receipt_ids.len() {
+        if found_hashes_len == receipt_ids.len() {
             break;
         }
 
-        receipts.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
+        receipt_ids.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
 
         let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
             match schema::transactions::table
-                .filter(schema::transactions::dsl::receipt_id.eq(any(receipts.clone())))
+                .filter(schema::transactions::dsl::receipt_id.eq(any(receipt_ids.clone())))
                 .select((
                     schema::transactions::dsl::receipt_id,
                     schema::transactions::dsl::transaction_hash,
@@ -143,17 +144,18 @@ async fn find_tx_hashes_for_receipts(
             }
         };
 
+        let found_hashes_len = tx_hashes_for_receipt_via_transactions.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_transactions);
 
-        if tx_hashes_for_receipts.len() == receipt_ids.len() {
+        if found_hashes_len == receipt_ids.len() {
             break;
         }
 
-        receipts.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
+        receipt_ids.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
 
         if !strict_mode {
             if retries_left > 0 {
-                retries_left = retries_left.saturating_sub(1);
+                retries_left -= 1;
             } else {
                 break;
             }
