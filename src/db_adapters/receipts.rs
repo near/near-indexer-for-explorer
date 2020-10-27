@@ -17,80 +17,17 @@ pub(crate) async fn store_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
     block_hash: &str,
+    strict_mode: bool,
 ) {
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
-    let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = loop {
-        match schema::execution_outcome_receipts::table
-            .inner_join(
-                schema::receipts::table.on(
-                    schema::execution_outcome_receipts::dsl::execution_outcome_receipt_id
-                        .eq(schema::receipts::dsl::receipt_id),
-                ),
-            )
-            .filter(
-                schema::execution_outcome_receipts::dsl::receipt_id.eq(any(receipts
-                    .iter()
-                    .map(|r| r.receipt_id.to_string())
-                    .collect::<Vec<_>>())),
-            )
-            .select((
-                schema::execution_outcome_receipts::dsl::receipt_id,
-                schema::receipts::dsl::transaction_hash,
-            ))
-            .load_async(&pool)
-            .await
-        {
-            Ok(res) => {
-                break res;
-            }
-            Err(async_error) => {
-                error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
-                        crate::INTERVAL.as_millis(),
-                        async_error,
-                    );
-                tokio::time::delay_for(crate::INTERVAL).await;
-            }
-        }
-    };
-
-    let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
-        match schema::transactions::table
-            .filter(
-                schema::transactions::dsl::receipt_id.eq(any(receipts
-                    .iter()
-                    .map(|r| r.receipt_id.to_string())
-                    .collect::<Vec<_>>())),
-            )
-            .select((
-                schema::transactions::dsl::receipt_id,
-                schema::transactions::dsl::transaction_hash,
-            ))
-            .load_async(&pool)
-            .await
-        {
-            Ok(res) => {
-                break res;
-            }
-            Err(async_error) => {
-                error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while fetching the parent transaction for ExecutionOutcome. Retrying in {} milliseconds... \n {:#?}",
-                        crate::INTERVAL.as_millis(),
-                        async_error,
-                    );
-                tokio::time::delay_for(crate::INTERVAL).await;
-            }
-        }
-    };
-
-    let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
-
-    tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
-    tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_transactions);
+    let tx_hashes_for_receipts = find_tx_hashes_for_receipts(
+        &pool,
+        receipts.iter().map(|r| r.receipt_id.to_string()).collect(),
+        strict_mode,
+    )
+    .await;
 
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
@@ -127,6 +64,107 @@ pub(crate) async fn store_receipts(
     let process_receipt_data_future = store_receipt_data(&pool, data_receipts);
 
     join!(process_receipt_actions_future, process_receipt_data_future);
+}
+
+/// Looks for already created parent transaction hash for given receipts
+async fn find_tx_hashes_for_receipts(
+    pool: &Pool<ConnectionManager<PgConnection>>,
+    mut receipt_ids: Vec<String>,
+    strict_mode: bool,
+) -> HashMap<String, String> {
+    let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
+
+    let mut retries_left: u8 = 10; // retry at least times even in no-strict mode to avoid data loss
+    loop {
+        let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = loop {
+            match schema::execution_outcome_receipts::table
+                .inner_join(
+                    schema::receipts::table.on(
+                        schema::execution_outcome_receipts::dsl::execution_outcome_receipt_id
+                            .eq(schema::receipts::dsl::receipt_id),
+                    ),
+                )
+                .filter(
+                    schema::execution_outcome_receipts::dsl::receipt_id
+                        .eq(any(receipt_ids.clone())),
+                )
+                .select((
+                    schema::execution_outcome_receipts::dsl::receipt_id,
+                    schema::receipts::dsl::transaction_hash,
+                ))
+                .load_async(&pool)
+                .await
+            {
+                Ok(res) => {
+                    break res;
+                }
+                Err(async_error) => {
+                    error!(
+                        target: crate::INDEXER_FOR_EXPLORER,
+                        "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
+                        crate::INTERVAL.as_millis(),
+                        async_error,
+                    );
+                    tokio::time::delay_for(crate::INTERVAL).await;
+                }
+            }
+        };
+
+        let found_hashes_len = tx_hashes_for_receipts_via_outcomes.len();
+        tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
+
+        if found_hashes_len == receipt_ids.len() {
+            break;
+        }
+
+        receipt_ids.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
+
+        let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
+            match schema::transactions::table
+                .filter(schema::transactions::dsl::receipt_id.eq(any(receipt_ids.clone())))
+                .select((
+                    schema::transactions::dsl::receipt_id,
+                    schema::transactions::dsl::transaction_hash,
+                ))
+                .load_async(&pool)
+                .await
+            {
+                Ok(res) => {
+                    break res;
+                }
+                Err(async_error) => {
+                    error!(
+                        target: crate::INDEXER_FOR_EXPLORER,
+                        "Error occurred while fetching the parent transaction for ExecutionOutcome. Retrying in {} milliseconds... \n {:#?}",
+                        crate::INTERVAL.as_millis(),
+                        async_error,
+                    );
+                    tokio::time::delay_for(crate::INTERVAL).await;
+                }
+            }
+        };
+
+        let found_hashes_len = tx_hashes_for_receipt_via_transactions.len();
+        tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_transactions);
+
+        if found_hashes_len == receipt_ids.len() {
+            break;
+        }
+
+        receipt_ids.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
+
+        if !strict_mode {
+            if retries_left > 0 {
+                retries_left -= 1;
+            } else {
+                break;
+            }
+        } else {
+            continue;
+        }
+    }
+
+    tx_hashes_for_receipts
 }
 
 async fn save_receipts(

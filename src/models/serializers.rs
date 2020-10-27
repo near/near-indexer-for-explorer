@@ -1,8 +1,8 @@
-use serde_json::json;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
-use near_indexer::near_primitives::views::ActionView;
 use near_indexer::near_primitives::serialize::option_u128_dec_format;
+use near_indexer::near_primitives::views::ActionView;
 
 use crate::models::enums::ActionKind;
 
@@ -26,7 +26,11 @@ impl From<&near_indexer::near_primitives::views::AccessKeyView> for AccessKeyVie
 /// This is a enum we want to store more explicitly, so we copy it from nearcore and provide
 /// different serde representation settings
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "permission_kind", content = "permission_details", rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(
+    tag = "permission_kind",
+    content = "permission_details",
+    rename_all = "SCREAMING_SNAKE_CASE"
+)]
 pub(crate) enum AccessKeyPermissionView {
     FunctionCall {
         #[serde(with = "option_u128_dec_format")]
@@ -37,19 +41,23 @@ pub(crate) enum AccessKeyPermissionView {
     FullAccess,
 }
 
-impl From<near_indexer::near_primitives::views::AccessKeyPermissionView> for AccessKeyPermissionView {
+impl From<near_indexer::near_primitives::views::AccessKeyPermissionView>
+    for AccessKeyPermissionView
+{
     fn from(permission: near_indexer::near_primitives::views::AccessKeyPermissionView) -> Self {
         match permission {
-            near_indexer::near_primitives::views::AccessKeyPermissionView::FullAccess => Self::FullAccess,
+            near_indexer::near_primitives::views::AccessKeyPermissionView::FullAccess => {
+                Self::FullAccess
+            }
             near_indexer::near_primitives::views::AccessKeyPermissionView::FunctionCall {
                 allowance,
                 receiver_id,
                 method_names,
             } => Self::FunctionCall {
-                allowance: allowance.clone(),
-                receiver_id: receiver_id.clone(),
-                method_names: method_names.clone(),
-            }
+                allowance,
+                receiver_id,
+                method_names,
+            },
         }
     }
 }
