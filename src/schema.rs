@@ -32,6 +32,7 @@ table! {
         timestamp -> Numeric,
         total_supply -> Numeric,
         gas_price -> Numeric,
+        author_account_id -> Text,
     }
 }
 
@@ -45,6 +46,7 @@ table! {
         signature -> Text,
         gas_limit -> Numeric,
         gas_used -> Numeric,
+        author_account_id -> Text,
     }
 }
 

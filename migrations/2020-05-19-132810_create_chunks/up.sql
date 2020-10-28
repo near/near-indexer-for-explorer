@@ -6,5 +6,6 @@ CREATE TABLE chunks (
 	signature text NOT NULL,
 	gas_limit numeric(20) NOT NULL, -- numeric(precision) 20 digits should be enough to store u64::MAX
 	gas_used numeric(20) NOT NULL, -- numeric(precision) 20 digits should be enough to store u64::MAX
+	author_account_id text NOT NULL,
 	CONSTRAINT chunks_fk FOREIGN KEY (block_hash) REFERENCES blocks(hash) ON DELETE CASCADE
 );
