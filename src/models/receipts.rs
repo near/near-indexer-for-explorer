@@ -16,7 +16,9 @@ use schema::{
 pub struct Receipt {
     pub receipt_id: String,
     pub block_hash: String,
-    // pub chunk_hash: Vec<u8>,
+    pub chunk_hash: String,
+    pub index_in_chunk: i32,
+    pub block_timestamp: BigDecimal,
     pub predecessor_id: String,
     pub receiver_id: String,
     pub receipt_kind: ReceiptKind,
@@ -28,16 +30,20 @@ impl Receipt {
         receipt: &near_indexer::near_primitives::views::ReceiptView,
         block_hash: &str,
         transaction_hash: &str,
-        // chunk_header: &near_indexer::near_primitives::views::ChunkHeaderView,
+        chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
+        index_in_chunk: i32,
+        block_timestamp: u64,
     ) -> Self {
         Self {
             receipt_id: receipt.receipt_id.to_string(),
             block_hash: block_hash.to_string(),
-            // chunk_hash: chunk_header.chunk_hash.as_ref().to_vec(),
+            chunk_hash: chunk_hash.to_string(),
             predecessor_id: receipt.predecessor_id.to_string(),
             receiver_id: receipt.receiver_id.to_string(),
             receipt_kind: (&receipt.receipt).into(),
             transaction_hash: transaction_hash.to_string(),
+            index_in_chunk,
+            block_timestamp: block_timestamp.into(),
         }
     }
 }

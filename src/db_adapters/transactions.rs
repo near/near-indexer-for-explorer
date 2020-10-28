@@ -12,6 +12,7 @@ pub(crate) async fn store_transactions(
     pool: &Pool<ConnectionManager<PgConnection>>,
     chunks: &[near_indexer::IndexerChunkView],
     block_hash: &str,
+    block_timestamp: u64,
 ) {
     if chunks.is_empty() {
         return;
@@ -25,6 +26,7 @@ pub(crate) async fn store_transactions(
                 .collect::<Vec<&near_indexer::IndexerTransactionWithOutcome>>(),
             &chunk.header.chunk_hash,
             block_hash,
+            block_timestamp,
         )
     });
 
@@ -36,11 +38,19 @@ async fn store_chunk_transactions(
     transactions: Vec<&near_indexer::IndexerTransactionWithOutcome>,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_hash: &str,
+    block_timestamp: u64,
 ) {
     let transaction_models: Vec<models::transactions::Transaction> = transactions
         .iter()
-        .map(|tx| {
-            models::transactions::Transaction::from_indexer_transaction(tx, block_hash, chunk_hash)
+        .enumerate()
+        .map(|(index, tx)| {
+            models::transactions::Transaction::from_indexer_transaction(
+                tx,
+                block_hash,
+                chunk_hash,
+                block_timestamp,
+                index as i32,
+            )
         })
         .collect();
 

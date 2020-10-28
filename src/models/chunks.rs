@@ -11,6 +11,7 @@ pub struct Chunk {
     pub signature: String,
     pub gas_limit: BigDecimal,
     pub gas_used: BigDecimal,
+    pub author_account_id: String,
 }
 
 impl Chunk {
@@ -25,6 +26,7 @@ impl Chunk {
             signature: chunk_view.header.signature.to_string(),
             gas_limit: chunk_view.header.gas_limit.into(),
             gas_used: chunk_view.header.gas_used.into(),
+            author_account_id: chunk_view.author.to_string(),
         }
     }
 }

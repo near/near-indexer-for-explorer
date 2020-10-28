@@ -2,6 +2,8 @@ CREATE TABLE transactions (
     transaction_hash text PRIMARY KEY,
     block_hash text NOT NULL,
     chunk_hash text NOT NULL,
+    index_in_chunk INT NOT NULL,
+    block_timestamp numeric(20, 0) NOT NULL, -- numeric(precision) 20 digits should be enough to store u64::MAX
     signer_id text NOT NULL,
     public_key text NOT NULL,
     nonce numeric(20, 0) NOT NULL, -- numeric(precision) 20 digits should be enough to store u64::MAX
@@ -14,6 +16,7 @@ CREATE TABLE transactions (
     CONSTRAINT block_tx_fk FOREIGN KEY (block_hash) REFERENCES blocks(hash) ON DELETE CASCADE,
     CONSTRAINT chunk_tx_fk FOREIGN KEY (chunk_hash) REFERENCES chunks(hash) ON DELETE CASCADE
 );
+CREATE INDEX tx_timestamp_idx ON transactions (block_timestamp);
 
 CREATE TABLE transaction_actions (
     transaction_hash text NOT NULL,
