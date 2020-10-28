@@ -19,7 +19,9 @@ pub(crate) async fn store_receipts(
     block_hash: &str,
     strict_mode: bool,
 ) {
-    if receipts.is_empty() { return; }
+    if receipts.is_empty() {
+        return;
+    }
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
@@ -166,7 +168,7 @@ async fn find_tx_hashes_for_receipts(
             crate::INTERVAL.as_millis()
         );
         tokio::time::delay_for(crate::INTERVAL).await;
-    };
+    }
 
     tx_hashes_for_receipts
 }

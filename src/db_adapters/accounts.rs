@@ -16,7 +16,9 @@ pub(crate) async fn handle_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
 ) {
-    if outcomes.is_empty() { return; }
+    if outcomes.is_empty() {
+        return;
+    }
     let successful_receipts_with_actions: Vec<(
         &near_primitives::views::ReceiptView,
         &Vec<near_primitives::views::ActionView>,

@@ -16,7 +16,9 @@ pub(crate) async fn handle_access_keys(
     pool: &Pool<ConnectionManager<PgConnection>>,
     outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
 ) {
-    if outcomes.is_empty() { return; }
+    if outcomes.is_empty() {
+        return;
+    }
     let successful_receipts = outcomes
         .values()
         .filter(|outcome_with_receipt| {
