@@ -15,8 +15,10 @@ use crate::schema;
 /// Saves receipts to database
 pub(crate) async fn store_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
+    receipts: &[near_indexer::near_primitives::views::ReceiptView],
     block_hash: &str,
+    chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
+    block_timestamp: u64,
     strict_mode: bool,
 ) {
     if receipts.is_empty() {
@@ -33,7 +35,8 @@ pub(crate) async fn store_receipts(
     .await;
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
-        .filter_map(|r| {
+        .enumerate()
+        .filter_map(|(index, r)| {
             if let Some(transaction_hash) =
                 tx_hashes_for_receipts.get(r.receipt_id.to_string().as_str())
             {
@@ -41,6 +44,9 @@ pub(crate) async fn store_receipts(
                     r,
                     block_hash,
                     transaction_hash,
+                    chunk_hash,
+                    index as i32,
+                    block_timestamp,
                 ))
             } else {
                 warn!(
@@ -164,8 +170,9 @@ async fn find_tx_hashes_for_receipts(
         }
         warn!(
             target: crate::INDEXER_FOR_EXPLORER,
-            "Going to retry to find parent transactions for receipts in {} milliseconds...",
-            crate::INTERVAL.as_millis()
+            "Going to retry to find parent transactions for receipts in {} milliseconds... \n {:#?}",
+            crate::INTERVAL.as_millis(),
+            &receipt_ids
         );
         tokio::time::delay_for(crate::INTERVAL).await;
     }

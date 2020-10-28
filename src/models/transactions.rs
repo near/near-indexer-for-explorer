@@ -11,6 +11,8 @@ pub struct Transaction {
     pub transaction_hash: String,
     pub block_hash: String,
     pub chunk_hash: String,
+    pub index_in_chunk: i32,
+    pub block_timestamp: BigDecimal,
     pub signer_id: String,
     pub public_key: String,
     pub nonce: BigDecimal,
@@ -27,10 +29,14 @@ impl Transaction {
         tx: &near_indexer::IndexerTransactionWithOutcome,
         block_hash: &str,
         chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
+        block_timestamp: u64,
+        index_in_chunk: i32,
     ) -> Self {
         Self {
             transaction_hash: tx.transaction.hash.to_string(),
             block_hash: block_hash.to_string(),
+            block_timestamp: block_timestamp.into(),
+            index_in_chunk,
             nonce: tx.transaction.nonce.into(),
             signer_id: tx.transaction.signer_id.to_string(),
             public_key: tx.transaction.public_key.to_string(),

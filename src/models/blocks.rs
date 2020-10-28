@@ -15,6 +15,7 @@ pub struct Block {
     pub timestamp: BigDecimal,
     pub total_supply: BigDecimal,
     pub gas_price: BigDecimal,
+    pub author_account_id: String,
 }
 
 impl From<&near_primitives::views::BlockView> for Block {
@@ -28,6 +29,7 @@ impl From<&near_primitives::views::BlockView> for Block {
                 .expect("`total_supply` expected to be u128"),
             gas_price: BigDecimal::from_str(block_view.header.gas_price.to_string().as_str())
                 .expect("`gas_price` expected to be u128"),
+            author_account_id: block_view.author.to_string(),
         }
     }
 }

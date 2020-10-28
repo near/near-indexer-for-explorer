@@ -32,6 +32,7 @@ table! {
         timestamp -> Numeric,
         total_supply -> Numeric,
         gas_price -> Numeric,
+        author_account_id -> Text,
     }
 }
 
@@ -45,6 +46,7 @@ table! {
         signature -> Text,
         gas_limit -> Numeric,
         gas_used -> Numeric,
+        author_account_id -> Text,
     }
 }
 
@@ -131,6 +133,9 @@ table! {
     receipts (receipt_id) {
         receipt_id -> Text,
         block_hash -> Text,
+        chunk_hash -> Text,
+        index_in_chunk -> Int4,
+        block_timestamp -> Numeric,
         predecessor_id -> Text,
         receiver_id -> Text,
         receipt_kind -> Receipt_type,
@@ -158,6 +163,8 @@ table! {
         transaction_hash -> Text,
         block_hash -> Text,
         chunk_hash -> Text,
+        index_in_chunk -> Int4,
+        block_timestamp -> Numeric,
         signer_id -> Text,
         public_key -> Text,
         nonce -> Numeric,
@@ -177,6 +184,7 @@ joinable!(execution_outcomes -> blocks (block_hash));
 joinable!(execution_outcomes -> receipts (receipt_id));
 joinable!(receipt_action_actions -> receipts (receipt_id));
 joinable!(receipts -> blocks (block_hash));
+joinable!(receipts -> chunks (chunk_hash));
 joinable!(receipts -> transactions (transaction_hash));
 joinable!(transaction_actions -> transactions (transaction_hash));
 joinable!(transactions -> blocks (block_hash));
