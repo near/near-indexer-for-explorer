@@ -13,13 +13,18 @@ CREATE TYPE action_type AS ENUM (
 CREATE TABLE receipts (
     receipt_id text PRIMARY KEY,
     block_hash text NOT NULL,
---     chunk_hash bytea NOT NULL,
+    chunk_hash text NOT NULL,
+    index_in_chunk INT NOT NULL,
+    block_timestamp numeric(20, 0) NOT NULL, -- numeric(precision) 20 digits should be enough to store u64::MAX
     predecessor_id text NOT NULL,
     receiver_id text NOT NULL,
     receipt_kind receipt_type NOT NULL,
-    CONSTRAINT block_receipts_fk FOREIGN KEY (block_hash) REFERENCES blocks(hash) ON DELETE CASCADE
---     CONSTRAINT chunk_receipts_fk FOREIGN KEY (chunk_hash) REFERENCES chunks(hash) ON DELETE CASCADE
+    CONSTRAINT block_receipts_fk FOREIGN KEY (block_hash) REFERENCES blocks(hash) ON DELETE CASCADE,
+    CONSTRAINT chunk_receipts_fk FOREIGN KEY (chunk_hash) REFERENCES chunks(hash) ON DELETE CASCADE
 );
+CREATE INDEX receipts_timestamp_idx ON receipts (block_timestamp);
+CREATE INDEX receipts_index_in_chunk_idx ON receipts (index_in_chunk);
+
 CREATE TABLE receipt_data (
     data_id text PRIMARY KEY,
     receipt_id text NOT NULL,

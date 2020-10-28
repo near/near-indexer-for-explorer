@@ -40,24 +40,22 @@ async fn handle_message(
         &pool,
         &streamer_message.chunks,
         &streamer_message.block.header.hash.to_string(),
+        streamer_message.block.header.timestamp,
     )
     .await;
 
     // Receipts
-    let receipts: Vec<&near_indexer::near_primitives::views::ReceiptView> = streamer_message
-        .chunks
-        .iter()
-        .flat_map(|chunk| &chunk.receipts)
-        .chain(streamer_message.local_receipts.iter())
-        .collect();
-
-    db_adapters::receipts::store_receipts(
-        &pool,
-        receipts,
-        &streamer_message.block.header.hash.to_string(),
-        strict_mode,
-    )
-    .await;
+    for chunk in &streamer_message.chunks {
+        db_adapters::receipts::store_receipts(
+            &pool,
+            &chunk.receipts,
+            &streamer_message.block.header.hash.to_string(),
+            &chunk.header.chunk_hash,
+            streamer_message.block.header.timestamp,
+            strict_mode,
+        )
+        .await;
+    }
 
     // ExecutionOutcomes
     let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
