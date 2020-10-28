@@ -170,8 +170,9 @@ async fn find_tx_hashes_for_receipts(
         }
         warn!(
             target: crate::INDEXER_FOR_EXPLORER,
-            "Going to retry to find parent transactions for receipts in {} milliseconds...",
-            crate::INTERVAL.as_millis()
+            "Going to retry to find parent transactions for receipts in {} milliseconds... \n {:#?}",
+            crate::INTERVAL.as_millis(),
+            &receipt_ids
         );
         tokio::time::delay_for(crate::INTERVAL).await;
     }
