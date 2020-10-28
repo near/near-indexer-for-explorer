@@ -17,7 +17,6 @@ CREATE TABLE transactions (
     CONSTRAINT chunk_tx_fk FOREIGN KEY (chunk_hash) REFERENCES chunks(hash) ON DELETE CASCADE
 );
 CREATE INDEX tx_timestamp_idx ON transactions (block_timestamp);
-CREATE INDEX tx_index_in_chunk_idx ON transactions (index_in_chunk);
 
 CREATE TABLE transaction_actions (
     transaction_hash text NOT NULL,

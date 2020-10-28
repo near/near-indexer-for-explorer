@@ -23,7 +23,6 @@ CREATE TABLE receipts (
     CONSTRAINT chunk_receipts_fk FOREIGN KEY (chunk_hash) REFERENCES chunks(hash) ON DELETE CASCADE
 );
 CREATE INDEX receipts_timestamp_idx ON receipts (block_timestamp);
-CREATE INDEX receipts_index_in_chunk_idx ON receipts (index_in_chunk);
 
 CREATE TABLE receipt_data (
     data_id text PRIMARY KEY,
