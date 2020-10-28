@@ -12,6 +12,9 @@ pub(crate) async fn store_chunks(
     chunks: &[near_indexer::IndexerChunkView],
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
 ) {
+    if chunks.is_empty() {
+        return;
+    }
     let chunk_models: Vec<models::chunks::Chunk> = chunks
         .iter()
         .map(|chunk| models::chunks::Chunk::from_chunk_view(chunk, block_hash))
