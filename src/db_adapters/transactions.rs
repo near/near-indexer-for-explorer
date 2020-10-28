@@ -13,6 +13,9 @@ pub(crate) async fn store_transactions(
     chunks: &[near_indexer::IndexerChunkView],
     block_hash: &str,
 ) {
+    if chunks.is_empty() {
+        return;
+    }
     let futures = chunks.iter().map(|chunk| {
         store_chunk_transactions(
             &pool,

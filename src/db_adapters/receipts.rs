@@ -19,6 +19,9 @@ pub(crate) async fn store_receipts(
     block_hash: &str,
     strict_mode: bool,
 ) {
+    if receipts.is_empty() {
+        return;
+    }
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
@@ -28,7 +31,6 @@ pub(crate) async fn store_receipts(
         strict_mode,
     )
     .await;
-
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
         .filter_map(|r| {
@@ -117,7 +119,7 @@ async fn find_tx_hashes_for_receipts(
             break;
         }
 
-        receipt_ids.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
+        receipt_ids.retain(|r| !tx_hashes_for_receipts.contains_key(r.as_str()));
 
         let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
             match schema::transactions::table
@@ -151,7 +153,7 @@ async fn find_tx_hashes_for_receipts(
             break;
         }
 
-        receipt_ids.retain(|r| tx_hashes_for_receipts.contains_key(r.as_str()));
+        receipt_ids.retain(|r| !tx_hashes_for_receipts.contains_key(r.as_str()));
 
         if !strict_mode {
             if retries_left > 0 {
@@ -178,6 +180,7 @@ async fn save_receipts(
     loop {
         match diesel::insert_into(schema::receipts::table)
             .values(receipts.clone())
+            .on_conflict_do_nothing()
             .execute_async(&pool)
             .await
         {
@@ -271,6 +274,7 @@ async fn store_receipt_actions(
     loop {
         match diesel::insert_into(schema::receipt_actions::table)
             .values(receipt_actions.clone())
+            .on_conflict_do_nothing()
             .execute_async(&pool)
             .await
         {
@@ -291,6 +295,7 @@ async fn store_receipt_actions(
     loop {
         match diesel::insert_into(schema::receipt_action_actions::table)
             .values(receipt_action_actions.clone())
+            .on_conflict_do_nothing()
             .execute_async(&pool)
             .await
         {
@@ -311,6 +316,7 @@ async fn store_receipt_actions(
     loop {
         match diesel::insert_into(schema::receipt_action_output_data::table)
             .values(receipt_action_output_data.clone())
+            .on_conflict_do_nothing()
             .execute_async(&pool)
             .await
         {
@@ -331,6 +337,7 @@ async fn store_receipt_actions(
     loop {
         match diesel::insert_into(schema::receipt_action_input_data::table)
             .values(receipt_action_input_data.clone())
+            .on_conflict_do_nothing()
             .execute_async(&pool)
             .await
         {
@@ -361,6 +368,7 @@ async fn store_receipt_data(
     loop {
         match diesel::insert_into(schema::receipt_data::table)
             .values(receipt_data_models.clone())
+            .on_conflict_do_nothing()
             .execute_async(&pool)
             .await
         {
