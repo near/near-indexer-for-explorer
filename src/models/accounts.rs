@@ -3,9 +3,9 @@ use schema::accounts;
 
 #[derive(Insertable, Debug, Clone)]
 pub struct Account {
-    account_id: String,
-    created_by_receipt_id: Option<String>,
-    deleted_by_receipt_id: Option<String>,
+    pub account_id: String,
+    pub created_by_receipt_id: Option<String>,
+    pub deleted_by_receipt_id: Option<String>,
 }
 
 impl Account {
