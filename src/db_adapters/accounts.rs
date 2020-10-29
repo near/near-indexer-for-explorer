@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::{ExpressionMethods, PgConnection};
+use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::{join, StreamExt};
 use itertools::Itertools;
 use tokio_diesel::AsyncRunQueryDsl;
@@ -19,10 +21,7 @@ pub(crate) async fn handle_accounts(
     if outcomes.is_empty() {
         return;
     }
-    let successful_receipts_with_actions: Vec<(
-        &near_primitives::views::ReceiptView,
-        &Vec<near_primitives::views::ActionView>,
-    )> = outcomes
+    let successful_receipts = outcomes
         .values()
         .filter(|outcome_with_receipt| {
             match outcome_with_receipt.execution_outcome.outcome.status {
@@ -31,112 +30,102 @@ pub(crate) async fn handle_accounts(
                 _ => false,
             }
         })
-        .filter_map(|outcome_with_receipt| outcome_with_receipt.receipt.as_ref())
-        .filter_map(|receipt| {
-            if let near_primitives::views::ReceiptEnumView::Action { actions, .. } =
-                &receipt.receipt
-            {
-                Some((receipt, actions))
-            } else {
-                None
-            }
-        })
-        .collect();
+        .filter_map(|outcome_with_receipt| outcome_with_receipt.receipt.as_ref());
 
-    let store_accounts_future = store_accounts(&pool, &successful_receipts_with_actions);
-    let remove_accounts_future = remove_accounts(&pool, &successful_receipts_with_actions);
+    let mut accounts =
+        HashMap::<near_primitives::types::AccountId, models::accounts::Account>::new();
 
-    // Joining it unless we can't execute it in the correct order
-    // see https://github.com/nearprotocol/nearcore/issues/3467
-    join!(store_accounts_future, remove_accounts_future);
-}
-
-async fn store_accounts(
-    pool: &Pool<ConnectionManager<PgConnection>>,
-    outcomes: &[(
-        &near_primitives::views::ReceiptView,
-        &Vec<near_primitives::views::ActionView>,
-    )],
-) {
-    let accounts_to_create: Vec<models::accounts::Account> = outcomes
-        .iter()
-        .filter_map(|(receipt, actions)| {
-            actions
-                .iter()
-                .filter_map(|action| match action {
+    for receipt in successful_receipts {
+        if let near_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
+            for action in actions {
+                match action {
                     near_primitives::views::ActionView::CreateAccount => {
-                        Some(models::accounts::Account::new_from_receipt(
-                            receipt.receiver_id.to_string(),
-                            &receipt.receipt_id,
-                        ))
+                        accounts.insert(
+                            receipt.receiver_id.clone(),
+                            models::accounts::Account::new_from_receipt(
+                                receipt.receiver_id.to_string(),
+                                &receipt.receipt_id,
+                            ),
+                        );
                     }
                     near_primitives::views::ActionView::Transfer { .. } => {
                         if receipt.receiver_id.len() == 64usize {
-                            Some(models::accounts::Account::new_from_receipt(
-                                receipt.receiver_id.to_string(),
-                                &receipt.receipt_id,
-                            ))
-                        } else {
-                            None
+                            accounts.insert(
+                                receipt.receiver_id.clone(),
+                                models::accounts::Account::new_from_receipt(
+                                    receipt.receiver_id.to_string(),
+                                    &receipt.receipt_id,
+                                ),
+                            );
                         }
                     }
-                    _ => None,
-                })
-                .next()
-        })
-        .collect();
-
-    loop {
-        match diesel::insert_into(schema::accounts::table)
-            .values(accounts_to_create.clone())
-            .on_conflict(schema::accounts::dsl::account_id)
-            .do_update()
-            .set((
-                schema::accounts::dsl::created_by_receipt_id
-                    .eq(excluded(schema::accounts::dsl::created_by_receipt_id)),
-                schema::accounts::dsl::deleted_by_receipt_id
-                    .eq(excluded(schema::accounts::dsl::deleted_by_receipt_id)),
-            ))
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Accounts were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
-                    async_error,
-                    &accounts_to_create,
-                );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                    near_primitives::views::ActionView::DeleteAccount { .. } => {
+                        accounts
+                            .entry(receipt.receiver_id.clone())
+                            .and_modify(|existing_account| {
+                                existing_account.deleted_by_receipt_id =
+                                    Some(receipt.receipt_id.to_string())
+                            })
+                            .or_insert_with(|| models::accounts::Account {
+                                account_id: receipt.receiver_id.to_string(),
+                                created_by_receipt_id: None,
+                                deleted_by_receipt_id: Some(receipt.receipt_id.to_string()),
+                            });
+                    }
+                    _ => {}
+                }
             }
         }
     }
-}
 
-async fn remove_accounts(
-    pool: &Pool<ConnectionManager<PgConnection>>,
-    outcomes: &[(
-        &near_primitives::views::ReceiptView,
-        &Vec<near_primitives::views::ActionView>,
-    )],
-) {
-    let accounts_to_delete: Vec<(String, String)> = outcomes
-        .iter()
-        .filter_map(|(receipt, actions)| actions
-            .iter()
-            .filter(|action| matches!(action, near_primitives::views::ActionView::DeleteAccount { .. }))
-            .map(|_delete_account_action| (receipt.receiver_id.to_string(), receipt.receipt_id.to_string()) )
-            .next()
-        )
-        .collect();
+    let (accounts_to_insert, accounts_to_update): (
+        Vec<models::accounts::Account>,
+        Vec<models::accounts::Account>,
+    ) = accounts
+        .values()
+        .cloned()
+        .partition(|model| model.created_by_receipt_id.is_some());
 
-    for (account_id, deleted_by_receipt_id) in accounts_to_delete {
+    let update_accounts_future = async {
+        for value in accounts_to_update {
+            let target = schema::accounts::table
+                .filter(schema::accounts::dsl::account_id.eq(value.account_id));
+            loop {
+                match diesel::update(target.clone())
+                    .set(
+                        schema::accounts::dsl::deleted_by_receipt_id
+                            .eq(value.deleted_by_receipt_id.clone()),
+                    )
+                    .execute_async(&pool)
+                    .await
+                {
+                    Ok(_) => break,
+                    Err(async_error) => {
+                        error!(
+                            target: crate::INDEXER_FOR_EXPLORER,
+                            "Error occurred while updating Account. Retry in {} milliseconds... \n {:#?}",
+                            crate::INTERVAL.as_millis(),
+                            async_error,
+                        );
+                        tokio::time::delay_for(crate::INTERVAL).await;
+                    }
+                }
+            }
+        }
+    };
+
+    let insert_accounts_future = async {
         loop {
-            match diesel::update(schema::accounts::table)
-                .filter(schema::accounts::dsl::account_id.eq(account_id.clone()))
-                .set(schema::accounts::dsl::deleted_by_receipt_id.eq(deleted_by_receipt_id.clone()))
+            match diesel::insert_into(schema::accounts::table)
+                .values(accounts_to_insert.clone())
+                .on_conflict(schema::accounts::dsl::account_id)
+                .do_update()
+                .set((
+                    schema::accounts::created_by_receipt_id
+                        .eq(excluded(schema::accounts::dsl::created_by_receipt_id)),
+                    schema::accounts::deleted_by_receipt_id
+                        .eq(excluded(schema::accounts::dsl::deleted_by_receipt_id)),
+                ))
                 .execute_async(&pool)
                 .await
             {
@@ -144,16 +133,19 @@ async fn remove_accounts(
                 Err(async_error) => {
                     error!(
                         target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while Account were deleted from database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
+                        "Error occurred while Accounts were adding to database. Retrying in {} milliseconds... \n {:#?}",
                         crate::INTERVAL.as_millis(),
                         async_error,
-                        &account_id,
                     );
                     tokio::time::delay_for(crate::INTERVAL).await;
                 }
             }
         }
-    }
+    };
+
+    // Joining it unless we can't execute it in the correct order
+    // see https://github.com/nearprotocol/nearcore/issues/3467
+    join!(update_accounts_future, insert_accounts_future);
 }
 
 pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearConfig) {
