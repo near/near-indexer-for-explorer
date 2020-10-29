@@ -63,7 +63,7 @@ pub(crate) async fn store_receipts(
     save_receipts(&pool, receipt_models).await;
 
     let (action_receipts, data_receipts): (Vec<&near_indexer::near_primitives::views::ReceiptView>, Vec<&near_indexer::near_primitives::views::ReceiptView>) = receipts
-        .into_iter()
+        .iter()
         .filter(|r| !skipping_receipt_ids.contains(&r.receipt_id))
         .partition(|receipt| matches!(receipt.receipt, near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }));
 
