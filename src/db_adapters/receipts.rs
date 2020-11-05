@@ -29,8 +29,10 @@ pub(crate) async fn store_receipts(
 
     let tx_hashes_for_receipts = find_tx_hashes_for_receipts(
         &pool,
-        receipts.iter().map(|r| r.receipt_id.to_string()).collect(),
+        receipts.to_vec(),
         strict_mode,
+        block_hash,
+        chunk_hash,
     )
     .await;
     let receipt_models: Vec<models::receipts::Receipt> = receipts
@@ -51,8 +53,10 @@ pub(crate) async fn store_receipts(
             } else {
                 warn!(
                     target: crate::INDEXER_FOR_EXPLORER,
-                    "Skipping Receipt {} as we can't find parent Transaction for it.",
-                    r.receipt_id.to_string()
+                    "Skipping Receipt {} as we can't find parent Transaction for it. Happen in block hash {}, chunk hash {}",
+                    r.receipt_id.to_string(),
+                    block_hash,
+                    chunk_hash,
                 );
                 skipping_receipt_ids.insert(r.receipt_id);
                 None
@@ -77,13 +81,64 @@ pub(crate) async fn store_receipts(
 /// Looks for already created parent transaction hash for given receipts
 async fn find_tx_hashes_for_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    mut receipt_ids: Vec<String>,
+    mut receipts: Vec<near_indexer::near_primitives::views::ReceiptView>,
     strict_mode: bool,
+    block_hash: &str,
+    chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
 ) -> HashMap<String, String> {
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
 
     let mut retries_left: u8 = 10; // retry at least times even in no-strict mode to avoid data loss
     loop {
+        let tx_hashes_for_receipt_via_data_output: Vec<(String, String)> = loop {
+            match schema::receipt_action_output_data::table
+                .inner_join(
+                    schema::receipts::table.on(schema::receipt_action_output_data::dsl::receipt_id
+                        .eq(schema::receipts::dsl::receipt_id)),
+                )
+                .filter(
+                    schema::receipt_action_output_data::dsl::data_id.eq(any(receipts
+                        .clone()
+                        .iter()
+                        .filter_map(|r| match r.receipt {
+                            near_indexer::near_primitives::views::ReceiptEnumView::Data {
+                                data_id,
+                                ..
+                            } => Some(data_id.to_string()),
+                            _ => None,
+                        })
+                        .collect::<Vec<String>>())),
+                )
+                .select((
+                    schema::receipt_action_output_data::dsl::receipt_id,
+                    schema::receipts::dsl::transaction_hash,
+                ))
+                .load_async(&pool)
+                .await
+            {
+                Ok(res) => break res,
+                Err(async_error) => {
+                    error!(
+                        target: crate::INDEXER_FOR_EXPLORER,
+                        "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
+                        crate::INTERVAL.as_millis(),
+                        async_error,
+                    );
+                    tokio::time::delay_for(crate::INTERVAL).await;
+                }
+            }
+        };
+
+        let found_hashes_len = tx_hashes_for_receipt_via_data_output.len();
+        tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_data_output);
+
+        if found_hashes_len == receipts.len() {
+            break;
+        }
+
+        receipts
+            .retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
+
         let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = loop {
             match schema::execution_outcome_receipts::table
                 .inner_join(
@@ -94,7 +149,14 @@ async fn find_tx_hashes_for_receipts(
                 )
                 .filter(
                     schema::execution_outcome_receipts::dsl::receipt_id
-                        .eq(any(receipt_ids.clone())),
+                        .eq(any(receipts
+                                .clone()
+                                .iter()
+                                .filter(|r| matches!(r.receipt, near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }))
+                                .map(|r| r.receipt_id.to_string())
+                                .collect::<Vec<String>>()
+                            )
+                        ),
                 )
                 .select((
                     schema::execution_outcome_receipts::dsl::receipt_id,
@@ -121,15 +183,21 @@ async fn find_tx_hashes_for_receipts(
         let found_hashes_len = tx_hashes_for_receipts_via_outcomes.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
 
-        if found_hashes_len == receipt_ids.len() {
+        if found_hashes_len == receipts.len() {
             break;
         }
 
-        receipt_ids.retain(|r| !tx_hashes_for_receipts.contains_key(r.as_str()));
+        receipts
+            .retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
 
         let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
             match schema::transactions::table
-                .filter(schema::transactions::dsl::receipt_id.eq(any(receipt_ids.clone())))
+                .filter(schema::transactions::dsl::receipt_id.eq(any(receipts
+                    .clone()
+                    .iter()
+                    .filter(|r| matches!(r.receipt, near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }))
+                    .map(|r| r.receipt_id.to_string())
+                    .collect::<Vec<String>>())))
                 .select((
                     schema::transactions::dsl::receipt_id,
                     schema::transactions::dsl::transaction_hash,
@@ -155,11 +223,12 @@ async fn find_tx_hashes_for_receipts(
         let found_hashes_len = tx_hashes_for_receipt_via_transactions.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_transactions);
 
-        if found_hashes_len == receipt_ids.len() {
+        if found_hashes_len == receipts.len() {
             break;
         }
 
-        receipt_ids.retain(|r| !tx_hashes_for_receipts.contains_key(r.as_str()));
+        receipts
+            .retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
 
         if !strict_mode {
             if retries_left > 0 {
@@ -170,9 +239,11 @@ async fn find_tx_hashes_for_receipts(
         }
         warn!(
             target: crate::INDEXER_FOR_EXPLORER,
-            "Going to retry to find parent transactions for receipts in {} milliseconds... \n {:#?}",
+            "Going to retry to find parent transactions for receipts in {} milliseconds... \n {:#?}\n block hash {} \nchunk hash {}",
             crate::INTERVAL.as_millis(),
-            &receipt_ids
+            &receipts,
+            block_hash,
+            chunk_hash
         );
         tokio::time::delay_for(crate::INTERVAL).await;
     }
