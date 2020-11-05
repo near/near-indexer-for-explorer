@@ -90,54 +90,82 @@ async fn find_tx_hashes_for_receipts(
 
     let mut retries_left: u8 = 10; // retry at least times even in no-strict mode to avoid data loss
     loop {
-        let tx_hashes_for_receipt_via_data_output: Vec<(String, String)> = loop {
-            match schema::receipt_action_output_data::table
-                .inner_join(
-                    schema::receipts::table.on(schema::receipt_action_output_data::dsl::receipt_id
-                        .eq(schema::receipts::dsl::receipt_id)),
-                )
-                .filter(
-                    schema::receipt_action_output_data::dsl::data_id.eq(any(receipts
-                        .clone()
-                        .iter()
-                        .filter_map(|r| match r.receipt {
-                            near_indexer::near_primitives::views::ReceiptEnumView::Data {
-                                data_id,
-                                ..
-                            } => Some(data_id.to_string()),
-                            _ => None,
-                        })
-                        .collect::<Vec<String>>())),
-                )
-                .select((
-                    schema::receipt_action_output_data::dsl::receipt_id,
-                    schema::receipts::dsl::transaction_hash,
-                ))
-                .load_async(&pool)
-                .await
-            {
-                Ok(res) => break res,
-                Err(async_error) => {
-                    error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
-                        crate::INTERVAL.as_millis(),
-                        async_error,
-                    );
-                    tokio::time::delay_for(crate::INTERVAL).await;
+        let data_ids: Vec<String> = receipts
+            .clone()
+            .iter()
+            .filter_map(|r| match r.receipt {
+                near_indexer::near_primitives::views::ReceiptEnumView::Data { data_id, .. } => {
+                    Some(data_id.to_string())
                 }
+                _ => None,
+            })
+            .collect();
+        if !data_ids.is_empty() {
+            let tx_hashes_for_data_id_via_data_output: Vec<(String, String)> = loop {
+                match schema::receipt_action_output_data::table
+                    .inner_join(
+                        schema::receipts::table
+                            .on(schema::receipt_action_output_data::dsl::receipt_id
+                                .eq(schema::receipts::dsl::receipt_id)),
+                    )
+                    .filter(
+                        schema::receipt_action_output_data::dsl::data_id.eq(any(data_ids.clone())),
+                    )
+                    .select((
+                        schema::receipt_action_output_data::dsl::data_id,
+                        schema::receipts::dsl::transaction_hash,
+                    ))
+                    .load_async(&pool)
+                    .await
+                {
+                    Ok(res) => {
+                        break res;
+                    }
+                    Err(async_error) => {
+                        error!(
+                            target: crate::INDEXER_FOR_EXPLORER,
+                            "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
+                            crate::INTERVAL.as_millis(),
+                            async_error,
+                        );
+                        tokio::time::delay_for(crate::INTERVAL).await;
+                    }
+                }
+            };
+
+            let mut tx_hashes_for_data_id_via_data_output_hashmap =
+                HashMap::<String, String>::new();
+            tx_hashes_for_data_id_via_data_output_hashmap
+                .extend(tx_hashes_for_data_id_via_data_output);
+            let tx_hashes_for_receipts_via_data_output: Vec<(String, String)> = receipts
+                .iter()
+                .filter_map(|r| match r.receipt {
+                    near_indexer::near_primitives::views::ReceiptEnumView::Data {
+                        data_id, ..
+                    } => {
+                        if let Some(tx_hash) = tx_hashes_for_data_id_via_data_output_hashmap
+                            .get(data_id.to_string().as_str())
+                        {
+                            Some((r.receipt_id.to_string(), tx_hash.to_string()))
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                })
+                .collect();
+
+            let found_hashes_len = tx_hashes_for_receipts_via_data_output.len();
+            tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_data_output);
+
+            if found_hashes_len == receipts.len() {
+                break;
             }
-        };
 
-        let found_hashes_len = tx_hashes_for_receipt_via_data_output.len();
-        tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_data_output);
-
-        if found_hashes_len == receipts.len() {
-            break;
+            receipts.retain(|r| {
+                !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str())
+            });
         }
-
-        receipts
-            .retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
 
         let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = loop {
             match schema::execution_outcome_receipts::table
