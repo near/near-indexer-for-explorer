@@ -69,7 +69,7 @@ table! {
         block_hash -> Text,
         gas_burnt -> Numeric,
         tokens_burnt -> Numeric,
-        executor_id -> Text,
+        executor_account_id -> Text,
         status -> Execution_outcome_status,
     }
 }
@@ -101,7 +101,7 @@ table! {
     receipt_action_output_data (data_id, receipt_id) {
         data_id -> Text,
         receipt_id -> Text,
-        receiver_id -> Text,
+        receiver_account_id -> Text,
     }
 }
 
@@ -136,8 +136,8 @@ table! {
         chunk_hash -> Text,
         index_in_chunk -> Int4,
         block_timestamp -> Numeric,
-        predecessor_id -> Text,
-        receiver_id -> Text,
+        predecessor_account_id -> Text,
+        receiver_account_id -> Text,
         receipt_kind -> Receipt_type,
         transaction_hash -> Text,
     }
