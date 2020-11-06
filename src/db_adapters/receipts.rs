@@ -91,7 +91,6 @@ async fn find_tx_hashes_for_receipts(
     let mut retries_left: u8 = 10; // retry at least times even in no-strict mode to avoid data loss
     loop {
         let data_ids: Vec<String> = receipts
-            .clone()
             .iter()
             .filter_map(|r| match r.receipt {
                 near_indexer::near_primitives::views::ReceiptEnumView::Data { data_id, .. } => {
