@@ -14,7 +14,7 @@ pub struct ExecutionOutcome {
     pub block_hash: String,
     pub gas_burnt: BigDecimal,
     pub tokens_burnt: BigDecimal,
-    pub executor_id: String,
+    pub executor_account_id: String,
     pub status: ExecutionOutcomeStatus,
 }
 
@@ -30,7 +30,7 @@ impl From<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView> for
                 execution_outcome.outcome.tokens_burnt.to_string().as_str(),
             )
             .expect("`tokens_burnt` expected to be u128"),
-            executor_id: execution_outcome.outcome.executor_id.to_string(),
+            executor_account_id: execution_outcome.outcome.executor_id.to_string(),
             status: execution_outcome.outcome.status.clone().into(),
         }
     }
