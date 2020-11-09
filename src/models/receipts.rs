@@ -19,8 +19,8 @@ pub struct Receipt {
     pub chunk_hash: String,
     pub index_in_chunk: i32,
     pub block_timestamp: BigDecimal,
-    pub predecessor_id: String,
-    pub receiver_id: String,
+    pub predecessor_account_id: String,
+    pub receiver_account_id: String,
     pub receipt_kind: ReceiptKind,
     pub transaction_hash: String,
 }
@@ -38,8 +38,8 @@ impl Receipt {
             receipt_id: receipt.receipt_id.to_string(),
             block_hash: block_hash.to_string(),
             chunk_hash: chunk_hash.to_string(),
-            predecessor_id: receipt.predecessor_id.to_string(),
-            receiver_id: receipt.receiver_id.to_string(),
+            predecessor_account_id: receipt.predecessor_id.to_string(),
+            receiver_account_id: receipt.receiver_id.to_string(),
             receipt_kind: (&receipt.receipt).into(),
             transaction_hash: transaction_hash.to_string(),
             index_in_chunk,
@@ -157,7 +157,7 @@ impl ReceiptActionInputData {
 pub struct ReceiptActionOutputData {
     pub receipt_id: String,
     pub data_id: String,
-    pub receiver_id: String,
+    pub receiver_account_id: String,
 }
 
 impl ReceiptActionOutputData {
@@ -165,7 +165,7 @@ impl ReceiptActionOutputData {
         Self {
             receipt_id,
             data_id: data_receiver.data_id.to_string(),
-            receiver_id: data_receiver.receiver_id.to_string(),
+            receiver_account_id: data_receiver.receiver_id.to_string(),
         }
     }
 }
