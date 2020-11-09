@@ -89,18 +89,18 @@ table! {
 table! {
     use diesel::sql_types::*;
 
-    receipt_action_input_data (data_id, receipt_id) {
-        data_id -> Text,
-        receipt_id -> Text,
+    receipt_action_input_data (input_data_id, input_to_receipt_id) {
+        input_data_id -> Text,
+        input_to_receipt_id -> Text,
     }
 }
 
 table! {
     use diesel::sql_types::*;
 
-    receipt_action_output_data (data_id, receipt_id) {
-        data_id -> Text,
-        receipt_id -> Text,
+    receipt_action_output_data (output_data_id, output_from_receipt_id) {
+        output_data_id -> Text,
+        output_from_receipt_id -> Text,
         receiver_account_id -> Text,
     }
 }

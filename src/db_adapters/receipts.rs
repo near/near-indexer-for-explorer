@@ -103,15 +103,17 @@ async fn find_tx_hashes_for_receipts(
             let tx_hashes_for_data_id_via_data_output: Vec<(String, String)> = loop {
                 match schema::receipt_action_output_data::table
                     .inner_join(
-                        schema::receipts::table
-                            .on(schema::receipt_action_output_data::dsl::receipt_id
-                                .eq(schema::receipts::dsl::receipt_id)),
+                        schema::receipts::table.on(
+                            schema::receipt_action_output_data::dsl::output_from_receipt_id
+                                .eq(schema::receipts::dsl::receipt_id),
+                        ),
                     )
                     .filter(
-                        schema::receipt_action_output_data::dsl::data_id.eq(any(data_ids.clone())),
+                        schema::receipt_action_output_data::dsl::output_data_id
+                            .eq(any(data_ids.clone())),
                     )
                     .select((
-                        schema::receipt_action_output_data::dsl::data_id,
+                        schema::receipt_action_output_data::dsl::output_data_id,
                         schema::receipts::dsl::transaction_hash,
                     ))
                     .load_async(&pool)

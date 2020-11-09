@@ -139,15 +139,15 @@ impl ReceiptActionAction {
 #[derive(Insertable, Clone, Debug)]
 #[table_name = "receipt_action_input_data"]
 pub struct ReceiptActionInputData {
-    pub receipt_id: String,
-    pub data_id: String,
+    pub input_to_receipt_id: String,
+    pub input_data_id: String,
 }
 
 impl ReceiptActionInputData {
     pub fn from_data_id(receipt_id: String, data_id: String) -> Self {
         Self {
-            receipt_id,
-            data_id,
+            input_to_receipt_id: receipt_id,
+            input_data_id: data_id,
         }
     }
 }
@@ -155,16 +155,16 @@ impl ReceiptActionInputData {
 #[derive(Insertable, Clone, Debug)]
 #[table_name = "receipt_action_output_data"]
 pub struct ReceiptActionOutputData {
-    pub receipt_id: String,
-    pub data_id: String,
+    pub output_from_receipt_id: String,
+    pub output_data_id: String,
     pub receiver_account_id: String,
 }
 
 impl ReceiptActionOutputData {
     pub fn from_data_receiver(receipt_id: String, data_receiver: &DataReceiverView) -> Self {
         Self {
-            receipt_id,
-            data_id: data_receiver.data_id.to_string(),
+            output_from_receipt_id: receipt_id,
+            output_data_id: data_receiver.data_id.to_string(),
             receiver_account_id: data_receiver.receiver_id.to_string(),
         }
     }

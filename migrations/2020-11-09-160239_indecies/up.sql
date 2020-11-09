@@ -15,11 +15,11 @@ CREATE INDEX receipt_data_receipt_id_idx ON receipt_data (receipt_id);
 CREATE INDEX receipt_actions_signer_account_id_idx ON receipt_actions (signer_account_id);
 CREATE INDEX receipt_action_actions_receipt_id_idx ON receipt_action_actions (receipt_id);
 
-CREATE INDEX receipt_action_output_data_receipt_id_idx ON receipt_action_output_data (receipt_id);
+CREATE INDEX receipt_action_output_data_output_from_receipt_id_idx ON receipt_action_output_data (output_from_receipt_id);
 CREATE INDEX receipt_action_output_data_receiver_account_id_idx ON receipt_action_output_data (receiver_account_id);
 
-CREATE INDEX receipt_action_input_data_receipt_id_idx ON receipt_action_input_data (receipt_id);
-CREATE INDEX receipt_action_input_data_data_id_idx ON receipt_action_input_data (data_id);
+CREATE INDEX receipt_action_input_data_input_to_receipt_id_idx ON receipt_action_input_data (input_to_receipt_id);
+CREATE INDEX receipt_action_input_data_input_data_id_idx ON receipt_action_input_data (input_data_id);
 
 -- EXECUTION OUTCOMES
 CREATE INDEX execution_outcomes_receipt_id_idx ON execution_outcomes (receipt_id);

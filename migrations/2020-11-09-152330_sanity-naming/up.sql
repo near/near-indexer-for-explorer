@@ -31,3 +31,13 @@ ALTER TABLE transaction_actions
 -- RECEIPTS
 ALTER TABLE receipt_actions
     RENAME COLUMN signer_id TO signer_account_id;
+
+ALTER TABLE receipt_action_input_data
+    RENAME COLUMN data_id TO input_data_id;
+ALTER TABLE receipt_action_input_data
+    RENAME COLUMN receipt_id TO input_to_receipt_id;
+
+ALTER TABLE receipt_action_output_data
+    RENAME COLUMN data_id TO output_data_id;
+ALTER TABLE receipt_action_output_data
+    RENAME COLUMN receipt_id TO output_from_receipt_id;
