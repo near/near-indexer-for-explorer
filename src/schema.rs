@@ -25,11 +25,11 @@ table! {
 table! {
     use diesel::sql_types::*;
 
-    blocks (hash) {
-        height -> Numeric,
-        hash -> Text,
-        prev_hash -> Text,
-        timestamp -> Numeric,
+    blocks (block_hash) {
+        block_height -> Numeric,
+        block_hash -> Text,
+        prev_block_hash -> Text,
+        block_timestamp -> Numeric,
         total_supply -> Numeric,
         gas_price -> Numeric,
         author_account_id -> Text,
@@ -39,9 +39,9 @@ table! {
 table! {
     use diesel::sql_types::*;
 
-    chunks (hash) {
+    chunks (chunk_hash) {
         block_hash -> Text,
-        hash -> Text,
+        chunk_hash -> Text,
         shard_id -> Numeric,
         signature -> Text,
         gas_limit -> Numeric,
@@ -110,7 +110,7 @@ table! {
 
     receipt_actions (receipt_id) {
         receipt_id -> Text,
-        signer_id -> Text,
+        signer_account_id -> Text,
         signer_public_key -> Text,
         gas_price -> Numeric,
     }
@@ -147,9 +147,9 @@ table! {
     use diesel::sql_types::*;
     use crate::models::enums::*;
 
-    transaction_actions (transaction_hash, index) {
+    transaction_actions (transaction_hash, index_in_transaction) {
         transaction_hash -> Text,
-        index -> Int4,
+        index_in_transaction -> Int4,
         action_kind -> Action_type,
         args -> Jsonb,
     }
@@ -165,10 +165,10 @@ table! {
         chunk_hash -> Text,
         index_in_chunk -> Int4,
         block_timestamp -> Numeric,
-        signer_id -> Text,
-        public_key -> Text,
+        signer_account_id -> Text,
+        signer_public_key -> Text,
         nonce -> Numeric,
-        receiver_id -> Text,
+        receiver_account_id -> Text,
         signature -> Text,
         status -> Execution_outcome_status,
         receipt_id -> Text,

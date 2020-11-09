@@ -79,7 +79,7 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptData
 #[derive(Insertable, Clone, Debug)]
 pub struct ReceiptAction {
     pub receipt_id: String,
-    pub signer_id: String,
+    pub signer_account_id: String,
     pub signer_public_key: String,
     pub gas_price: BigDecimal,
 }
@@ -99,7 +99,7 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
         {
             Ok(Self {
                 receipt_id: receipt_view.receipt_id.to_string(),
-                signer_id: signer_id.to_string(),
+                signer_account_id: signer_id.to_string(),
                 signer_public_key: signer_public_key.to_string(),
                 gas_price: BigDecimal::from_str(gas_price.to_string().as_str())
                     .expect("gas_price expected to be u128"),
