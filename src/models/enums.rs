@@ -2,8 +2,8 @@ use diesel_derive_enum::DbEnum;
 
 #[derive(Debug, DbEnum, Clone)]
 #[DbValueStyle = "SCREAMING_SNAKE_CASE"]
-#[DieselType = "Receipt_type"]
-#[PgType = "receipt_type"]
+#[DieselType = "Receipt_kind"]
+#[PgType = "receipt_kind"]
 pub enum ReceiptKind {
     Action,
     Data,
@@ -20,8 +20,8 @@ impl From<&near_indexer::near_primitives::views::ReceiptEnumView> for ReceiptKin
 
 #[derive(Debug, DbEnum, Clone)]
 #[DbValueStyle = "SCREAMING_SNAKE_CASE"]
-#[DieselType = "Action_type"]
-#[PgType = "action_type"]
+#[DieselType = "Action_kind"]
+#[PgType = "action_kind"]
 pub enum ActionKind {
     CreateAccount,
     DeployContract,

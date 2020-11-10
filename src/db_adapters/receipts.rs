@@ -101,18 +101,20 @@ async fn find_tx_hashes_for_receipts(
             .collect();
         if !data_ids.is_empty() {
             let tx_hashes_for_data_id_via_data_output: Vec<(String, String)> = loop {
-                match schema::receipt_action_output_data::table
+                match schema::action_receipt_output_data::table
                     .inner_join(
-                        schema::receipts::table
-                            .on(schema::receipt_action_output_data::dsl::receipt_id
-                                .eq(schema::receipts::dsl::receipt_id)),
+                        schema::receipts::table.on(
+                            schema::action_receipt_output_data::dsl::output_from_receipt_id
+                                .eq(schema::receipts::dsl::receipt_id),
+                        ),
                     )
                     .filter(
-                        schema::receipt_action_output_data::dsl::data_id.eq(any(data_ids.clone())),
+                        schema::action_receipt_output_data::dsl::output_data_id
+                            .eq(any(data_ids.clone())),
                     )
                     .select((
-                        schema::receipt_action_output_data::dsl::data_id,
-                        schema::receipts::dsl::transaction_hash,
+                        schema::action_receipt_output_data::dsl::output_data_id,
+                        schema::receipts::dsl::originated_from_transaction_hash,
                     ))
                     .load_async(&pool)
                     .await
@@ -170,12 +172,12 @@ async fn find_tx_hashes_for_receipts(
             match schema::execution_outcome_receipts::table
                 .inner_join(
                     schema::receipts::table.on(
-                        schema::execution_outcome_receipts::dsl::execution_outcome_receipt_id
+                        schema::execution_outcome_receipts::dsl::executed_receipt_id
                             .eq(schema::receipts::dsl::receipt_id),
                     ),
                 )
                 .filter(
-                    schema::execution_outcome_receipts::dsl::receipt_id
+                    schema::execution_outcome_receipts::dsl::produced_receipt_id
                         .eq(any(receipts
                                 .clone()
                                 .iter()
@@ -186,8 +188,8 @@ async fn find_tx_hashes_for_receipts(
                         ),
                 )
                 .select((
-                    schema::execution_outcome_receipts::dsl::receipt_id,
-                    schema::receipts::dsl::transaction_hash,
+                    schema::execution_outcome_receipts::dsl::produced_receipt_id,
+                    schema::receipts::dsl::originated_from_transaction_hash,
                 ))
                 .load_async(&pool)
                 .await
@@ -219,14 +221,14 @@ async fn find_tx_hashes_for_receipts(
 
         let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
             match schema::transactions::table
-                .filter(schema::transactions::dsl::receipt_id.eq(any(receipts
+                .filter(schema::transactions::dsl::converted_into_receipt_id.eq(any(receipts
                     .clone()
                     .iter()
                     .filter(|r| matches!(r.receipt, near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }))
                     .map(|r| r.receipt_id.to_string())
                     .collect::<Vec<String>>())))
                 .select((
-                    schema::transactions::dsl::receipt_id,
+                    schema::transactions::dsl::converted_into_receipt_id,
                     schema::transactions::dsl::transaction_hash,
                 ))
                 .load_async(&pool)
@@ -308,12 +310,12 @@ async fn store_receipt_actions(
     pool: &Pool<ConnectionManager<PgConnection>>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
 ) {
-    let receipt_actions: Vec<models::ReceiptAction> = receipts
+    let receipt_actions: Vec<models::ActionReceipt> = receipts
         .iter()
-        .filter_map(|receipt| models::ReceiptAction::try_from(*receipt).ok())
+        .filter_map(|receipt| models::ActionReceipt::try_from(*receipt).ok())
         .collect();
 
-    let receipt_action_actions: Vec<models::ReceiptActionAction> = receipts
+    let receipt_action_actions: Vec<models::ActionReceiptAction> = receipts
         .iter()
         .filter_map(|receipt| {
             if let near_indexer::near_primitives::views::ReceiptEnumView::Action {
@@ -321,7 +323,7 @@ async fn store_receipt_actions(
             } = &receipt.receipt
             {
                 Some(actions.iter().enumerate().map(move |(index, action)| {
-                    models::ReceiptActionAction::from_action_view(
+                    models::ActionReceiptAction::from_action_view(
                         receipt.receipt_id.to_string(),
                         i32::from_usize(index).expect("We expect usize to not overflow i32 here"),
                         action,
@@ -334,7 +336,7 @@ async fn store_receipt_actions(
         .flatten()
         .collect();
 
-    let receipt_action_input_data: Vec<models::ReceiptActionInputData> = receipts
+    let receipt_action_input_data: Vec<models::ActionReceiptInputData> = receipts
         .iter()
         .filter_map(|receipt| {
             if let near_indexer::near_primitives::views::ReceiptEnumView::Action {
@@ -343,7 +345,7 @@ async fn store_receipt_actions(
             } = &receipt.receipt
             {
                 Some(input_data_ids.iter().map(move |data_id| {
-                    models::ReceiptActionInputData::from_data_id(
+                    models::ActionReceiptInputData::from_data_id(
                         receipt.receipt_id.to_string(),
                         data_id.to_string(),
                     )
@@ -355,7 +357,7 @@ async fn store_receipt_actions(
         .flatten()
         .collect();
 
-    let receipt_action_output_data: Vec<models::ReceiptActionOutputData> = receipts
+    let receipt_action_output_data: Vec<models::ActionReceiptOutputData> = receipts
         .iter()
         .filter_map(|receipt| {
             if let near_indexer::near_primitives::views::ReceiptEnumView::Action {
@@ -364,7 +366,7 @@ async fn store_receipt_actions(
             } = &receipt.receipt
             {
                 Some(output_data_receivers.iter().map(move |receiver| {
-                    models::ReceiptActionOutputData::from_data_receiver(
+                    models::ActionReceiptOutputData::from_data_receiver(
                         receipt.receipt_id.to_string(),
                         receiver,
                     )
@@ -377,7 +379,7 @@ async fn store_receipt_actions(
         .collect();
 
     loop {
-        match diesel::insert_into(schema::receipt_actions::table)
+        match diesel::insert_into(schema::action_receipts::table)
             .values(receipt_actions.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool)
@@ -398,7 +400,7 @@ async fn store_receipt_actions(
     }
 
     loop {
-        match diesel::insert_into(schema::receipt_action_actions::table)
+        match diesel::insert_into(schema::action_receipt_actions::table)
             .values(receipt_action_actions.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool)
@@ -419,7 +421,7 @@ async fn store_receipt_actions(
     }
 
     loop {
-        match diesel::insert_into(schema::receipt_action_output_data::table)
+        match diesel::insert_into(schema::action_receipt_output_data::table)
             .values(receipt_action_output_data.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool)
@@ -440,7 +442,7 @@ async fn store_receipt_actions(
     }
 
     loop {
-        match diesel::insert_into(schema::receipt_action_input_data::table)
+        match diesel::insert_into(schema::action_receipt_input_data::table)
             .values(receipt_action_input_data.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool)
@@ -465,13 +467,13 @@ async fn store_receipt_data(
     pool: &Pool<ConnectionManager<PgConnection>>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
 ) {
-    let receipt_data_models: Vec<models::ReceiptData> = receipts
+    let receipt_data_models: Vec<models::DataReceipt> = receipts
         .iter()
-        .filter_map(|receipt| models::ReceiptData::try_from(*receipt).ok())
+        .filter_map(|receipt| models::DataReceipt::try_from(*receipt).ok())
         .collect();
 
     loop {
-        match diesel::insert_into(schema::receipt_data::table)
+        match diesel::insert_into(schema::data_receipts::table)
             .values(receipt_data_models.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool)
