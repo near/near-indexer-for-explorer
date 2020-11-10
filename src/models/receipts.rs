@@ -22,7 +22,7 @@ pub struct Receipt {
     pub predecessor_account_id: String,
     pub receiver_account_id: String,
     pub receipt_kind: ReceiptKind,
-    pub included_in_transaction_hash: String,
+    pub originated_from_transaction_hash: String,
 }
 
 impl Receipt {
@@ -41,7 +41,7 @@ impl Receipt {
             predecessor_account_id: receipt.predecessor_id.to_string(),
             receiver_account_id: receipt.receiver_id.to_string(),
             receipt_kind: (&receipt.receipt).into(),
-            included_in_transaction_hash: transaction_hash.to_string(),
+            originated_from_transaction_hash: transaction_hash.to_string(),
             index_in_chunk,
             included_in_block_timestamp: block_timestamp.into(),
         }

@@ -114,7 +114,7 @@ async fn find_tx_hashes_for_receipts(
                     )
                     .select((
                         schema::action_receipt_output_data::dsl::output_data_id,
-                        schema::receipts::dsl::included_in_transaction_hash,
+                        schema::receipts::dsl::originated_from_transaction_hash,
                     ))
                     .load_async(&pool)
                     .await
@@ -189,7 +189,7 @@ async fn find_tx_hashes_for_receipts(
                 )
                 .select((
                     schema::execution_outcome_receipts::dsl::produced_receipt_id,
-                    schema::receipts::dsl::included_in_transaction_hash,
+                    schema::receipts::dsl::originated_from_transaction_hash,
                 ))
                 .load_async(&pool)
                 .await

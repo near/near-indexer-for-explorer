@@ -29,7 +29,7 @@ table! {
     action_receipt_actions (receipt_id, index_in_action_receipt) {
         receipt_id -> Text,
         index_in_action_receipt -> Int4,
-        action_kind -> Action_type,
+        action_kind -> Action_kind,
         args -> Jsonb,
     }
 }
@@ -82,7 +82,7 @@ table! {
     use diesel::sql_types::*;
 
     chunks (chunk_hash) {
-        block_hash -> Text,
+        included_in_block_hash -> Text,
         chunk_hash -> Text,
         shard_id -> Numeric,
         signature -> Text,
@@ -138,8 +138,8 @@ table! {
         included_in_block_timestamp -> Numeric,
         predecessor_account_id -> Text,
         receiver_account_id -> Text,
-        receipt_kind -> Receipt_type,
-        included_in_transaction_hash -> Text,
+        receipt_kind -> Receipt_kind,
+        originated_from_transaction_hash -> Text,
     }
 }
 
@@ -150,7 +150,7 @@ table! {
     transaction_actions (transaction_hash, index_in_transaction) {
         transaction_hash -> Text,
         index_in_transaction -> Int4,
-        action_kind -> Action_type,
+        action_kind -> Action_kind,
         args -> Jsonb,
     }
 }
@@ -178,14 +178,14 @@ table! {
 }
 
 joinable!(action_receipt_actions -> receipts (receipt_id));
-joinable!(chunks -> blocks (block_hash));
+joinable!(chunks -> blocks (included_in_block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (executed_receipt_id));
 joinable!(execution_outcomes -> blocks (executed_in_block_hash));
 joinable!(execution_outcomes -> receipts (receipt_id));
 joinable!(receipts -> blocks (included_in_block_hash));
 joinable!(receipts -> chunks (included_in_chunk_hash));
-joinable!(receipts -> transactions (included_in_transaction_hash));
+joinable!(receipts -> transactions (originated_from_transaction_hash));
 joinable!(transaction_actions -> transactions (transaction_hash));
 joinable!(transactions -> blocks (included_in_block_hash));
 joinable!(transactions -> chunks (included_in_chunk_hash));

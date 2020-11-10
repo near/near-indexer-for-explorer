@@ -15,6 +15,9 @@ ALTER TABLE blocks
 ALTER TABLE chunks
     RENAME COLUMN hash TO chunk_hash;
 
+ALTER TABLE chunks
+    RENAME COLUMN block_hash TO included_in_block_hash;
+
 -- TRANSACTIONS
 ALTER TABLE transactions
     RENAME COLUMN signer_id TO signer_account_id;
@@ -48,7 +51,7 @@ ALTER TABLE receipts
     RENAME COLUMN chunk_hash TO included_in_chunk_hash;
 
 ALTER TABLE receipts
-    RENAME COLUMN transaction_hash TO included_in_transaction_hash;
+    RENAME COLUMN transaction_hash TO originated_from_transaction_hash;
 
 ALTER TABLE receipt_actions RENAME TO action_receipts;
 
@@ -93,3 +96,7 @@ ALTER TABLE execution_outcome_receipts
 
 ALTER TABLE execution_outcome_receipts
     RENAME COLUMN index TO index_in_execution_outcome;
+
+-- TYPES
+ALTER TYPE receipt_type RENAME TO receipt_kind;
+ALTER TYPE action_type RENAME TO action_kind;
