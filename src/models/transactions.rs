@@ -9,17 +9,17 @@ use schema::{transaction_actions, transactions};
 #[derive(Insertable, Clone, Debug)]
 pub struct Transaction {
     pub transaction_hash: String,
-    pub block_hash: String,
-    pub chunk_hash: String,
+    pub included_in_block_hash: String,
+    pub included_in_chunk_hash: String,
     pub index_in_chunk: i32,
     pub block_timestamp: BigDecimal,
-    pub signer_id: String,
-    pub public_key: String,
+    pub signer_account_id: String,
+    pub signer_public_key: String,
     pub nonce: BigDecimal,
-    pub receiver_id: String,
+    pub receiver_account_id: String,
     pub signature: String,
     pub status: ExecutionOutcomeStatus,
-    pub receipt_id: String,
+    pub converted_into_receipt_id: String,
     pub receipt_conversion_gas_burnt: BigDecimal,
     pub receipt_conversion_tokens_burnt: BigDecimal,
 }
@@ -34,15 +34,15 @@ impl Transaction {
     ) -> Self {
         Self {
             transaction_hash: tx.transaction.hash.to_string(),
-            block_hash: block_hash.to_string(),
+            included_in_block_hash: block_hash.to_string(),
             block_timestamp: block_timestamp.into(),
             index_in_chunk,
             nonce: tx.transaction.nonce.into(),
-            signer_id: tx.transaction.signer_id.to_string(),
-            public_key: tx.transaction.public_key.to_string(),
+            signer_account_id: tx.transaction.signer_id.to_string(),
+            signer_public_key: tx.transaction.public_key.to_string(),
             signature: tx.transaction.signature.to_string(),
-            receiver_id: tx.transaction.receiver_id.to_string(),
-            receipt_id: tx
+            receiver_account_id: tx.transaction.receiver_id.to_string(),
+            converted_into_receipt_id: tx
                 .outcome
                 .execution_outcome
                 .outcome
@@ -50,7 +50,7 @@ impl Transaction {
                 .first()
                 .expect("`receipt_ids` must contain one Receipt Id")
                 .to_string(),
-            chunk_hash: chunk_hash.to_string(),
+            included_in_chunk_hash: chunk_hash.to_string(),
             status: tx.outcome.execution_outcome.outcome.status.clone().into(),
             receipt_conversion_gas_burnt: tx.outcome.execution_outcome.outcome.gas_burnt.into(),
             receipt_conversion_tokens_burnt: BigDecimal::from_str(
@@ -69,7 +69,7 @@ impl Transaction {
 #[derive(Insertable, Clone, Debug)]
 pub struct TransactionAction {
     pub transaction_hash: String,
-    pub index: i32,
+    pub index_in_transaction: i32,
     pub action_kind: ActionKind,
     pub args: serde_json::Value,
 }
@@ -84,7 +84,7 @@ impl TransactionAction {
             crate::models::extract_action_type_and_value_from_action_view(&action_view);
         Self {
             transaction_hash,
-            index,
+            index_in_transaction: index,
             args,
             action_kind,
         }

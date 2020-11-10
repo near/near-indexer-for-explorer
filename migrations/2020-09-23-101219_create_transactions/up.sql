@@ -27,5 +27,5 @@ CREATE TABLE transaction_actions (
     CONSTRAINT transaction_action_pk PRIMARY KEY (transaction_hash, index)
 );
 
-ALTER TABLE receipts ADD COLUMN transaction_hash text NOT NULL DEFAULT '',
+ALTER TABLE receipts ADD COLUMN transaction_hash text NOT NULL,
     ADD CONSTRAINT tx_receipt_fk FOREIGN KEY (transaction_hash) REFERENCES transactions(transaction_hash) ON DELETE CASCADE;

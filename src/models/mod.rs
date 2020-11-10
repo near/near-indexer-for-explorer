@@ -10,8 +10,8 @@ pub use blocks::Block;
 pub use chunks::Chunk;
 pub use execution_outcomes::{ExecutionOutcome, ExecutionOutcomeReceipt};
 pub use receipts::{
-    Receipt, ReceiptAction, ReceiptActionAction, ReceiptActionInputData, ReceiptActionOutputData,
-    ReceiptData,
+    ActionReceipt, ActionReceiptAction, ActionReceiptInputData, ActionReceiptOutputData,
+    DataReceipt, Receipt,
 };
 pub use transactions::{Transaction, TransactionAction};
 
