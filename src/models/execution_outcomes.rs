@@ -11,7 +11,7 @@ use schema::{execution_outcome_receipts, execution_outcomes};
 #[derive(Insertable, Clone, Debug)]
 pub struct ExecutionOutcome {
     pub receipt_id: String,
-    pub block_hash: String,
+    pub executed_in_block_hash: String,
     pub gas_burnt: BigDecimal,
     pub tokens_burnt: BigDecimal,
     pub executor_account_id: String,
@@ -23,7 +23,7 @@ impl From<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView> for
         execution_outcome: &near_indexer::near_primitives::views::ExecutionOutcomeWithIdView,
     ) -> Self {
         Self {
-            block_hash: execution_outcome.block_hash.to_string(),
+            executed_in_block_hash: execution_outcome.block_hash.to_string(),
             receipt_id: execution_outcome.id.to_string(),
             gas_burnt: execution_outcome.outcome.gas_burnt.into(),
             tokens_burnt: BigDecimal::from_str(
@@ -38,7 +38,7 @@ impl From<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView> for
 
 #[derive(Insertable, Queryable, Clone, Debug)]
 pub struct ExecutionOutcomeReceipt {
-    pub execution_outcome_receipt_id: String,
-    pub index: i32,
-    pub receipt_id: String,
+    pub executed_receipt_id: String,
+    pub index_in_execution_outcome: i32,
+    pub produced_receipt_id: String,
 }

@@ -8,21 +8,21 @@ use near_indexer::near_primitives::views::DataReceiverView;
 use crate::models::enums::{ActionKind, ReceiptKind};
 use crate::schema;
 use schema::{
-    receipt_action_actions, receipt_action_input_data, receipt_action_output_data, receipt_actions,
-    receipt_data, receipts,
+    action_receipt_actions, action_receipt_input_data, action_receipt_output_data, action_receipts,
+    data_receipts, receipts,
 };
 
 #[derive(Insertable, Queryable, Clone, Debug)]
 pub struct Receipt {
     pub receipt_id: String,
-    pub block_hash: String,
-    pub chunk_hash: String,
+    pub included_in_block_hash: String,
+    pub included_in_chunk_hash: String,
     pub index_in_chunk: i32,
-    pub block_timestamp: BigDecimal,
+    pub included_in_block_timestamp: BigDecimal,
     pub predecessor_account_id: String,
     pub receiver_account_id: String,
     pub receipt_kind: ReceiptKind,
-    pub transaction_hash: String,
+    pub included_in_transaction_hash: String,
 }
 
 impl Receipt {
@@ -36,27 +36,27 @@ impl Receipt {
     ) -> Self {
         Self {
             receipt_id: receipt.receipt_id.to_string(),
-            block_hash: block_hash.to_string(),
-            chunk_hash: chunk_hash.to_string(),
+            included_in_block_hash: block_hash.to_string(),
+            included_in_chunk_hash: chunk_hash.to_string(),
             predecessor_account_id: receipt.predecessor_id.to_string(),
             receiver_account_id: receipt.receiver_id.to_string(),
             receipt_kind: (&receipt.receipt).into(),
-            transaction_hash: transaction_hash.to_string(),
+            included_in_transaction_hash: transaction_hash.to_string(),
             index_in_chunk,
-            block_timestamp: block_timestamp.into(),
+            included_in_block_timestamp: block_timestamp.into(),
         }
     }
 }
 
 #[derive(Insertable, Clone, Debug)]
-#[table_name = "receipt_data"]
-pub struct ReceiptData {
+#[table_name = "data_receipts"]
+pub struct DataReceipt {
     pub data_id: String,
     pub receipt_id: String,
     pub data: Option<Vec<u8>>,
 }
 
-impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptData {
+impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for DataReceipt {
     type Error = &'static str;
 
     fn try_from(
@@ -77,14 +77,15 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptData
 }
 
 #[derive(Insertable, Clone, Debug)]
-pub struct ReceiptAction {
+#[table_name = "action_receipts"]
+pub struct ActionReceipt {
     pub receipt_id: String,
     pub signer_account_id: String,
     pub signer_public_key: String,
     pub gas_price: BigDecimal,
 }
 
-impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptAction {
+impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ActionReceipt {
     type Error = &'static str;
 
     fn try_from(
@@ -111,15 +112,15 @@ impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ReceiptActi
 }
 
 #[derive(Insertable, Clone, Debug)]
-#[table_name = "receipt_action_actions"]
-pub struct ReceiptActionAction {
+#[table_name = "action_receipt_actions"]
+pub struct ActionReceiptAction {
     pub receipt_id: String,
-    pub index: i32,
+    pub index_in_action_receipt: i32,
     pub action_kind: ActionKind,
     pub args: serde_json::Value,
 }
 
-impl ReceiptActionAction {
+impl ActionReceiptAction {
     pub fn from_action_view(
         receipt_id: String,
         index: i32,
@@ -129,7 +130,7 @@ impl ReceiptActionAction {
             crate::models::extract_action_type_and_value_from_action_view(&action_view);
         Self {
             receipt_id,
-            index,
+            index_in_action_receipt: index,
             args,
             action_kind,
         }
@@ -137,13 +138,13 @@ impl ReceiptActionAction {
 }
 
 #[derive(Insertable, Clone, Debug)]
-#[table_name = "receipt_action_input_data"]
-pub struct ReceiptActionInputData {
+#[table_name = "action_receipt_input_data"]
+pub struct ActionReceiptInputData {
     pub input_to_receipt_id: String,
     pub input_data_id: String,
 }
 
-impl ReceiptActionInputData {
+impl ActionReceiptInputData {
     pub fn from_data_id(receipt_id: String, data_id: String) -> Self {
         Self {
             input_to_receipt_id: receipt_id,
@@ -153,14 +154,14 @@ impl ReceiptActionInputData {
 }
 
 #[derive(Insertable, Clone, Debug)]
-#[table_name = "receipt_action_output_data"]
-pub struct ReceiptActionOutputData {
+#[table_name = "action_receipt_output_data"]
+pub struct ActionReceiptOutputData {
     pub output_from_receipt_id: String,
     pub output_data_id: String,
     pub receiver_account_id: String,
 }
 
-impl ReceiptActionOutputData {
+impl ActionReceiptOutputData {
     pub fn from_data_receiver(receipt_id: String, data_receiver: &DataReceiverView) -> Self {
         Self {
             output_from_receipt_id: receipt_id,
