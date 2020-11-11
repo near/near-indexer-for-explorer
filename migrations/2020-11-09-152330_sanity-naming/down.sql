@@ -71,9 +71,6 @@ ALTER TABLE action_receipt_output_data
 ALTER TABLE action_receipt_output_data
     RENAME COLUMN output_from_receipt_id TO receipt_id;
 
-ALTER TABLE action_receipt_output_data
-    RENAME COLUMN receiver_account_id TO receiver_id;
-
 ALTER TABLE action_receipts RENAME TO receipt_actions;
 
 ALTER TABLE action_receipt_actions RENAME TO receipt_action_actions;
