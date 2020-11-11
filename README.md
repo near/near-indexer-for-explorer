@@ -59,3 +59,7 @@ $ cargo run --release -- --home-dir ~/.near/testnet run
 ```
 
 After the network is synced, you should see logs of every block height currently received by NEAR Indexer for Explorer.
+
+## Database structure
+
+![database structure](docs/near-indexer-for-explorer-db.png)
