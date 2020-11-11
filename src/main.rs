@@ -142,8 +142,11 @@ fn main() {
             if args.store_genesis {
                 let near_config = indexer.near_config().clone();
                 actix::spawn(db_adapters::accounts::store_accounts_from_genesis(
-                    near_config,
+                    near_config.clone(),
                 ));
+                actix::spawn(db_adapters::access_keys::store_access_keys_from_genesis(
+                    near_config,
+                ))
             }
             let stream = indexer.streamer();
             actix::spawn(listen_blocks(

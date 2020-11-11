@@ -82,3 +82,16 @@ impl From<&near_indexer::near_primitives::views::AccessKeyPermissionView> for Ac
         }
     }
 }
+
+impl From<&near_indexer::near_primitives::account::AccessKeyPermission> for AccessKeyPermission {
+    fn from(item: &near_indexer::near_primitives::account::AccessKeyPermission) -> Self {
+        match item {
+            near_indexer::near_primitives::account::AccessKeyPermission::FunctionCall {
+                ..
+            } => Self::FunctionCall,
+            near_indexer::near_primitives::account::AccessKeyPermission::FullAccess => {
+                Self::FullAccess
+            }
+        }
+    }
+}
