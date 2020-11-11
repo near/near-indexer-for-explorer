@@ -26,4 +26,18 @@ impl AccessKey {
             permission_kind: (&access_key.permission).into(),
         }
     }
+
+    pub fn from_genesis(
+        public_key: &near_crypto::PublicKey,
+        account_id: &str,
+        access_key: &near_indexer::near_primitives::account::AccessKey,
+    ) -> Self {
+        Self {
+            public_key: public_key.to_string(),
+            account_id: account_id.to_string(),
+            created_by_receipt_id: None,
+            deleted_by_receipt_id: None,
+            permission_kind: (&access_key.permission).into(),
+        }
+    }
 }
