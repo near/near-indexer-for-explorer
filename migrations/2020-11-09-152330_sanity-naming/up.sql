@@ -81,9 +81,6 @@ ALTER TABLE action_receipt_output_data
 ALTER TABLE action_receipt_output_data
     RENAME COLUMN receipt_id TO output_from_receipt_id;
 
-ALTER TABLE action_receipt_output_data
-    RENAME COLUMN receiver_id TO receiver_account_id;
-
 -- EXECUTION OUTCOMES
 ALTER TABLE execution_outcomes
     RENAME COLUMN block_hash TO executed_in_block_hash;
