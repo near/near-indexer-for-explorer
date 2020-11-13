@@ -124,19 +124,7 @@ pub(crate) async fn handle_access_keys(
         loop {
             match diesel::insert_into(schema::access_keys::table)
                 .values(access_keys_to_insert.clone())
-                .on_conflict((
-                    schema::access_keys::dsl::public_key,
-                    schema::access_keys::dsl::account_id,
-                ))
-                .do_update()
-                .set((
-                    schema::access_keys::dsl::created_by_receipt_id
-                        .eq(excluded(schema::access_keys::dsl::created_by_receipt_id)),
-                    schema::access_keys::dsl::deleted_by_receipt_id
-                        .eq(excluded(schema::access_keys::dsl::deleted_by_receipt_id)),
-                    schema::access_keys::dsl::permission_kind
-                        .eq(excluded(schema::access_keys::dsl::permission_kind)),
-                ))
+                .on_conflict_do_nothing()
                 .execute_async(&pool)
                 .await
             {
