@@ -11,12 +11,12 @@ use near_indexer::near_primitives;
 
 use crate::models;
 use crate::schema;
-use diesel::pg::upsert::excluded;
 
 /// Saves new Accounts to database or deletes the ones should be deleted
 pub(crate) async fn handle_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
+    block_height: near_primitives::types::BlockHeight,
 ) {
     if outcomes.is_empty() {
         return;
@@ -45,6 +45,7 @@ pub(crate) async fn handle_accounts(
                             models::accounts::Account::new_from_receipt(
                                 receipt.receiver_id.to_string(),
                                 &receipt.receipt_id,
+                                block_height,
                             ),
                         );
                     }
@@ -55,6 +56,7 @@ pub(crate) async fn handle_accounts(
                                 models::accounts::Account::new_from_receipt(
                                     receipt.receiver_id.to_string(),
                                     &receipt.receipt_id,
+                                    block_height,
                                 ),
                             );
                         }
@@ -70,6 +72,7 @@ pub(crate) async fn handle_accounts(
                                 account_id: receipt.receiver_id.to_string(),
                                 created_by_receipt_id: None,
                                 deleted_by_receipt_id: Some(receipt.receipt_id.to_string()),
+                                last_update_block_height: block_height.into(),
                             });
                     }
                     _ => {}
@@ -89,13 +92,19 @@ pub(crate) async fn handle_accounts(
     let update_accounts_future = async {
         for value in accounts_to_update {
             let target = schema::accounts::table
-                .filter(schema::accounts::dsl::account_id.eq(value.account_id));
+                .filter(schema::accounts::dsl::account_id.eq(value.account_id))
+                .filter(
+                    schema::accounts::dsl::last_update_block_height
+                        .lt(value.last_update_block_height.clone()),
+                );
             loop {
                 match diesel::update(target.clone())
-                    .set(
+                    .set((
                         schema::accounts::dsl::deleted_by_receipt_id
                             .eq(value.deleted_by_receipt_id.clone()),
-                    )
+                        schema::accounts::dsl::last_update_block_height
+                            .eq(value.last_update_block_height.clone()),
+                    ))
                     .execute_async(&pool)
                     .await
                 {
@@ -118,14 +127,7 @@ pub(crate) async fn handle_accounts(
         loop {
             match diesel::insert_into(schema::accounts::table)
                 .values(accounts_to_insert.clone())
-                .on_conflict(schema::accounts::dsl::account_id)
-                .do_update()
-                .set((
-                    schema::accounts::created_by_receipt_id
-                        .eq(excluded(schema::accounts::dsl::created_by_receipt_id)),
-                    schema::accounts::deleted_by_receipt_id
-                        .eq(excluded(schema::accounts::dsl::deleted_by_receipt_id)),
-                ))
+                .on_conflict_do_nothing()
                 .execute_async(&pool)
                 .await
             {
@@ -138,6 +140,40 @@ pub(crate) async fn handle_accounts(
                         async_error,
                     );
                     tokio::time::delay_for(crate::INTERVAL).await;
+                }
+            }
+        }
+
+        for value in accounts_to_insert {
+            let target = schema::accounts::table
+                .filter(schema::accounts::dsl::account_id.eq(value.account_id))
+                .filter(
+                    schema::accounts::dsl::last_update_block_height
+                        .lt(value.last_update_block_height.clone()),
+                );
+            loop {
+                match diesel::update(target.clone())
+                    .set((
+                        schema::accounts::dsl::created_by_receipt_id
+                            .eq(value.created_by_receipt_id.clone()),
+                        schema::accounts::dsl::deleted_by_receipt_id
+                            .eq(value.deleted_by_receipt_id.clone()),
+                        schema::accounts::dsl::last_update_block_height
+                            .eq(value.last_update_block_height.clone()),
+                    ))
+                    .execute_async(&pool)
+                    .await
+                {
+                    Ok(_) => break,
+                    Err(async_error) => {
+                        error!(
+                            target: crate::INDEXER_FOR_EXPLORER,
+                            "Error occurred while updating Account. Retry in {} milliseconds... \n {:#?}",
+                            crate::INTERVAL.as_millis(),
+                            async_error,
+                        );
+                        tokio::time::delay_for(crate::INTERVAL).await;
+                    }
                 }
             }
         }
@@ -154,6 +190,7 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
         "Adding/updating accounts from genesis..."
     );
     let pool = crate::models::establish_connection();
+    let genesis_height = near_config.genesis.config.genesis_height;
 
     let accounts_models = near_config
         .genesis
@@ -168,6 +205,7 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
             {
                 Some(models::accounts::Account::new_from_genesis(
                     account_id.to_string(),
+                    genesis_height,
                 ))
             } else {
                 None
