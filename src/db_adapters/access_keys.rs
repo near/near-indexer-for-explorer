@@ -16,6 +16,7 @@ use crate::schema;
 pub(crate) async fn handle_access_keys(
     pool: &Pool<ConnectionManager<PgConnection>>,
     outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
+    block_height: near_primitives::types::BlockHeight,
 ) {
     if outcomes.is_empty() {
         return;
@@ -48,6 +49,7 @@ pub(crate) async fn handle_access_keys(
                                 &receipt.receiver_id,
                                 access_key,
                                 &receipt.receipt_id,
+                                block_height,
                             ),
                         );
                     }
@@ -66,6 +68,7 @@ pub(crate) async fn handle_access_keys(
                                 // this is a workaround to avoid additional struct with optional field
                                 // permission_kind is not supposed to change on delete action
                                 permission_kind: models::enums::AccessKeyPermission::FullAccess,
+                                last_update_block_height: block_height.into(),
                             });
                     }
                     _ => continue,
@@ -86,13 +89,19 @@ pub(crate) async fn handle_access_keys(
         for value in access_keys_to_update {
             let target = schema::access_keys::table
                 .filter(schema::access_keys::dsl::public_key.eq(value.public_key))
+                .filter(
+                    schema::access_keys::dsl::last_update_block_height
+                        .lt(value.last_update_block_height.clone()),
+                )
                 .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
             loop {
                 match diesel::update(target.clone())
-                    .set(
+                    .set((
                         schema::access_keys::dsl::deleted_by_receipt_id
                             .eq(value.deleted_by_receipt_id.clone()),
-                    )
+                        schema::access_keys::dsl::last_update_block_height
+                            .eq(value.last_update_block_height.clone()),
+                    ))
                     .execute_async(&pool)
                     .await
                 {
@@ -143,6 +152,41 @@ pub(crate) async fn handle_access_keys(
                 }
             }
         }
+
+        for value in access_keys_to_insert {
+            let target = schema::access_keys::table
+                .filter(schema::access_keys::dsl::public_key.eq(value.public_key))
+                .filter(
+                    schema::access_keys::dsl::last_update_block_height
+                        .lt(value.last_update_block_height.clone()),
+                )
+                .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
+            loop {
+                match diesel::update(target.clone())
+                    .set((
+                        schema::access_keys::dsl::created_by_receipt_id
+                            .eq(value.created_by_receipt_id.clone()),
+                        schema::access_keys::dsl::deleted_by_receipt_id
+                            .eq(value.deleted_by_receipt_id.clone()),
+                        schema::access_keys::dsl::last_update_block_height
+                            .eq(value.last_update_block_height.clone()),
+                    ))
+                    .execute_async(&pool)
+                    .await
+                {
+                    Ok(_) => break,
+                    Err(async_error) => {
+                        error!(
+                            target: crate::INDEXER_FOR_EXPLORER,
+                            "Error occurred while updating AccessKey. Retrying in {} milliseconds... \n {:#?}",
+                            crate::INTERVAL.as_millis(),
+                            async_error,
+                        );
+                        tokio::time::delay_for(crate::INTERVAL).await;
+                    }
+                }
+            }
+        }
     };
 
     join!(update_access_keys_future, add_access_keys_future);
@@ -154,6 +198,8 @@ pub(crate) async fn store_access_keys_from_genesis(near_config: near_indexer::Ne
         "Adding/updating access keys from genesis..."
     );
     let pool = crate::models::establish_connection();
+
+    let genesis_height = near_config.genesis.config.genesis_height;
 
     let access_keys_models = near_config
         .genesis
@@ -171,6 +217,7 @@ pub(crate) async fn store_access_keys_from_genesis(near_config: near_indexer::Ne
                     &public_key,
                     &account_id,
                     &access_key,
+                    genesis_height,
                 ))
             } else {
                 None

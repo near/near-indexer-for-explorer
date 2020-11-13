@@ -64,13 +64,17 @@ async fn handle_message(
     );
 
     // Accounts
-    let accounts_future =
-        db_adapters::accounts::handle_accounts(&pool, &streamer_message.receipt_execution_outcomes);
+    let accounts_future = db_adapters::accounts::handle_accounts(
+        &pool,
+        &streamer_message.receipt_execution_outcomes,
+        streamer_message.block.header.height,
+    );
 
     // AccessKeys
     let access_keys_future = db_adapters::access_keys::handle_access_keys(
         &pool,
         &streamer_message.receipt_execution_outcomes,
+        streamer_message.block.header.height,
     );
 
     join!(
