@@ -8,6 +8,7 @@ table! {
         created_by_receipt_id -> Nullable<Text>,
         deleted_by_receipt_id -> Nullable<Text>,
         permission_kind -> Access_key_permission_kind,
+        last_update_block_height -> Numeric,
     }
 }
 
@@ -19,6 +20,7 @@ table! {
         account_id -> Text,
         created_by_receipt_id -> Nullable<Text>,
         deleted_by_receipt_id -> Nullable<Text>,
+        last_update_block_height -> Numeric,
     }
 }
 
