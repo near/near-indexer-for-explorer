@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use diesel::pg::upsert::excluded;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::{join, StreamExt};
@@ -15,14 +14,14 @@ use crate::schema;
 
 pub(crate) async fn handle_access_keys(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
+    outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
 ) {
     if outcomes.is_empty() {
         return;
     }
     let successful_receipts = outcomes
-        .values()
+        .iter()
         .filter(|outcome_with_receipt| {
             match outcome_with_receipt.execution_outcome.outcome.status {
                 near_primitives::views::ExecutionStatusView::SuccessValue(_)

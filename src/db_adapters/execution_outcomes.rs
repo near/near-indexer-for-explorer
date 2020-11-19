@@ -7,17 +7,35 @@ use crate::models;
 use crate::schema;
 use diesel::pg::expression::array_comparison::any;
 
-/// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
 pub(crate) async fn store_execution_outcomes(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    execution_outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
+    chunks: &[near_indexer::IndexerChunkView],
+    block_timestamp: u64,
+) {
+    for chunk in chunks {
+        store_execution_outcomes_for_chunk(
+            &pool,
+            &chunk.receipt_execution_outcomes,
+            &chunk.header.chunk_hash,
+            block_timestamp,
+        )
+        .await;
+    }
+}
+
+/// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
+pub async fn store_execution_outcomes_for_chunk(
+    pool: &Pool<ConnectionManager<PgConnection>>,
+    execution_outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
+    chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
+    block_timestamp: u64,
 ) {
     let known_receipt_ids: std::collections::HashSet<String> = loop {
         match schema::receipts::table
             .filter(
                 schema::receipts::dsl::receipt_id.eq(any(execution_outcomes
-                    .keys()
-                    .map(|key| key.to_string())
+                    .iter()
+                    .map(|outcome| outcome.execution_outcome.id.to_string())
                     .collect::<Vec<_>>())),
             )
             .select(schema::receipts::dsl::receipt_id)
@@ -42,11 +60,17 @@ pub(crate) async fn store_execution_outcomes(
     let mut outcome_models: Vec<models::execution_outcomes::ExecutionOutcome> = vec![];
     let mut outcome_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> =
         vec![];
-    for outcome in execution_outcomes
-        .values()
+    for (index_in_chunk, outcome) in execution_outcomes
+        .iter()
         .filter(|outcome| known_receipt_ids.contains(&(outcome.execution_outcome.id).to_string()))
+        .enumerate()
     {
-        let model = models::execution_outcomes::ExecutionOutcome::from(&outcome.execution_outcome);
+        let model = models::execution_outcomes::ExecutionOutcome::from_execution_outcome(
+            &outcome.execution_outcome,
+            index_in_chunk as i32,
+            block_timestamp,
+            &chunk_hash.to_string(),
+        );
         outcome_models.push(model);
 
         outcome_receipt_models.extend(

@@ -1,4 +1,3 @@
-// use num_traits::cast::FromPrimitive;
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
@@ -12,18 +11,27 @@ use schema::{execution_outcome_receipts, execution_outcomes};
 pub struct ExecutionOutcome {
     pub receipt_id: String,
     pub executed_in_block_hash: String,
+    pub executed_in_block_timestamp: BigDecimal,
+    pub executed_in_chunk_hash: String,
+    pub index_in_chunk: i32,
     pub gas_burnt: BigDecimal,
     pub tokens_burnt: BigDecimal,
     pub executor_account_id: String,
     pub status: ExecutionOutcomeStatus,
 }
 
-impl From<&near_indexer::near_primitives::views::ExecutionOutcomeWithIdView> for ExecutionOutcome {
-    fn from(
+impl ExecutionOutcome {
+    pub fn from_execution_outcome(
         execution_outcome: &near_indexer::near_primitives::views::ExecutionOutcomeWithIdView,
+        index_in_chunk: i32,
+        executed_in_block_timestamp: u64,
+        executed_in_chunk_hash: &str,
     ) -> Self {
         Self {
             executed_in_block_hash: execution_outcome.block_hash.to_string(),
+            executed_in_chunk_hash: executed_in_chunk_hash.to_string(),
+            executed_in_block_timestamp: executed_in_block_timestamp.into(),
+            index_in_chunk,
             receipt_id: execution_outcome.id.to_string(),
             gas_burnt: execution_outcome.outcome.gas_burnt.into(),
             tokens_burnt: BigDecimal::from_str(
