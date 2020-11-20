@@ -27,6 +27,9 @@ pub(crate) struct RunArgs {
     /// Store initial data from genesis like Accounts, AccessKeys
     #[clap(long)]
     pub store_genesis: bool,
+    /// Force streaming while node is syncing
+    #[clap(long)]
+    pub stream_while_syncing: bool,
     #[clap(long)]
     pub allow_missing_relations_in_first_blocks: Option<u32>,
     #[clap(subcommand)]
