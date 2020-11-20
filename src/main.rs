@@ -104,9 +104,6 @@ async fn listen_blocks(
     while let Some(streamer_message) = stream.recv().await {
         // Block
         info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
-        if streamer_message.block.header.height > 22303582 {
-            std::process::exit(0);
-        }
         actix::spawn(handle_message(
             pool.clone(),
             streamer_message,
