@@ -60,22 +60,33 @@ async fn handle_message(
     // ExecutionOutcomes
     let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
         &pool,
-        &streamer_message.receipt_execution_outcomes,
+        &streamer_message.chunks,
+        streamer_message.block.header.timestamp,
     );
 
     // Accounts
-    let accounts_future = db_adapters::accounts::handle_accounts(
-        &pool,
-        &streamer_message.receipt_execution_outcomes,
-        streamer_message.block.header.height,
-    );
+    let accounts_future = async {
+        for chunk in &streamer_message.chunks {
+            db_adapters::accounts::handle_accounts(
+                &pool,
+                &chunk.receipt_execution_outcomes,
+                streamer_message.block.header.height,
+            )
+            .await;
+        }
+    };
 
     // AccessKeys
-    let access_keys_future = db_adapters::access_keys::handle_access_keys(
-        &pool,
-        &streamer_message.receipt_execution_outcomes,
-        streamer_message.block.header.height,
-    );
+    let access_keys_future = async {
+        for chunk in &streamer_message.chunks {
+            db_adapters::access_keys::handle_access_keys(
+                &pool,
+                &chunk.receipt_execution_outcomes,
+                streamer_message.block.header.height,
+            )
+            .await;
+        }
+    };
 
     join!(
         execution_outcomes_future,

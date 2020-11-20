@@ -15,14 +15,14 @@ use crate::schema;
 /// Saves new Accounts to database or deletes the ones should be deleted
 pub(crate) async fn handle_accounts(
     pool: &Pool<ConnectionManager<PgConnection>>,
-    outcomes: &near_indexer::ExecutionOutcomesWithReceipts,
+    outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
 ) {
     if outcomes.is_empty() {
         return;
     }
     let successful_receipts = outcomes
-        .values()
+        .iter()
         .filter(|outcome_with_receipt| {
             match outcome_with_receipt.execution_outcome.outcome.status {
                 near_primitives::views::ExecutionStatusView::SuccessValue(_)
