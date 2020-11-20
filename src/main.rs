@@ -152,6 +152,11 @@ fn main() {
             let indexer_config = near_indexer::IndexerConfig {
                 home_dir,
                 sync_mode: args.clone().try_into().expect("Error in run arguments"),
+                await_for_node_synced: if args.stream_while_syncing {
+                    near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+                } else {
+                    near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+                },
             };
             let indexer = near_indexer::Indexer::new(indexer_config);
             if args.store_genesis {
