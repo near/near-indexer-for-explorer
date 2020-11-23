@@ -93,6 +93,8 @@ pub(crate) async fn handle_access_keys(
                         .lt(value.last_update_block_height.clone()),
                 )
                 .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
+
+            let mut interval = crate::INTERVAL.clone();
             loop {
                 match diesel::update(target.clone())
                     .set((
@@ -109,10 +111,13 @@ pub(crate) async fn handle_access_keys(
                         error!(
                             target: crate::INDEXER_FOR_EXPLORER,
                             "Error occurred while updating AccessKey. Retrying in {} milliseconds... \n {:#?}",
-                            crate::INTERVAL.as_millis(),
+                            interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(crate::INTERVAL).await;
+                        tokio::time::delay_for(interval).await;
+                        if interval.as_millis() < 10000 {
+                            interval *= 2;
+                        }
                     }
                 }
             }
@@ -120,6 +125,7 @@ pub(crate) async fn handle_access_keys(
     };
 
     let add_access_keys_future = async {
+        let mut interval = crate::INTERVAL.clone();
         loop {
             match diesel::insert_into(schema::access_keys::table)
                 .values(access_keys_to_insert.clone())
@@ -132,10 +138,13 @@ pub(crate) async fn handle_access_keys(
                     error!(
                         target: crate::INDEXER_FOR_EXPLORER,
                         "Error occurred while AccessKeys were adding to database. Retrying in {} milliseconds... \n {:#?}",
-                        crate::INTERVAL.as_millis(),
+                        interval.as_millis(),
                         async_error,
                     );
-                    tokio::time::delay_for(crate::INTERVAL).await;
+                    tokio::time::delay_for(interval).await;
+                    if interval.as_millis() < 10000 {
+                        interval *= 2;
+                    }
                 }
             }
         }
@@ -148,6 +157,8 @@ pub(crate) async fn handle_access_keys(
                         .lt(value.last_update_block_height.clone()),
                 )
                 .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
+
+            let mut interval = crate::INTERVAL.clone();
             loop {
                 match diesel::update(target.clone())
                     .set((
@@ -166,10 +177,13 @@ pub(crate) async fn handle_access_keys(
                         error!(
                             target: crate::INDEXER_FOR_EXPLORER,
                             "Error occurred while updating AccessKey. Retrying in {} milliseconds... \n {:#?}",
-                            crate::INTERVAL.as_millis(),
+                            interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(crate::INTERVAL).await;
+                        tokio::time::delay_for(interval).await;
+                        if interval.as_millis() < 10000 {
+                            interval *= 2;
+                        }
                     }
                 }
             }
@@ -219,6 +233,7 @@ pub(crate) async fn store_access_keys_from_genesis(near_config: near_indexer::Ne
         .into_iter()
         .map(|access_keys| async {
             let collected_access_keys = access_keys.collect::<Vec<models::access_keys::AccessKey>>();
+            let mut interval = crate::INTERVAL.clone();
             loop {
                 match diesel::insert_into(schema::access_keys::table)
                     .values(collected_access_keys.clone())
@@ -231,10 +246,13 @@ pub(crate) async fn store_access_keys_from_genesis(near_config: near_indexer::Ne
                         error!(
                             target: crate::INDEXER_FOR_EXPLORER,
                             "Error occurred while AccessKeys from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
-                            crate::INTERVAL.as_millis(),
+                            interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(crate::INTERVAL).await;
+                        tokio::time::delay_for(interval).await;
+                        if interval.as_millis() < 10000 {
+                            interval *= 2;
+                        }
                     }
                 }
             }

@@ -14,6 +14,8 @@ pub(crate) async fn store_block(
     block: &near_primitives::views::BlockView,
 ) {
     let block_model = models::blocks::Block::from(block);
+
+    let mut interval = crate::INTERVAL.clone();
     loop {
         match diesel::insert_into(schema::blocks::table)
             .values(block_model.clone())
@@ -26,11 +28,14 @@ pub(crate) async fn store_block(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while Block was adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &block_model
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval.as_millis() < 10000 {
+                    interval *= 2;
+                }
             }
         }
     }

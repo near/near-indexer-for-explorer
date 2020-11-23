@@ -30,6 +30,7 @@ pub async fn store_execution_outcomes_for_chunk(
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
 ) {
+    let mut interval = crate::INTERVAL.clone();
     let known_receipt_ids: std::collections::HashSet<String> = loop {
         match schema::receipts::table
             .filter(
@@ -49,10 +50,13 @@ pub async fn store_execution_outcomes_for_chunk(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while fetching the parent receipt for ExecutionOutcome. Retrying in {} milliseconds... \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval.as_millis() < 10000 {
+                    interval *= 2;
+                }
             }
         }
     };
@@ -90,6 +94,7 @@ pub async fn store_execution_outcomes_for_chunk(
         );
     }
 
+    let mut interval = crate::INTERVAL.clone();
     loop {
         match diesel::insert_into(schema::execution_outcomes::table)
             .values(outcome_models.clone())
@@ -102,15 +107,19 @@ pub async fn store_execution_outcomes_for_chunk(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ExecutionOutcome were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &outcome_models,
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval.as_millis() < 10000 {
+                    interval *= 2;
+                }
             }
         }
     }
 
+    let mut interval = crate::INTERVAL.clone();
     loop {
         match diesel::insert_into(schema::execution_outcome_receipts::table)
             .values(outcome_receipt_models.clone())
@@ -123,11 +132,14 @@ pub async fn store_execution_outcomes_for_chunk(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ExecutionOutcomeReceipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &outcome_receipt_models
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval.as_millis() < 10000 {
+                    interval *= 2;
+                }
             }
         }
     }

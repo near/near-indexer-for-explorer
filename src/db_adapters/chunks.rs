@@ -20,6 +20,7 @@ pub(crate) async fn store_chunks(
         .map(|chunk| models::chunks::Chunk::from_chunk_view(chunk, block_hash))
         .collect();
 
+    let mut interval = crate::INTERVAL.clone();
     loop {
         match diesel::insert_into(schema::chunks::table)
             .values(chunk_models.clone())
@@ -32,11 +33,14 @@ pub(crate) async fn store_chunks(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while Chunks were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &chunk_models
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval.as_millis() < 10000 {
+                    interval *= 2;
+                }
             }
         }
     }

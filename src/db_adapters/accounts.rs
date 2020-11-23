@@ -97,6 +97,8 @@ pub(crate) async fn handle_accounts(
                     schema::accounts::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 );
+
+            let mut interval = crate::INTERVAL.clone();
             loop {
                 match diesel::update(target.clone())
                     .set((
@@ -113,10 +115,13 @@ pub(crate) async fn handle_accounts(
                         error!(
                             target: crate::INDEXER_FOR_EXPLORER,
                             "Error occurred while updating Account. Retry in {} milliseconds... \n {:#?}",
-                            crate::INTERVAL.as_millis(),
+                            interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(crate::INTERVAL).await;
+                        tokio::time::delay_for(interval).await;
+                        if interval.as_millis() < 10000 {
+                            interval *= 2;
+                        }
                     }
                 }
             }
@@ -124,6 +129,7 @@ pub(crate) async fn handle_accounts(
     };
 
     let insert_accounts_future = async {
+        let mut interval = crate::INTERVAL.clone();
         loop {
             match diesel::insert_into(schema::accounts::table)
                 .values(accounts_to_insert.clone())
@@ -136,10 +142,13 @@ pub(crate) async fn handle_accounts(
                     error!(
                         target: crate::INDEXER_FOR_EXPLORER,
                         "Error occurred while Accounts were adding to database. Retrying in {} milliseconds... \n {:#?}",
-                        crate::INTERVAL.as_millis(),
+                        interval.as_millis(),
                         async_error,
                     );
-                    tokio::time::delay_for(crate::INTERVAL).await;
+                    tokio::time::delay_for(interval).await;
+                    if interval.as_millis() < 10000 {
+                        interval *= 2;
+                    }
                 }
             }
         }
@@ -151,6 +160,8 @@ pub(crate) async fn handle_accounts(
                     schema::accounts::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 );
+
+            let mut interval = crate::INTERVAL.clone();
             loop {
                 match diesel::update(target.clone())
                     .set((
@@ -169,10 +180,13 @@ pub(crate) async fn handle_accounts(
                         error!(
                             target: crate::INDEXER_FOR_EXPLORER,
                             "Error occurred while updating Account. Retry in {} milliseconds... \n {:#?}",
-                            crate::INTERVAL.as_millis(),
+                            interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(crate::INTERVAL).await;
+                        tokio::time::delay_for(interval).await;
+                        if interval.as_millis() < 10000 {
+                            interval *= 2;
+                        }
                     }
                 }
             }
@@ -220,6 +234,7 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
         .into_iter()
         .map(|accounts| async {
             let collected_accounts = accounts.collect::<Vec<models::accounts::Account>>();
+            let mut interval = crate::INTERVAL.clone();
             loop {
                 match diesel::insert_into(schema::accounts::table)
                     .values(collected_accounts.clone())
@@ -232,10 +247,13 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
                         error!(
                             target: crate::INDEXER_FOR_EXPLORER,
                             "Error occurred while Accounts from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
-                            crate::INTERVAL.as_millis(),
+                            interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(crate::INTERVAL).await;
+                        tokio::time::delay_for(interval).await;
+                        if interval.as_millis() < 10000 {
+                            interval *= 2;
+                        }
                     }
                 }
             }
