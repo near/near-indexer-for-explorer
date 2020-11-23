@@ -54,7 +54,7 @@ async fn store_chunk_transactions(
         })
         .collect();
 
-    let mut interval = crate::INTERVAL.clone();
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::transactions::table)
             .values(transaction_models.clone())
@@ -72,7 +72,7 @@ async fn store_chunk_transactions(
                     &transaction_models
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < 10000 {
+                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                     interval *= 2;
                 }
             }
@@ -96,7 +96,7 @@ async fn store_chunk_transactions(
         })
         .collect();
 
-    let mut interval = crate::INTERVAL.clone();
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::transaction_actions::table)
             .values(transaction_action_models.clone())
@@ -114,7 +114,7 @@ async fn store_chunk_transactions(
                     &transaction_action_models,
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < 10000 {
+                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                     interval *= 2;
                 }
             }

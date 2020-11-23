@@ -15,7 +15,7 @@ pub(crate) async fn store_block(
 ) {
     let block_model = models::blocks::Block::from(block);
 
-    let mut interval = crate::INTERVAL.clone();
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::blocks::table)
             .values(block_model.clone())
@@ -33,7 +33,7 @@ pub(crate) async fn store_block(
                     &block_model
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < 10000 {
+                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                     interval *= 2;
                 }
             }

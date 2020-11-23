@@ -98,7 +98,7 @@ pub(crate) async fn handle_accounts(
                         .lt(value.last_update_block_height.clone()),
                 );
 
-            let mut interval = crate::INTERVAL.clone();
+            let mut interval = crate::INTERVAL;
             loop {
                 match diesel::update(target.clone())
                     .set((
@@ -119,7 +119,7 @@ pub(crate) async fn handle_accounts(
                             async_error,
                         );
                         tokio::time::delay_for(interval).await;
-                        if interval.as_millis() < 10000 {
+                        if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                             interval *= 2;
                         }
                     }
@@ -129,7 +129,7 @@ pub(crate) async fn handle_accounts(
     };
 
     let insert_accounts_future = async {
-        let mut interval = crate::INTERVAL.clone();
+        let mut interval = crate::INTERVAL;
         loop {
             match diesel::insert_into(schema::accounts::table)
                 .values(accounts_to_insert.clone())
@@ -146,7 +146,7 @@ pub(crate) async fn handle_accounts(
                         async_error,
                     );
                     tokio::time::delay_for(interval).await;
-                    if interval.as_millis() < 10000 {
+                    if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                         interval *= 2;
                     }
                 }
@@ -161,7 +161,7 @@ pub(crate) async fn handle_accounts(
                         .lt(value.last_update_block_height.clone()),
                 );
 
-            let mut interval = crate::INTERVAL.clone();
+            let mut interval = crate::INTERVAL;
             loop {
                 match diesel::update(target.clone())
                     .set((
@@ -184,7 +184,7 @@ pub(crate) async fn handle_accounts(
                             async_error,
                         );
                         tokio::time::delay_for(interval).await;
-                        if interval.as_millis() < 10000 {
+                        if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                             interval *= 2;
                         }
                     }
@@ -234,7 +234,7 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
         .into_iter()
         .map(|accounts| async {
             let collected_accounts = accounts.collect::<Vec<models::accounts::Account>>();
-            let mut interval = crate::INTERVAL.clone();
+            let mut interval = crate::INTERVAL;
             loop {
                 match diesel::insert_into(schema::accounts::table)
                     .values(collected_accounts.clone())
@@ -251,7 +251,7 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
                             async_error,
                         );
                         tokio::time::delay_for(interval).await;
-                        if interval.as_millis() < 10000 {
+                        if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                             interval *= 2;
                         }
                     }

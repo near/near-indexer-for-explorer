@@ -30,7 +30,7 @@ pub async fn store_execution_outcomes_for_chunk(
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
 ) {
-    let mut interval = crate::INTERVAL.clone();
+    let mut interval = crate::INTERVAL;
     let known_receipt_ids: std::collections::HashSet<String> = loop {
         match schema::receipts::table
             .filter(
@@ -54,7 +54,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     async_error,
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < 10000 {
+                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                     interval *= 2;
                 }
             }
@@ -94,7 +94,7 @@ pub async fn store_execution_outcomes_for_chunk(
         );
     }
 
-    let mut interval = crate::INTERVAL.clone();
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::execution_outcomes::table)
             .values(outcome_models.clone())
@@ -112,14 +112,14 @@ pub async fn store_execution_outcomes_for_chunk(
                     &outcome_models,
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < 10000 {
+                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                     interval *= 2;
                 }
             }
         }
     }
 
-    let mut interval = crate::INTERVAL.clone();
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::execution_outcome_receipts::table)
             .values(outcome_receipt_models.clone())
@@ -137,7 +137,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     &outcome_receipt_models
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < 10000 {
+                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                     interval *= 2;
                 }
             }

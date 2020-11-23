@@ -20,7 +20,7 @@ pub(crate) async fn store_chunks(
         .map(|chunk| models::chunks::Chunk::from_chunk_view(chunk, block_hash))
         .collect();
 
-    let mut interval = crate::INTERVAL.clone();
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::chunks::table)
             .values(chunk_models.clone())
@@ -38,7 +38,7 @@ pub(crate) async fn store_chunks(
                     &chunk_models
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < 10000 {
+                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
                     interval *= 2;
                 }
             }
