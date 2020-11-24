@@ -54,7 +54,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     async_error,
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
+                if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
             }
@@ -112,7 +112,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     &outcome_models,
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
+                if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
             }
@@ -137,7 +137,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     &outcome_receipt_models
                 );
                 tokio::time::delay_for(interval).await;
-                if interval.as_millis() < crate::MAX_DELAY_MILLIS {
+                if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
             }

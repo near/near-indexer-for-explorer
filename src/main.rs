@@ -19,7 +19,7 @@ mod schema;
 
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
-const MAX_DELAY_MILLIS: u128 = 120000;
+const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
 async fn handle_message(
     pool: std::sync::Arc<Pool<ConnectionManager<PgConnection>>>,
