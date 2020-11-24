@@ -89,6 +89,7 @@ async fn find_tx_hashes_for_receipts(
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
 
     let mut retries_left: u8 = 10; // retry at least times even in no-strict mode to avoid data loss
+    let mut find_tx_retry_interval = crate::INTERVAL;
     loop {
         let data_ids: Vec<String> = receipts
             .iter()
@@ -100,6 +101,7 @@ async fn find_tx_hashes_for_receipts(
             })
             .collect();
         if !data_ids.is_empty() {
+            let mut interval = crate::INTERVAL;
             let tx_hashes_for_data_id_via_data_output: Vec<(String, String)> = loop {
                 match schema::action_receipt_output_data::table
                     .inner_join(
@@ -126,10 +128,13 @@ async fn find_tx_hashes_for_receipts(
                         error!(
                             target: crate::INDEXER_FOR_EXPLORER,
                             "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
-                            crate::INTERVAL.as_millis(),
+                            interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(crate::INTERVAL).await;
+                        tokio::time::delay_for(interval).await;
+                        if interval < crate::MAX_DELAY_TIME {
+                            interval *= 2;
+                        }
                     }
                 }
             };
@@ -168,6 +173,7 @@ async fn find_tx_hashes_for_receipts(
             });
         }
 
+        let mut interval = crate::INTERVAL;
         let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = loop {
             match schema::execution_outcome_receipts::table
                 .inner_join(
@@ -201,10 +207,13 @@ async fn find_tx_hashes_for_receipts(
                     error!(
                         target: crate::INDEXER_FOR_EXPLORER,
                         "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
-                        crate::INTERVAL.as_millis(),
+                        interval.as_millis(),
                         async_error,
                     );
-                    tokio::time::delay_for(crate::INTERVAL).await;
+                    tokio::time::delay_for(interval).await;
+                    if interval < crate::MAX_DELAY_TIME {
+                        interval *= 2;
+                    }
                 }
             }
         };
@@ -219,6 +228,7 @@ async fn find_tx_hashes_for_receipts(
         receipts
             .retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
 
+        let mut interval = crate::INTERVAL;
         let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
             match schema::transactions::table
                 .filter(schema::transactions::dsl::converted_into_receipt_id.eq(any(receipts
@@ -241,10 +251,13 @@ async fn find_tx_hashes_for_receipts(
                     error!(
                         target: crate::INDEXER_FOR_EXPLORER,
                         "Error occurred while fetching the parent transaction for ExecutionOutcome. Retrying in {} milliseconds... \n {:#?}",
-                        crate::INTERVAL.as_millis(),
+                        interval.as_millis(),
                         async_error,
                     );
-                    tokio::time::delay_for(crate::INTERVAL).await;
+                    tokio::time::delay_for(interval).await;
+                    if interval < crate::MAX_DELAY_TIME {
+                        interval *= 2;
+                    }
                 }
             }
         };
@@ -274,7 +287,10 @@ async fn find_tx_hashes_for_receipts(
             block_hash,
             chunk_hash
         );
-        tokio::time::delay_for(crate::INTERVAL).await;
+        tokio::time::delay_for(find_tx_retry_interval).await;
+        if find_tx_retry_interval < crate::MAX_DELAY_TIME {
+            find_tx_retry_interval *= 2;
+        }
     }
 
     tx_hashes_for_receipts
@@ -284,6 +300,7 @@ async fn save_receipts(
     pool: &Pool<ConnectionManager<PgConnection>>,
     receipts: Vec<models::Receipt>,
 ) {
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::receipts::table)
             .values(receipts.clone())
@@ -296,11 +313,14 @@ async fn save_receipts(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while Receipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n{:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     receipts,
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
             }
         };
     }
@@ -378,6 +398,7 @@ async fn store_receipt_actions(
         .flatten()
         .collect();
 
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::action_receipts::table)
             .values(receipt_actions.clone())
@@ -390,15 +411,19 @@ async fn store_receipt_actions(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ReceiptActions were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &receipt_actions,
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
             }
         };
     }
 
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::action_receipt_actions::table)
             .values(receipt_action_actions.clone())
@@ -411,15 +436,19 @@ async fn store_receipt_actions(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ReceiptActionActions were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &receipt_action_actions
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
             }
         };
     }
 
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::action_receipt_output_data::table)
             .values(receipt_action_output_data.clone())
@@ -432,15 +461,19 @@ async fn store_receipt_actions(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ReceiptActionOutputData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &receipt_action_output_data
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
             }
         };
     }
 
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::action_receipt_input_data::table)
             .values(receipt_action_input_data.clone())
@@ -453,11 +486,14 @@ async fn store_receipt_actions(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ReceiptActionInputData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &receipt_action_input_data
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
             }
         };
     }
@@ -472,6 +508,7 @@ async fn store_receipt_data(
         .filter_map(|receipt| models::DataReceipt::try_from(*receipt).ok())
         .collect();
 
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::data_receipts::table)
             .values(receipt_data_models.clone())
@@ -484,11 +521,14 @@ async fn store_receipt_data(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while ReceiptData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &receipt_data_models
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
             }
         };
     }
