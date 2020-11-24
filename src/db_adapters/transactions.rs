@@ -54,6 +54,7 @@ async fn store_chunk_transactions(
         })
         .collect();
 
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::transactions::table)
             .values(transaction_models.clone())
@@ -66,11 +67,14 @@ async fn store_chunk_transactions(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while Transaction were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &transaction_models
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
             }
         }
     }
@@ -92,6 +96,7 @@ async fn store_chunk_transactions(
         })
         .collect();
 
+    let mut interval = crate::INTERVAL;
     loop {
         match diesel::insert_into(schema::transaction_actions::table)
             .values(transaction_action_models.clone())
@@ -104,11 +109,14 @@ async fn store_chunk_transactions(
                 error!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "Error occurred while TransactionAction were adding to database. Retrying in {} milliseconds... \n {:#?} \n{:#?}",
-                    crate::INTERVAL.as_millis(),
+                    interval.as_millis(),
                     async_error,
                     &transaction_action_models,
                 );
-                tokio::time::delay_for(crate::INTERVAL).await;
+                tokio::time::delay_for(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
+                }
             }
         }
     }
