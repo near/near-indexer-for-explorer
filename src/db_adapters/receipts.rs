@@ -282,7 +282,7 @@ async fn find_tx_hashes_for_receipts(
         warn!(
             target: crate::INDEXER_FOR_EXPLORER,
             "Going to retry to find parent transactions for receipts in {} milliseconds... \n {:#?}\n block hash {} \nchunk hash {}",
-            crate::INTERVAL.as_millis(),
+            find_tx_retry_interval.as_millis(),
             &receipts,
             block_hash,
             chunk_hash
