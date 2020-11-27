@@ -5,7 +5,7 @@ use clap::Clap;
 extern crate diesel;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
-use futures::join;
+use futures::{join, StreamExt};
 use tokio::sync::mpsc;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -97,21 +97,26 @@ async fn handle_message(
 }
 
 async fn listen_blocks(
-    mut stream: mpsc::Receiver<near_indexer::StreamerMessage>,
+    stream: mpsc::Receiver<near_indexer::StreamerMessage>,
     allow_missing_relation_in_start_blocks: Option<u32>,
 ) {
     let pool = std::sync::Arc::new(models::establish_connection());
-    let mut strict_mode = allow_missing_relation_in_start_blocks.unwrap_or_else(|| 0);
-    while let Some(streamer_message) = stream.recv().await {
-        // Block
-        info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
-        actix::spawn(handle_message(
-            pool.clone(),
-            streamer_message,
-            strict_mode == 0,
-        ));
-        strict_mode = strict_mode.saturating_sub(1);
-    }
+    let strict_mode = allow_missing_relation_in_start_blocks.unwrap_or_else(|| 0);
+    let mut handle_messages = stream
+        .enumerate()
+        .map(|(index, streamer_message)| {
+            info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
+            handle_message(
+                pool.clone(),
+                streamer_message,
+                index >= strict_mode as usize,
+            )
+        }
+    )
+        .buffer_unordered(100);
+
+    while let Some(_handled_message) = handle_messages.next().await {}
+
 }
 
 fn main() {
