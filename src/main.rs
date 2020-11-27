@@ -111,12 +111,10 @@ async fn listen_blocks(
                 streamer_message,
                 index >= strict_mode as usize,
             )
-        }
-    )
+        })
         .buffer_unordered(100);
 
     while let Some(_handled_message) = handle_messages.next().await {}
-
 }
 
 fn main() {
