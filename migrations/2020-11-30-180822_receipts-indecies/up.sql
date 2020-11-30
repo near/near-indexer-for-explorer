@@ -1,0 +1,2 @@
+CREATE INDEX transactions_converted_into_receipt_id_dx ON transactions (converted_into_receipt_id);
+CREATE INDEX execution_outcome_receipts_produced_receipt_id ON execution_outcome_receipts (produced_receipt_id);
