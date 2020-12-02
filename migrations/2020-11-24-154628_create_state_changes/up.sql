@@ -8,7 +8,7 @@ CREATE TYPE state_change_reason_kind AS ENUM (
    'VALIDATOR_ACCOUNTS_UPDATE'
 );
 
-CREATE TABLE state_changes (
+CREATE TABLE account_changes (
     affected_account_id text NOT NULL,
     changed_in_block_timestamp numeric(20) NOT NULL,
     changed_in_block_hash text NOT NULL,
@@ -22,10 +22,11 @@ CREATE TABLE state_changes (
     CONSTRAINT block_hash_fk FOREIGN KEY (changed_in_block_hash) REFERENCES blocks (block_hash) ON DELETE CASCADE,
     CONSTRAINT transaction_hash_fk FOREIGN KEY (caused_by_transaction_hash) REFERENCES transactions (transaction_hash) ON DELETE CASCADE,
     CONSTRAINT receipt_id_fk FOREIGN KEY (caused_by_receipt_id) REFERENCES receipts (receipt_id) ON DELETE CASCADE,
-    CONSTRAINT state_changes_pk PRIMARY KEY (affected_account_id, caused_by_transaction_hash, caused_by_receipt_id)
+    CONSTRAINT account_changes_pk PRIMARY KEY (affected_account_id, changed_in_block_hash, caused_by_transaction_hash, caused_by_receipt_id)
 );
 
-CREATE INDEX state_changes_changed_in_block_timestamp_idx ON state_changes(changed_in_block_timestamp);
-CREATE INDEX state_changes_changed_in_block_hash_idx ON state_changes(changed_in_block_hash);
-CREATE INDEX state_changes_changed_in_caused_by_transaction_hash_idx ON state_changes(caused_by_transaction_hash);
-CREATE INDEX state_changes_changed_in_caused_by_receipt_id_idx ON state_changes(caused_by_receipt_id);
+CREATE INDEX account_changes_changed_in_block_timestamp_idx ON account_changes(changed_in_block_timestamp);
+CREATE INDEX account_changes_changed_in_block_hash_idx ON account_changes(changed_in_block_hash);
+CREATE INDEX account_changes_changed_in_caused_by_transaction_hash_idx ON account_changes(caused_by_transaction_hash);
+CREATE INDEX account_changes_changed_in_caused_by_receipt_id_idx ON account_changes(caused_by_receipt_id);
+CREATE INDEX account_changes_affected_account_id_idx ON account_changes (affected_account_id);

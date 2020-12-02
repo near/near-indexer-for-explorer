@@ -89,8 +89,8 @@ async fn handle_message(
         }
     };
 
-    // StateChange
-    let state_changes_future = db_adapters::state_changes::store_state_changes(
+    // StateChange related to Account
+    let account_changes_future = db_adapters::account_changes::store_account_changes(
         &pool,
         &streamer_message.state_changes,
         &streamer_message.block.header.hash,
@@ -101,7 +101,7 @@ async fn handle_message(
         execution_outcomes_future,
         accounts_future,
         access_keys_future,
-        state_changes_future,
+        account_changes_future,
     );
 }
 

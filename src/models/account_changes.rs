@@ -4,10 +4,10 @@ use bigdecimal::BigDecimal;
 
 use crate::models::enums::StateChangeReasonKind;
 use crate::schema;
-use schema::state_changes;
+use schema::account_changes;
 
 #[derive(Insertable, Clone, Debug)]
-pub struct StateChange {
+pub struct AccountChange {
     pub affected_account_id: String,
     pub changed_in_block_timestamp: BigDecimal,
     pub changed_in_block_hash: String,
@@ -19,7 +19,7 @@ pub struct StateChange {
     pub affected_account_storage_usage: BigDecimal,
 }
 
-impl StateChange {
+impl AccountChange {
     pub fn from_state_change_with_cause(
         state_change_with_cause: &near_indexer::near_primitives::views::StateChangeWithCauseView,
         changed_in_block_hash: &near_indexer::near_primitives::hash::CryptoHash,
@@ -63,20 +63,18 @@ impl StateChange {
                 BigDecimal::from_str(acc.amount.to_string().as_str())
                     .expect("`amount` expected to be u128")
             } else {
-                BigDecimal::from_str("0")
-                    .expect("`amount` expected to be u128")
+                BigDecimal::from(0)
             },
             affected_account_staked_balance: if let Some(acc) = account {
                 BigDecimal::from_str(acc.locked.to_string().as_str())
                     .expect("`locked` expected to be u128")
             } else {
-                BigDecimal::from_str("0")
-                    .expect("`locked` expected to be u128")
+                BigDecimal::from(0)
             },
             affected_account_storage_usage: if let Some(acc) = account {
                 acc.storage_usage.into()
             } else {
-                BigDecimal::from(0i8)
+                BigDecimal::from(0)
             }
         })
     }
