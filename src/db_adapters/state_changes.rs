@@ -6,7 +6,7 @@ use tracing::error;
 use crate::models;
 use crate::schema;
 
-/// Saves chunks to database
+/// Saves state change related to account to database
 pub(crate) async fn store_state_changes(
     pool: &Pool<ConnectionManager<PgConnection>>,
     state_changes: &[near_indexer::near_primitives::views::StateChangeWithCauseView],
