@@ -1,5 +1,4 @@
 use diesel_derive_enum::DbEnum;
-use near_indexer::near_primitives::views::StateChangeCauseView;
 
 #[derive(Debug, DbEnum, Clone)]
 #[DbValueStyle = "SCREAMING_SNAKE_CASE"]
@@ -123,8 +122,8 @@ impl From<&near_indexer::near_primitives::views::StateChangeCauseView> for State
             near_indexer::near_primitives::views::StateChangeCauseView::PostponedReceipt { .. } => Self::PostponedReceipt,
             near_indexer::near_primitives::views::StateChangeCauseView::UpdatedDelayedReceipts { .. } => Self::UpdatedDelayedReceipts,
             near_indexer::near_primitives::views::StateChangeCauseView::ValidatorAccountsUpdate { .. } => Self::ValidatorAccountsUpdate,
-            StateChangeCauseView::NotWritableToDisk => { panic!("Not expected to get NotWritableToDisk here") }
-            StateChangeCauseView::InitialState => { panic!("Not expected to get InitialState here") }
+            near_indexer::near_primitives::views::StateChangeCauseView::NotWritableToDisk | near_indexer::near_primitives::views::StateChangeCauseView::InitialState => panic!("Unexpected variant {:?} received", state_change_cause_view),
+
         }
     }
 }
