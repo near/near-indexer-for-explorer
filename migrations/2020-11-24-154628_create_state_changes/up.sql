@@ -9,6 +9,7 @@ CREATE TYPE state_change_reason_kind AS ENUM (
 );
 
 CREATE TABLE account_changes (
+    id bigserial PRIMARY KEY,
     affected_account_id text NOT NULL,
     changed_in_block_timestamp numeric(20) NOT NULL,
     changed_in_block_hash text NOT NULL,
@@ -22,7 +23,7 @@ CREATE TABLE account_changes (
     CONSTRAINT block_hash_fk FOREIGN KEY (changed_in_block_hash) REFERENCES blocks (block_hash) ON DELETE CASCADE,
     CONSTRAINT transaction_hash_fk FOREIGN KEY (caused_by_transaction_hash) REFERENCES transactions (transaction_hash) ON DELETE CASCADE,
     CONSTRAINT receipt_id_fk FOREIGN KEY (caused_by_receipt_id) REFERENCES receipts (receipt_id) ON DELETE CASCADE,
-    CONSTRAINT account_changes_pk PRIMARY KEY (affected_account_id, changed_in_block_hash, caused_by_transaction_hash, caused_by_receipt_id)
+    UNIQUE (affected_account_id, changed_in_block_hash, caused_by_transaction_hash, caused_by_receipt_id)
 );
 
 CREATE INDEX account_changes_changed_in_block_timestamp_idx ON account_changes(changed_in_block_timestamp);
