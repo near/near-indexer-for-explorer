@@ -94,26 +94,6 @@ CREATE TABLE public.account_changes (
     affected_account_storage_usage numeric(20,0) NOT NULL
 );
 
-
---
--- Name: account_changes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.account_changes_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: account_changes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.account_changes_id_seq OWNED BY public.account_changes.id;
-
-
 --
 -- Name: accounts; Type: TABLE; Schema: public; Owner: -
 --
@@ -125,26 +105,6 @@ CREATE TABLE public.accounts (
     deleted_by_receipt_id text,
     last_update_block_height numeric(20,0) NOT NULL
 );
-
-
---
--- Name: accounts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.accounts_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: accounts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.accounts_id_seq OWNED BY public.accounts.id;
-
 
 --
 -- Name: action_receipt_actions; Type: TABLE; Schema: public; Owner: -
@@ -309,20 +269,6 @@ CREATE TABLE public.transactions (
     receipt_conversion_gas_burnt numeric(20,0),
     receipt_conversion_tokens_burnt numeric(45,0)
 );
-
-
---
--- Name: account_changes id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.account_changes ALTER COLUMN id SET DEFAULT nextval('public.account_changes_id_seq'::regclass);
-
-
---
--- Name: accounts id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.accounts ALTER COLUMN id SET DEFAULT nextval('public.accounts_id_seq'::regclass);
 
 --
 -- Name: access_keys access_keys_pk; Type: CONSTRAINT; Schema: public; Owner: -

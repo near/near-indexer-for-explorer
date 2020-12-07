@@ -8,6 +8,12 @@ NEAR Indexer for Explorer is built on top of [NEAR Indexer microframework](https
 Before you proceed, make sure you have the following software installed:
 * [rustup](https://rustup.rs/) or Rust version that is mentioned in `rust-toolchain` file in the root of [nearcore](https://github.com/nearprotocol/nearcore) project.
 
+Install `libpq-dev` dependency
+
+```bash
+$ sudo apt install libpq-dev
+```
+
 Clone this repository and open the project folder
 
 ```bash
@@ -21,11 +27,10 @@ You need to provide database credentials in `.env` file like below (replace `use
 $ echo "DATABASE_URL=postgres://user:password@host/db_name" > .env
 ```
 
-Then you need to apply migrations to create necessary database structure. For this you'll need `diesel-cli`, you can install it like so (you need to install `libpq-dev` dependency):
+Then you need to apply migrations to create necessary database structure. For this you'll need `diesel-cli`, you can install it like so:
 
 
 ```bash
-$ sudo apt install libpq-dev
 $ cargo install diesel_cli --no-default-features --features "postgres"
 ```
 
