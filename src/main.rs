@@ -89,10 +89,19 @@ async fn handle_message(
         }
     };
 
+    // StateChange related to Account
+    let account_changes_future = db_adapters::account_changes::store_account_changes(
+        &pool,
+        &streamer_message.state_changes,
+        &streamer_message.block.header.hash,
+        streamer_message.block.header.timestamp,
+    );
+
     join!(
         execution_outcomes_future,
         accounts_future,
-        access_keys_future
+        access_keys_future,
+        account_changes_future,
     );
 }
 

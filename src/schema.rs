@@ -14,6 +14,25 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
+
+    account_changes (id) {
+        id -> Int8,
+        affected_account_id -> Text,
+        changed_in_block_timestamp -> Numeric,
+        changed_in_block_hash -> Text,
+        caused_by_transaction_hash -> Nullable<Text>,
+        caused_by_receipt_id -> Nullable<Text>,
+        update_reason -> State_change_reason_kind,
+        affected_account_nonstaked_balance -> Numeric,
+        affected_account_staked_balance -> Numeric,
+        affected_account_storage_usage -> Numeric,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     accounts (id) {
         id -> Int8,
@@ -38,6 +57,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     action_receipt_input_data (input_data_id, input_to_receipt_id) {
         input_data_id -> Text,
@@ -47,6 +67,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     action_receipt_output_data (output_data_id, output_from_receipt_id) {
         output_data_id -> Text,
@@ -57,6 +78,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     action_receipts (receipt_id) {
         receipt_id -> Text,
@@ -68,6 +90,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     blocks (block_hash) {
         block_height -> Numeric,
@@ -82,6 +105,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     chunks (chunk_hash) {
         included_in_block_hash -> Text,
@@ -96,6 +120,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     data_receipts (data_id) {
         data_id -> Text,
@@ -106,6 +131,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     execution_outcome_receipts (executed_receipt_id, index_in_execution_outcome, produced_receipt_id) {
         executed_receipt_id -> Text,
@@ -182,6 +208,9 @@ table! {
     }
 }
 
+joinable!(account_changes -> blocks (changed_in_block_hash));
+joinable!(account_changes -> receipts (caused_by_receipt_id));
+joinable!(account_changes -> transactions (caused_by_transaction_hash));
 joinable!(action_receipt_actions -> receipts (receipt_id));
 joinable!(chunks -> blocks (included_in_block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
@@ -198,6 +227,7 @@ joinable!(transactions -> chunks (included_in_chunk_hash));
 
 allow_tables_to_appear_in_same_query!(
     access_keys,
+    account_changes,
     accounts,
     action_receipt_actions,
     action_receipt_input_data,
