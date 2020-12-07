@@ -1,0 +1,21 @@
+DROP TABLE public.access_keys;
+DROP TABLE public.account_changes;
+DROP TABLE public.accounts;
+DROP TABLE public.execution_outcome_receipts;
+DROP TABLE public.execution_outcomes;
+DROP TABLE public.action_receipts;
+DROP TABLE public.action_receipt_input_data;
+DROP TABLE public.action_receipt_output_data;
+DROP TABLE public.action_receipt_actions;
+DROP TABLE public.data_receipts;
+DROP TABLE public.receipts;
+DROP TABLE public.transaction_actions;
+DROP TABLE public.transactions;
+DROP TABLE public.chunks;
+DROP TABLE public.blocks;
+
+DROP TYPE public.access_key_permission_kind;
+DROP TYPE public.action_kind;
+DROP TYPE public.execution_outcome_status;
+DROP TYPE public.receipt_kind;
+DROP TYPE public.state_change_reason_kind;
