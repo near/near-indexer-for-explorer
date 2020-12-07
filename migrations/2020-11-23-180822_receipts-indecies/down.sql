@@ -1,2 +1,0 @@
-DROP INDEX transactions_converted_into_receipt_id_dx;
-DROP INDEX execution_outcome_receipts_produced_receipt_id;
