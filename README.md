@@ -64,9 +64,9 @@ For example, with a single shared network, you just add the shard #0 to the list
 Command to run NEAR Indexer for Explorer have to contain sync mode.
 
 You can choose NEAR Indexer for Explorer sync mode by setting what to stream:
- - `sync-from-latest` - Real-time syncing, always taking the latest finalized block to stream
- - `sync-from-interruption` - Starts syncing from the block NEAR Indexer was interrupted last time 
- - `sync-from-block --height <block_height>` - Specific block height to start syncing from
+ - `sync-from-latest` - start indexing blocks from the latest finalized block
+ - `sync-from-interruption` - start indexing blocks from the block NEAR Indexer was interrupted last time
+ - `sync-from-block --height <block_height>` - start indexing blocks from the specific block height
  
 Optionally you can tell Indexer to store data from genesis (Accounts and Access Keys) by adding key `--store-genesis` to the `run` command.
 
