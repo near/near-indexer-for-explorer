@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::TryFrom;
 
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
@@ -69,6 +70,30 @@ pub(crate) async fn handle_access_keys(
                                 permission_kind: models::enums::AccessKeyPermission::FullAccess,
                                 last_update_block_height: block_height.into(),
                             });
+                    }
+                    near_indexer::near_primitives::views::ActionView::Transfer { .. } => {
+                        if receipt.receiver_id.len() != 64usize {
+                            continue;
+                        }
+                        if let Ok(public_key_bytes) = hex::decode(&receipt.receiver_id) {
+                            if let Ok(public_key) =
+                                near_crypto::ED25519PublicKey::try_from(&public_key_bytes[..])
+                            {
+                                access_keys.insert(
+                                    (near_crypto::PublicKey::from(public_key).to_string(), receipt.receiver_id.to_string()),
+                                    models::access_keys::AccessKey::from_action_view(
+                                        &near_crypto::PublicKey::from(public_key),
+                                        &receipt.receiver_id,
+                                        &near_primitives::views::AccessKeyView {
+                                            nonce: 0,
+                                            permission: near_primitives::views::AccessKeyPermissionView::FullAccess
+                                        },
+                                        &receipt.receipt_id,
+                                        block_height,
+                                    ),
+                                );
+                            }
+                        }
                     }
                     _ => continue,
                 }

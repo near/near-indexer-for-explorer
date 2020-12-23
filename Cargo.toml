@@ -1,6 +1,6 @@
 [package]
 name = "indexer-explorer"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Near Inc <hello@nearprotocol.com>"]
 edition = "2018"
 
@@ -26,5 +26,5 @@ tokio-diesel = "0.3.0"
 tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 
-near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="6b4dd20c01f3815096be3192a40c92eb72e66309" }
-near-crypto = { git = "https://github.com/nearprotocol/nearcore", rev="6b4dd20c01f3815096be3192a40c92eb72e66309" }
+near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="29fcaf3b8c81a4c0371d105054ce251355382a77" }
+near-crypto = { git = "https://github.com/nearprotocol/nearcore", rev="29fcaf3b8c81a4c0371d105054ce251355382a77" }
