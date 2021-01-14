@@ -110,7 +110,7 @@ async fn listen_blocks(
     allow_missing_relation_in_start_blocks: Option<u32>,
 ) {
     let pool = std::sync::Arc::new(models::establish_connection());
-    let strict_mode = allow_missing_relation_in_start_blocks.unwrap_or_else(|| 0);
+    let strict_mode = allow_missing_relation_in_start_blocks.unwrap_or(0);
     let mut handle_messages = stream
         .enumerate()
         .map(|(index, streamer_message)| {
