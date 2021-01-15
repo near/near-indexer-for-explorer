@@ -45,12 +45,13 @@ pub(crate) async fn handle_access_keys(
                             receipt.receiver_id.to_string(),
                             receipt.receipt_id.to_string(),
                         );
-                        access_keys.iter_mut().for_each(|(key, value)| {
-                            if key.1 == receipt.receiver_id.to_string() {
-                                value.deleted_by_receipt_id = Some(receipt.receipt_id.to_string());
-                                value.last_update_block_height = block_height.into();
-                            }
-                        });
+                        access_keys
+                            .iter_mut()
+                            .filter(|((_, receiver_id), _)| receiver_id == &receipt.receiver_id)
+                            .for_each(|(_, access_key)| {
+                                access_key.deleted_by_receipt_id =
+                                    Some(receipt.receipt_id.to_string());
+                            });
                     }
                     near_primitives::views::ActionView::AddKey {
                         public_key,
