@@ -1,0 +1,1 @@
+CREATE INDEX receipts_originated_from_transaction_hash_idx ON receipts (originated_from_transaction_hash);
