@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
+use bigdecimal::BigDecimal;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::{join, StreamExt};
@@ -33,11 +34,24 @@ pub(crate) async fn handle_access_keys(
         .filter_map(|outcome_with_receipt| outcome_with_receipt.receipt.as_ref());
 
     let mut access_keys = HashMap::<(String, String), models::access_keys::AccessKey>::new();
+    let mut deleted_accounts = HashMap::<String, String>::new();
 
     for receipt in successful_receipts {
         if let near_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
             for action in actions {
                 match action {
+                    near_primitives::views::ActionView::DeleteAccount { .. } => {
+                        deleted_accounts.insert(
+                            receipt.receiver_id.to_string(),
+                            receipt.receipt_id.to_string(),
+                        );
+                        access_keys.iter_mut().for_each(|(key, value)| {
+                            if key.1 == receipt.receiver_id.to_string() {
+                                value.deleted_by_receipt_id = Some(receipt.receipt_id.to_string());
+                                value.last_update_block_height = block_height.into();
+                            }
+                        });
+                    }
                     near_primitives::views::ActionView::AddKey {
                         public_key,
                         access_key,
@@ -108,6 +122,47 @@ pub(crate) async fn handle_access_keys(
         .values()
         .cloned()
         .partition(|model| model.created_by_receipt_id.is_some());
+
+    let delete_access_keys_for_deleted_accounts = async {
+        let last_update_block_height: BigDecimal = block_height.into();
+        for (account_id, deleted_by_receipt_id) in deleted_accounts {
+            let target = schema::access_keys::table
+                .filter(schema::access_keys::dsl::deleted_by_receipt_id.is_null())
+                .filter(
+                    schema::access_keys::dsl::last_update_block_height
+                        .lt(last_update_block_height.clone()),
+                )
+                .filter(schema::access_keys::dsl::account_id.eq(account_id));
+
+            let mut interval = crate::INTERVAL;
+            loop {
+                match diesel::update(target.clone())
+                    .set((
+                        schema::access_keys::dsl::deleted_by_receipt_id
+                            .eq(deleted_by_receipt_id.clone()),
+                        schema::access_keys::dsl::last_update_block_height
+                            .eq(last_update_block_height.clone()),
+                    ))
+                    .execute_async(&pool)
+                    .await
+                {
+                    Ok(_) => break,
+                    Err(async_error) => {
+                        error!(
+                            target: crate::INDEXER_FOR_EXPLORER,
+                            "Error occurred while updating AccessKey. Retrying in {} milliseconds... \n {:#?}",
+                            interval.as_millis(),
+                            async_error,
+                        );
+                        tokio::time::delay_for(interval).await;
+                        if interval < crate::MAX_DELAY_TIME {
+                            interval *= 2;
+                        }
+                    }
+                }
+            }
+        }
+    };
 
     let update_access_keys_future = async {
         for value in access_keys_to_update {
@@ -215,7 +270,11 @@ pub(crate) async fn handle_access_keys(
         }
     };
 
-    join!(update_access_keys_future, add_access_keys_future);
+    join!(
+        delete_access_keys_for_deleted_accounts,
+        update_access_keys_future,
+        add_access_keys_future
+    );
 }
 
 pub(crate) async fn store_access_keys_from_genesis(near_config: near_indexer::NearConfig) {

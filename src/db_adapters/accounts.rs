@@ -62,35 +62,6 @@ pub(crate) async fn handle_accounts(
                         }
                     }
                     near_primitives::views::ActionView::DeleteAccount { .. } => {
-                        let target = schema::access_keys::table.filter(
-                            schema::access_keys::dsl::account_id
-                                .eq(receipt.receiver_id.clone().to_string()),
-                        );
-                        let mut interval = crate::INTERVAL;
-                        loop {
-                            match diesel::update(target.clone())
-                                .set(
-                                    schema::access_keys::dsl::deleted_by_receipt_id
-                                        .eq(receipt.receipt_id.clone().to_string()),
-                                )
-                                .execute_async(&pool)
-                                .await
-                            {
-                                Ok(_) => break,
-                                Err(async_error) => {
-                                    error!(
-                                        target: crate::INDEXER_FOR_EXPLORER,
-                                        "Error occurred while updating AccessKeys. Retry in {} milliseconds... \n {:#?}",
-                                        interval.as_millis(),
-                                        async_error,
-                                    );
-                                    tokio::time::delay_for(interval).await;
-                                    if interval < crate::MAX_DELAY_TIME {
-                                        interval *= 2;
-                                    }
-                                }
-                            }
-                        }
                         accounts
                             .entry(receipt.receiver_id.clone())
                             .and_modify(|existing_account| {
