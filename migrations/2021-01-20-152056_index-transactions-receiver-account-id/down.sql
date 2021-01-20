@@ -1,0 +1,1 @@
+DROP INDEX transactions_receiver_account_id_idx;
