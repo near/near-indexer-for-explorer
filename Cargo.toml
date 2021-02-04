@@ -22,13 +22,13 @@ r2d2 = "0.8.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.55"
 tokio = { version = "1.1", features = ["sync", "time"] }
-tokio-diesel = "0.3.0"
 tokio-stream = { version = "0.1" }
 tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 
-near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="fd02f02fbab6d258e2f4abc27f26d2be9a560af1" }
-near-crypto = { git = "https://github.com/nearprotocol/nearcore", rev="fd02f02fbab6d258e2f4abc27f26d2be9a560af1" }
+tokio-diesel = { git = "https://github.com/mehcode/tokio-diesel", rev = "f4af42558246ab323600622ba8d08803d3c18842"}
+near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="c2b6ee64eabacaeb4a4c64a06f7025c51722517c" }
+near-crypto = { git = "https://github.com/nearprotocol/nearcore", rev="c2b6ee64eabacaeb4a4c64a06f7025c51722517c" }
 
 [dev-dependencies]
 # Pin dependency to avoid compilation errors
