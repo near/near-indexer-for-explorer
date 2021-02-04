@@ -1716,7 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "indexer-explorer"
-version = "0.2.1"
+version = "0.2.3"
 dependencies = [
  "actix",
  "actix-rt",
@@ -1738,6 +1738,7 @@ dependencies = [
  "serde_json",
  "tokio 1.1.1",
  "tokio-diesel",
+ "tokio-stream",
  "tracing",
  "tracing-subscriber",
 ]

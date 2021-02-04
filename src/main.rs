@@ -111,7 +111,7 @@ async fn listen_blocks(
 ) {
     let pool = std::sync::Arc::new(models::establish_connection());
     let strict_mode = allow_missing_relation_in_start_blocks.unwrap_or(0);
-    let mut handle_messages = stream
+    let mut handle_messages = tokio_stream::wrappers::ReceiverStream::new(stream)
         .enumerate()
         .map(|(index, streamer_message)| {
             info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
