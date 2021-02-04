@@ -32,7 +32,7 @@ pub(crate) async fn store_block(
                     async_error,
                     &block_model
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }

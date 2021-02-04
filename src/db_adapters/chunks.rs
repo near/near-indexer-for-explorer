@@ -37,7 +37,7 @@ pub(crate) async fn store_chunks(
                     async_error,
                     &chunk_models
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }

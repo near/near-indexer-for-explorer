@@ -71,7 +71,7 @@ async fn store_chunk_transactions(
                     async_error,
                     &transaction_models
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
@@ -113,7 +113,7 @@ async fn store_chunk_transactions(
                     async_error,
                     &transaction_action_models,
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }

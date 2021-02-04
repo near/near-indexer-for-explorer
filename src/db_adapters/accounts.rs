@@ -118,7 +118,7 @@ pub(crate) async fn handle_accounts(
                             interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(interval).await;
+                        tokio::time::sleep(interval).await;
                         if interval < crate::MAX_DELAY_TIME {
                             interval *= 2;
                         }
@@ -145,7 +145,7 @@ pub(crate) async fn handle_accounts(
                         interval.as_millis(),
                         async_error,
                     );
-                    tokio::time::delay_for(interval).await;
+                    tokio::time::sleep(interval).await;
                     if interval < crate::MAX_DELAY_TIME {
                         interval *= 2;
                     }
@@ -183,7 +183,7 @@ pub(crate) async fn handle_accounts(
                             interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(interval).await;
+                        tokio::time::sleep(interval).await;
                         if interval < crate::MAX_DELAY_TIME {
                             interval *= 2;
                         }
@@ -250,7 +250,7 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
                             interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(interval).await;
+                        tokio::time::sleep(interval).await;
                         if interval < crate::MAX_DELAY_TIME {
                             interval *= 2;
                         }

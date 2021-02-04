@@ -131,7 +131,7 @@ async fn find_tx_hashes_for_receipts(
                             interval.as_millis(),
                             async_error,
                         );
-                        tokio::time::delay_for(interval).await;
+                        tokio::time::sleep(interval).await;
                         if interval < crate::MAX_DELAY_TIME {
                             interval *= 2;
                         }
@@ -210,7 +210,7 @@ async fn find_tx_hashes_for_receipts(
                         interval.as_millis(),
                         async_error,
                     );
-                    tokio::time::delay_for(interval).await;
+                    tokio::time::sleep(interval).await;
                     if interval < crate::MAX_DELAY_TIME {
                         interval *= 2;
                     }
@@ -254,7 +254,7 @@ async fn find_tx_hashes_for_receipts(
                         interval.as_millis(),
                         async_error,
                     );
-                    tokio::time::delay_for(interval).await;
+                    tokio::time::sleep(interval).await;
                     if interval < crate::MAX_DELAY_TIME {
                         interval *= 2;
                     }
@@ -287,7 +287,7 @@ async fn find_tx_hashes_for_receipts(
             block_hash,
             chunk_hash
         );
-        tokio::time::delay_for(find_tx_retry_interval).await;
+        tokio::time::sleep(find_tx_retry_interval).await;
         if find_tx_retry_interval < crate::MAX_DELAY_TIME {
             find_tx_retry_interval *= 2;
         }
@@ -317,7 +317,7 @@ async fn save_receipts(
                     async_error,
                     receipts,
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
@@ -415,7 +415,7 @@ async fn store_receipt_actions(
                     async_error,
                     &receipt_actions,
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
@@ -440,7 +440,7 @@ async fn store_receipt_actions(
                     async_error,
                     &receipt_action_actions
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
@@ -465,7 +465,7 @@ async fn store_receipt_actions(
                     async_error,
                     &receipt_action_output_data
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
@@ -490,7 +490,7 @@ async fn store_receipt_actions(
                     async_error,
                     &receipt_action_input_data
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
@@ -525,7 +525,7 @@ async fn store_receipt_data(
                     async_error,
                     &receipt_data_models
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
