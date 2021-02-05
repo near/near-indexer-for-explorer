@@ -1,6 +1,5 @@
-use diesel::r2d2::{ConnectionManager, Pool};
+use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::PgConnection;
-use tokio_diesel::AsyncRunQueryDsl;
 use tracing::error;
 
 use near_indexer::near_primitives;
@@ -10,7 +9,7 @@ use crate::schema;
 
 /// Saves block to database
 pub(crate) async fn store_block(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     block: &near_primitives::views::BlockView,
 ) {
     let block_model = models::blocks::Block::from(block);

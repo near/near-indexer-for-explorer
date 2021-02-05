@@ -1,7 +1,6 @@
-use diesel::r2d2::{ConnectionManager, Pool};
+use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::PgConnection;
 use futures::future::join_all;
-use tokio_diesel::AsyncRunQueryDsl;
 use tracing::error;
 
 use crate::models;
@@ -9,7 +8,7 @@ use crate::schema;
 
 /// Saves Transaction to database
 pub(crate) async fn store_transactions(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     chunks: &[near_indexer::IndexerChunkView],
     block_hash: &str,
     block_timestamp: u64,
@@ -34,7 +33,7 @@ pub(crate) async fn store_transactions(
 }
 
 async fn store_chunk_transactions(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     transactions: Vec<&near_indexer::IndexerTransactionWithOutcome>,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_hash: &str,

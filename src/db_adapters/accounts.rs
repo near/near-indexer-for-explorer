@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::{join, StreamExt};
 use itertools::Itertools;
-use tokio_diesel::AsyncRunQueryDsl;
+use actix_diesel::dsl::AsyncRunQueryDsl;
 use tracing::{error, info};
 
 use near_indexer::near_primitives;
@@ -14,7 +13,7 @@ use crate::schema;
 
 /// Saves new Accounts to database or deletes the ones should be deleted
 pub(crate) async fn handle_accounts(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
 ) {

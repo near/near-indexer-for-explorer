@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
+use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::pg::expression::array_comparison::any;
-use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
 use futures::join;
 use num_traits::cast::FromPrimitive;
-use tokio_diesel::AsyncRunQueryDsl;
 use tracing::{error, warn};
 
 use crate::models;
@@ -14,7 +13,7 @@ use crate::schema;
 
 /// Saves receipts to database
 pub(crate) async fn store_receipts(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     receipts: &[near_indexer::near_primitives::views::ReceiptView],
     block_hash: &str,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
@@ -80,7 +79,7 @@ pub(crate) async fn store_receipts(
 
 /// Looks for already created parent transaction hash for given receipts
 async fn find_tx_hashes_for_receipts(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     mut receipts: Vec<near_indexer::near_primitives::views::ReceiptView>,
     strict_mode: bool,
     block_hash: &str,
@@ -297,7 +296,7 @@ async fn find_tx_hashes_for_receipts(
 }
 
 async fn save_receipts(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     receipts: Vec<models::Receipt>,
 ) {
     let mut interval = crate::INTERVAL;
@@ -327,7 +326,7 @@ async fn save_receipts(
 }
 
 async fn store_receipt_actions(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
 ) {
     let receipt_actions: Vec<models::ActionReceipt> = receipts
@@ -500,7 +499,7 @@ async fn store_receipt_actions(
 }
 
 async fn store_receipt_data(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
 ) {
     let receipt_data_models: Vec<models::DataReceipt> = receipts
