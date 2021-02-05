@@ -21,12 +21,12 @@ openssl-probe = { version = "0.1.2" }
 r2d2 = "0.8.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.55"
-tokio = { version = "1.1", features = ["sync", "time"] }
+tokio = { version = "1.1", features = ["sync", "time", "rt-multi-thread"] }
 tokio-stream = { version = "0.1" }
 tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 
-tokio-diesel = { git = "https://github.com/mehcode/tokio-diesel", rev = "f4af42558246ab323600622ba8d08803d3c18842"}
+tokio-diesel = { git = "https://github.com/frol/tokio-diesel", rev = "3aa925cbc19d20763f41116dd26965225882fd48"}
 near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="c2b6ee64eabacaeb4a4c64a06f7025c51722517c" }
 near-crypto = { git = "https://github.com/nearprotocol/nearcore", rev="c2b6ee64eabacaeb4a4c64a06f7025c51722517c" }
 

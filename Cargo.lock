@@ -3908,7 +3908,7 @@ dependencies = [
 [[package]]
 name = "tokio-diesel"
 version = "0.3.0"
-source = "git+https://github.com/mehcode/tokio-diesel?rev=f4af42558246ab323600622ba8d08803d3c18842#f4af42558246ab323600622ba8d08803d3c18842"
+source = "git+https://github.com/frol/tokio-diesel?rev=3aa925cbc19d20763f41116dd26965225882fd48#3aa925cbc19d20763f41116dd26965225882fd48"
 dependencies = [
  "async-trait",
  "diesel",

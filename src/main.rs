@@ -126,6 +126,35 @@ async fn listen_blocks(
     while let Some(_handled_message) = handle_messages.next().await {}
 }
 
+async fn start_indexer(home_dir: std::path::PathBuf, args: crate::configs::RunArgs) {
+    let indexer_config = near_indexer::IndexerConfig {
+        home_dir,
+        sync_mode: args.clone().try_into().expect("Error in run arguments"),
+        await_for_node_synced: if args.stream_while_syncing {
+            near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+        } else {
+            near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+        },
+    };
+
+    let indexer = near_indexer::Indexer::new(indexer_config);
+    if args.store_genesis {
+        let near_config = indexer.near_config().clone();
+        actix::spawn(db_adapters::accounts::store_accounts_from_genesis(
+            near_config.clone(),
+        ));
+        actix::spawn(db_adapters::access_keys::store_access_keys_from_genesis(
+            near_config,
+        ));
+    };
+    let stream = indexer.streamer();
+    actix::spawn(listen_blocks(
+        stream,
+        args.allow_missing_relations_in_first_blocks,
+    ));
+    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+}
+
 fn main() {
     // We use it to automatically search the for root certificates to perform HTTPS calls
     // (sending telemetry and downloading genesis)
@@ -162,32 +191,13 @@ fn main() {
 
     match opts.subcmd {
         SubCommand::Run(args) => {
-            let indexer_config = near_indexer::IndexerConfig {
-                home_dir,
-                sync_mode: args.clone().try_into().expect("Error in run arguments"),
-                await_for_node_synced: if args.stream_while_syncing {
-                    near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-                } else {
-                    near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-                },
-            };
-            actix::System::builder().stop_on_panic(true).run(move || {
-                let indexer = near_indexer::Indexer::new(indexer_config);
-                if args.store_genesis {
-                    let near_config = indexer.near_config().clone();
-                    actix::spawn(db_adapters::accounts::store_accounts_from_genesis(
-                        near_config.clone(),
-                    ));
-                    actix::spawn(db_adapters::access_keys::store_access_keys_from_genesis(
-                        near_config,
-                    ))
-                }
-                let stream = indexer.streamer();
-                actix::spawn(listen_blocks(
-                    stream,
-                    args.allow_missing_relations_in_first_blocks,
-                ));
-            }).unwrap();
+            let runtime = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build()
+                .unwrap();
+
+            actix::System::attach_to_tokio("actix-main-system", runtime, start_indexer(home_dir, args));
         }
         SubCommand::Init(config) => near_indexer::init_configs(
             &home_dir,
