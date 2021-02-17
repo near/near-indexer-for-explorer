@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+* Migrate from `tokio-diesel` to `actix-diesel` (patched by @frol)
+
 ## 0.2.3
 
 * Upgrade `nearcore` dependency
