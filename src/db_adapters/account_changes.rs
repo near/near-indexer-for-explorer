@@ -1,6 +1,5 @@
-use diesel::r2d2::{ConnectionManager, Pool};
+use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::PgConnection;
-use tokio_diesel::AsyncRunQueryDsl;
 use tracing::error;
 
 use crate::models;
@@ -8,7 +7,7 @@ use crate::schema;
 
 /// Saves state change related to account to database
 pub(crate) async fn store_account_changes(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     state_changes: &[near_indexer::near_primitives::views::StateChangeWithCauseView],
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
@@ -45,7 +44,7 @@ pub(crate) async fn store_account_changes(
                     async_error,
                     &account_changes_models
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }

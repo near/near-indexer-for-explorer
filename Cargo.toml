@@ -1,11 +1,11 @@
 [package]
 name = "indexer-explorer"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Near Inc <hello@nearprotocol.com>"]
 edition = "2018"
 
 [dependencies]
-actix = "0.9"
+actix = "0.11.0-beta.1"
 base64 = "0.11"
 bigdecimal = "=0.1.0"
 clap = "3.0.0-beta.1"
@@ -21,10 +21,15 @@ openssl-probe = { version = "0.1.2" }
 r2d2 = "0.8.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.55"
-tokio = { version = "0.2", features = ["sync", "time"] }
-tokio-diesel = "0.3.0"
+tokio = { version = "1.1", features = ["sync", "time"] }
+tokio-stream = { version = "0.1" }
 tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 
-near-indexer = { git = "https://github.com/nearprotocol/nearcore", rev="29fcaf3b8c81a4c0371d105054ce251355382a77" }
-near-crypto = { git = "https://github.com/nearprotocol/nearcore", rev="29fcaf3b8c81a4c0371d105054ce251355382a77" }
+actix-diesel = { git = "https://github.com/frol/actix-diesel", branch="actix-0.11-beta" }
+near-indexer = { git = "https://github.com/near/nearcore", rev="f31cfb954bdd81885bc789bfa406035717db5ab5" }
+near-crypto = { git = "https://github.com/near/nearcore", rev="f31cfb954bdd81885bc789bfa406035717db5ab5" }
+
+[dev-dependencies]
+# Pin dependency to avoid compilation errors
+actix-rt = "=2.0.0-beta.2"

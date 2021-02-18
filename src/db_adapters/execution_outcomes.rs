@@ -1,6 +1,5 @@
-use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
-use tokio_diesel::AsyncRunQueryDsl;
+use actix_diesel::dsl::AsyncRunQueryDsl;
 use tracing::error;
 
 use crate::models;
@@ -8,7 +7,7 @@ use crate::schema;
 use diesel::pg::expression::array_comparison::any;
 
 pub(crate) async fn store_execution_outcomes(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     chunks: &[near_indexer::IndexerChunkView],
     block_timestamp: u64,
 ) {
@@ -25,7 +24,7 @@ pub(crate) async fn store_execution_outcomes(
 
 /// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
 pub async fn store_execution_outcomes_for_chunk(
-    pool: &Pool<ConnectionManager<PgConnection>>,
+    pool: &actix_diesel::Database<PgConnection>,
     execution_outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
@@ -53,7 +52,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     interval.as_millis(),
                     async_error,
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
@@ -111,7 +110,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     async_error,
                     &outcome_models,
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }
@@ -136,7 +135,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     async_error,
                     &outcome_receipt_models
                 );
-                tokio::time::delay_for(interval).await;
+                tokio::time::sleep(interval).await;
                 if interval < crate::MAX_DELAY_TIME {
                     interval *= 2;
                 }

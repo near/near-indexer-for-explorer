@@ -1,6 +1,5 @@
 use std::env;
 
-use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use dotenv::dotenv;
 
@@ -29,13 +28,11 @@ pub mod receipts;
 mod serializers;
 pub mod transactions;
 
-pub(crate) fn establish_connection() -> Pool<ConnectionManager<PgConnection>> {
+pub(crate) fn establish_connection() -> actix_diesel::Database<PgConnection> {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL")
         .unwrap_or_else(|_| panic!("DATABASE_URL must be set in .env file"));
-    let manager = ConnectionManager::<PgConnection>::new(&database_url);
-    Pool::builder()
-        .build(manager)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+    actix_diesel::Database::builder()
+        .open(&database_url)
 }

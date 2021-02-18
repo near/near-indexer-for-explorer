@@ -3,7 +3,6 @@ use std::convert::TryInto;
 use clap::Clap;
 #[macro_use]
 extern crate diesel;
-use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use futures::{join, StreamExt};
 use tokio::sync::mpsc;
@@ -22,7 +21,7 @@ const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
 async fn handle_message(
-    pool: std::sync::Arc<Pool<ConnectionManager<PgConnection>>>,
+    pool: actix_diesel::Database<PgConnection>,
     streamer_message: near_indexer::StreamerMessage,
     strict_mode: bool,
 ) {
@@ -109,9 +108,9 @@ async fn listen_blocks(
     stream: mpsc::Receiver<near_indexer::StreamerMessage>,
     allow_missing_relation_in_start_blocks: Option<u32>,
 ) {
-    let pool = std::sync::Arc::new(models::establish_connection());
+    let pool = models::establish_connection();
     let strict_mode = allow_missing_relation_in_start_blocks.unwrap_or(0);
-    let mut handle_messages = stream
+    let mut handle_messages = tokio_stream::wrappers::ReceiverStream::new(stream)
         .enumerate()
         .map(|(index, streamer_message)| {
             info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
@@ -171,22 +170,26 @@ fn main() {
                     near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
                 },
             };
-            let indexer = near_indexer::Indexer::new(indexer_config);
-            if args.store_genesis {
-                let near_config = indexer.near_config().clone();
-                actix::spawn(db_adapters::accounts::store_accounts_from_genesis(
-                    near_config.clone(),
-                ));
-                actix::spawn(db_adapters::access_keys::store_access_keys_from_genesis(
-                    near_config,
-                ))
-            }
-            let stream = indexer.streamer();
-            actix::spawn(listen_blocks(
-                stream,
-                args.allow_missing_relations_in_first_blocks,
-            ));
-            indexer.start();
+            actix::System::builder()
+                .stop_on_panic(true)
+                .run(move || {
+                    let indexer = near_indexer::Indexer::new(indexer_config);
+                    if args.store_genesis {
+                        let near_config = indexer.near_config().clone();
+                        actix::spawn(db_adapters::accounts::store_accounts_from_genesis(
+                            near_config.clone(),
+                        ));
+                        actix::spawn(db_adapters::access_keys::store_access_keys_from_genesis(
+                            near_config,
+                        ))
+                    }
+                    let stream = indexer.streamer();
+                    actix::spawn(listen_blocks(
+                        stream,
+                        args.allow_missing_relations_in_first_blocks,
+                    ));
+                })
+                .unwrap();
         }
         SubCommand::Init(config) => near_indexer::init_configs(
             &home_dir,
