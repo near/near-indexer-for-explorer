@@ -1,5 +1,5 @@
-use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use actix_diesel::dsl::AsyncRunQueryDsl;
+use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use tracing::error;
 
 use crate::models;

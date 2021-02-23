@@ -33,6 +33,5 @@ pub(crate) fn establish_connection() -> actix_diesel::Database<PgConnection> {
 
     let database_url = env::var("DATABASE_URL")
         .unwrap_or_else(|_| panic!("DATABASE_URL must be set in .env file"));
-    actix_diesel::Database::builder()
-        .open(&database_url)
+    actix_diesel::Database::builder().open(&database_url)
 }

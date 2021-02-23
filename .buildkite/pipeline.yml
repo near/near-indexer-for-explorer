@@ -1,0 +1,9 @@
+steps:
+  - command: "source ~/.cargo/env && cargo fmt --all -- --check"
+    label: "Formatter"
+    
+  - command: "source ~/.cargo/env && cargo clippy"
+    label: "Linter"
+    
+  - command: "source ~/.cargo/env && cargo test"
+    label: "Tests"
