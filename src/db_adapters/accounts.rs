@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
+use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::{join, StreamExt};
 use itertools::Itertools;
-use actix_diesel::dsl::AsyncRunQueryDsl;
 use tracing::{error, info};
 
 use near_indexer::near_primitives;
