@@ -7,3 +7,6 @@ steps:
     
   - command: "source ~/.cargo/env && cargo test"
     label: "Tests"
+
+  - command: "fossa init && fossa analyze --server-scan && fossa test"
+    label: "Fossa"
