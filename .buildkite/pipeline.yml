@@ -1,12 +1,8 @@
 steps:
-  - command: "source ~/.cargo/env && cargo fmt --all -- --check"
-    label: "Formatter"
-    
-  - command: "source ~/.cargo/env && cargo clippy"
-    label: "Linter"
-    
-  - command: "source ~/.cargo/env && cargo test"
-    label: "Tests"
-
-  - command: "fossa init && fossa analyze --server-scan && fossa test"
-    label: "Fossa"
+  - label: publish docker
+    command: ./scripts/docker-release.sh
+    branches: "master | mhala-docker"
+    plugins:
+      - docker-login#v2.0.1:
+          username: nearprotocol
+          password-env: DOCKER_LOGIN_PASSWORD
