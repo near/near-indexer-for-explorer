@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+* Update `nearcore` dependency
+* Update underlying dependencies to correspond `nearcore`
+
+**The way of starting `actix` runtime has changes**
+
 ## 0.3.0
 
 * Migrate from `tokio-diesel` to `actix-diesel` (patched by @frol)
