@@ -48,7 +48,7 @@ $ cargo run --release -- --home-dir ~/.near/testnet init --chain-id testnet --do
 
 The above code will download the official genesis config and generate necessary configs. You can replace `testnet` in the command above to different network ID (`betanet`, `mainnet`).
 
-**NB!** According to changes in `nearcore` config generation we don't fill all the necessary fields in the config file. 
+**NB!** According to changes in `nearcore` config generation we don't fill all the necessary fields in the config file.
 While this issue is open https://github.com/nearprotocol/nearcore/issues/3156 you need to download config you want and replace the generated one manually.
  - [testnet config.json](https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/testnet/config.json)
  - [betanet config.json](https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/betanet/config.json)
@@ -72,11 +72,11 @@ You can choose NEAR Indexer for Explorer sync mode by setting what to stream:
  - `sync-from-latest` - start indexing blocks from the latest finalized block
  - `sync-from-interruption` - start indexing blocks from the block NEAR Indexer was interrupted last time
  - `sync-from-block --height <block_height>` - start indexing blocks from the specific block height
- 
+
 Optionally you can tell Indexer to store data from genesis (Accounts and Access Keys) by adding key `--store-genesis` to the `run` command.
 
 NEAR Indexer for Explorer works in strict mode by default, but you can disable it for specific amount of blocks. The strict mode means that every piece of data
-will be retried to store to database in case of error. Errors may occur when the parent piece of data is still processed but the child piece is already 
+will be retried to store to database in case of error. Errors may occur when the parent piece of data is still processed but the child piece is already
 trying to be stored. So Indexer keeps retrying to store the data until success. However if you're running Indexer not from the genesis it is possible that you
 really miss some of parent data and it'll be impossible to store child one, so you can disable strict mode for 1000 blocks to ensure you've passed the strong
 relation data area and you're running Indexer where it is impossible to loose any piece of data.
@@ -98,3 +98,21 @@ After the network is synced, you should see logs of every block height currently
 ## Database structure
 
 ![database structure](docs/near-indexer-for-explorer-db.png)
+
+
+## Creating read-only PostgreSQL user
+
+We highly recommend to use separate read-only user for those who use database indexer is filling.
+
+Here's how to create read-only user in PostgreSQL:
+
+```sql
+CREATE USER explorer with password 'password';
+GRANT CONNECT ON DATABASE databasename TO explorer;
+GRANT USAGE ON SCHEMA public TO explorer;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO explorer;
+```
+
+```bash
+$ PGPASSWORD="password" psql -h 127.0.0.1 -U explorer databasename
+```
