@@ -102,7 +102,7 @@ After the network is synced, you should see logs of every block height currently
 
 ## Creating read-only PostgreSQL user
 
-We highly recommend to use separate read-only user for those who use database indexer is filling.
+We highly recommend using a separate read-only user to access the data to avoid unexcepted corruption of the indexed data.
 
 Here's how to create read-only user in PostgreSQL:
 
