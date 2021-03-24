@@ -82,7 +82,7 @@ CREATE TABLE public.access_keys (
 --
 
 CREATE TABLE public.account_changes (
-    id bigint NOT NULL,
+    id bigserial NOT NULL,
     affected_account_id text NOT NULL,
     changed_in_block_timestamp numeric(20,0) NOT NULL,
     changed_in_block_hash text NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE public.account_changes (
 --
 
 CREATE TABLE public.accounts (
-    id bigint NOT NULL,
+    id bigserial NOT NULL,
     account_id text NOT NULL,
     created_by_receipt_id text,
     deleted_by_receipt_id text,
