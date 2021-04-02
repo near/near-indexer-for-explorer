@@ -108,9 +108,7 @@ Here's how to create read-only user in PostgreSQL:
 
 ```sql
 CREATE USER explorer with password 'password';
-GRANT CONNECT ON DATABASE databasename TO explorer;
-GRANT USAGE ON SCHEMA public TO explorer;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO explorer;
+GRANT readonly TO explorer;
 ```
 
 ```bash
