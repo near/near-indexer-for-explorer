@@ -104,7 +104,14 @@ After the network is synced, you should see logs of every block height currently
 
 We highly recommend using a separate read-only user to access the data to avoid unexcepted corruption of the indexed data.
 
-Here's how to create read-only user in PostgreSQL:
+We use `public` schema for all tables. By default, new users have the possibility to create new tables/views/etc there. If you want to restrict that, you have to revoke these rights:
+
+```sql
+REVOKE CREATE ON SCHEMA PUBLIC FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA PUBLIC FROM PUBLIC;
+```
+
+After that, you could create read-only user in PostgreSQL:
 
 ```sql
 CREATE USER explorer with password 'password';
