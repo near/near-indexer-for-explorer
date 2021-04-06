@@ -2,8 +2,18 @@
 
 NEAR Indexer for Explorer is built on top of [NEAR Indexer microframework](https://github.com/nearprotocol/nearcore/tree/master/chain/indexer) to watch the network and store all the events in the PostgreSQL database.
 
+## Shared Public Access
 
-## Getting started
+NEAR runs the indexer and maintains it for [NEAR Explorer](https://github.com/near/near-explorer), [NEAR Wallet](https://github.com/near/near-wallet), and some other internal services. It proved to be a great source of data for various analysis and services, so we decided to give a shared read-only public access to the data:
+
+* testnet credentials: `postgres://public_readonly:nearprotocol@35.184.214.98/testnet_explorer`
+* mainnet credentials: `postgres://public_readonly:nearprotocol@104.199.89.51/mainnet_explorer`
+
+WARNING: We may evolve the data schemas, so make sure you follow the release notes of this repository.
+
+NOTE: Please, keep in mind that the access to the database is shared across everyone in the world, so it is better to make sure you limit the amount of queris and individual queries are efficient.
+
+## Self-hosting
 
 Before you proceed, make sure you have the following software installed:
 * [rustup](https://rustup.rs/) or Rust version that is mentioned in `rust-toolchain` file in the root of [nearcore](https://github.com/nearprotocol/nearcore) project.
