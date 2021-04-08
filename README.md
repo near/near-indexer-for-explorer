@@ -127,6 +127,18 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO explorer;
 $ PGPASSWORD="password" psql -h 127.0.0.1 -U explorer databasename
 ```
 
+## Syncing
+
+Whenever you run NEAR Indexer for Explorer for any network except localnet you'll need to sync with the network. This is required because it's a natural behavior of `nearcore` node and NEAR Indexer for Explorer is a wrapper for the regular `nearcore` node. In order to work and index the data your node must be synced with the network. This process can take a while, so we suggest to download a fresh backup of the `data` folder and put it in you `--home-dir` of your choice (by default it is `~/.near`)
+
+Running your NEAR Indexer for Explorer node on top of a backup data will reduce the time of syncing process because your node will download only missing data and it will take reasonable time.
+
+All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots:
+
+* [Mainnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/rpc/data.tar)
+* [Testnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/rpc/data.tar)
+
+
 ## Running NEAR Indexer for Explorer as archival node
 
 It's not necessary but in order to index everything in the network it is better to do it from the genesis. `nearcore` node is running in non-archival mode by default. That means that the node keeps data only for [5 last epochs](https://docs.near.org/docs/concepts/epoch). In order to index data from the genesis we need to turn the node in archival mode.
@@ -148,13 +160,7 @@ The syncing process in archival mode can take a lot of time, so it's better to d
 
 All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots:
 
-
 * [Mainnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/archive/data.tar)
 * [Testnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/archive/data.tar)
 
 See https://docs.near.org/docs/roles/integrator/exchange-integration#running-an-archival-node for reference
-
-## Regular node data backups daily
-
-* [Mainnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/rpc/data.tar)
-* [Testnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/rpc/data.tar)
