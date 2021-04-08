@@ -129,7 +129,7 @@ $ PGPASSWORD="password" psql -h 127.0.0.1 -U explorer databasename
 
 ## Running NEAR Indexer for Explorer as archival node
 
-It's not necessary but in order to index everything in the network it is better to do it from the genesis. `nearcore` node is running in non-archival mode by default. That means that the node keeps data only for 5 last epochs. In order to index data from the genesis we need to turn the node in archival mode.
+It's not necessary but in order to index everything in the network it is better to do it from the genesis. `nearcore` node is running in non-archival mode by default. That means that the node keeps data only for [5 last epochs](https://docs.near.org/docs/concepts/epoch). In order to index data from the genesis we need to turn the node in archival mode.
 
 To do it we need to update `config.json` located in `--home-dir` or your choice (by default it is `~/.near`).
 
@@ -153,3 +153,8 @@ All the backups can be downloaded from the public S3 bucket which contains lates
 * [Testnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/archive/data.tar)
 
 See https://docs.near.org/docs/roles/integrator/exchange-integration#running-an-archival-node for reference
+
+## Regular node data backups daily
+
+* [Mainnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/rpc/data.tar)
+* [Testnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/rpc/data.tar)
