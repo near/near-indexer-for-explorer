@@ -140,8 +140,8 @@ Running your NEAR Indexer for Explorer node on top of a backup data will reduce 
 
 All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots:
 
-* [Mainnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/rpc/data.tar)
-* [Testnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/rpc/data.tar)
+* [Recent 5-epoch Mainnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/rpc/data.tar)
+* [Recent 5-epoch Testnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/rpc/data.tar)
 
 
 ## Running NEAR Indexer for Explorer as archival node
@@ -165,7 +165,23 @@ The syncing process in archival mode can take a lot of time, so it's better to d
 
 All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots:
 
-* [Mainnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/archive/data.tar)
-* [Testnet](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/archive/data.tar)
+* [Archival Mainnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/archive/data.tar)
+* [Archival Testnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/archive/data.tar)
 
 See https://docs.near.org/docs/roles/integrator/exchange-integration#running-an-archival-node for reference
+
+## Troubleshooting
+
+When operating normally, you should see "INFO indexer_for_explorer: Block height ..." messages in the logs.
+
+### The node is fully synced and running, but no indexer messages and no transactions in the database (not indexing)
+
+Make sure the blocks you want to save exist on the node. Check them via [JSON RPC](https://docs.near.org/docs/api/rpc#block-details):
+
+```
+curl http://127.0.0.1:3030/ -X POST --header 'Content-type: application/json' --data '{"jsonrpc": "2.0", "id": "dontcare", "method": "block", "params": {"block_id": 9820214}}'
+```
+
+NOTE: Block #9820214 is the first block after genesis block (#9820210) on Mainnet.
+
+If it returns an error that the block does not exist or missing, it means that your node does not have the necessary data. Your options here are to start from the blocks that are recorded on the node or start an archival node (see above) and make sure you have the full network history (either use a backup or let the node sync from scratch (it is quite slow, so backup is recommended))
