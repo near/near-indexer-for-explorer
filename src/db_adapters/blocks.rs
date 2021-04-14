@@ -1,5 +1,6 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
-use diesel::PgConnection;
+use bigdecimal::ToPrimitive;
+use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use tracing::error;
 
 use near_indexer::near_primitives;
@@ -38,4 +39,26 @@ pub(crate) async fn store_block(
             }
         }
     }
+}
+
+/// Gets the latest block's height from database
+pub(crate) async fn latest_block_height(
+    pool: &actix_diesel::Database<PgConnection>,
+) -> Result<u64, String> {
+    let result: Vec<models::blocks::Block> = schema::blocks::table
+        .limit(1)
+        .order(schema::blocks::dsl::block_height.desc())
+        .load_async(&pool)
+        .await
+        .unwrap_or_else(|_| vec![]);
+
+    if result.is_empty() {
+        return Err("No blocks found in database".to_string());
+    }
+
+    Ok(result[0]
+        .block_height
+        .clone()
+        .to_u64()
+        .expect("Failed to convert block_height from BigDecimal to u64"))
 }

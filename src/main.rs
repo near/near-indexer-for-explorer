@@ -125,6 +125,70 @@ async fn listen_blocks(
     while let Some(_handled_message) = handle_messages.next().await {}
 }
 
+/// Takes `home_dir` and `RunArgs` to build proper IndexerConfig and returns it
+async fn construct_near_indexer_config(
+    home_dir: std::path::PathBuf,
+    args: configs::RunArgs,
+) -> near_indexer::IndexerConfig {
+    if let configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) = args.sync_mode {
+        if interruption_args.delta == 0 {
+            return near_indexer::IndexerConfig {
+                home_dir,
+                sync_mode: near_indexer::SyncModeEnum::FromInterruption,
+                await_for_node_synced: if args.stream_while_syncing {
+                    near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+                } else {
+                    near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+                },
+            };
+        }
+
+        let pool = models::establish_connection();
+
+        let latest_block_height = match db_adapters::blocks::latest_block_height(&pool).await {
+            Ok(height) => height,
+            Err(error_message) => {
+                tracing::warn!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "latest_block_height() failed with {}. Constructing IndexerConfig to sync from interruption without correction...",
+                    error_message
+                );
+                return near_indexer::IndexerConfig {
+                    home_dir,
+                    sync_mode: near_indexer::SyncModeEnum::FromInterruption,
+                    await_for_node_synced: if args.stream_while_syncing {
+                        near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+                    } else {
+                        near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+                    },
+                };
+            }
+        };
+
+        let sync_from_block_height = latest_block_height - interruption_args.delta;
+
+        return near_indexer::IndexerConfig {
+            home_dir,
+            sync_mode: near_indexer::SyncModeEnum::BlockHeight(sync_from_block_height),
+            await_for_node_synced: if args.stream_while_syncing {
+                near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+            } else {
+                near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+            },
+        };
+    } else {
+        return near_indexer::IndexerConfig {
+            home_dir,
+            sync_mode: args.clone().try_into().expect("Error in run arguments"),
+            await_for_node_synced: if args.stream_while_syncing {
+                near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+            } else {
+                near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+            },
+        };
+    }
+}
+
 fn main() {
     // We use it to automatically search the for root certificates to perform HTTPS calls
     // (sending telemetry and downloading genesis)
@@ -161,17 +225,9 @@ fn main() {
 
     match opts.subcmd {
         SubCommand::Run(args) => {
-            let indexer_config = near_indexer::IndexerConfig {
-                home_dir,
-                sync_mode: args.clone().try_into().expect("Error in run arguments"),
-                await_for_node_synced: if args.stream_while_syncing {
-                    near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-                } else {
-                    near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-                },
-            };
             let system = actix::System::new();
             system.block_on(async move {
+                let indexer_config = construct_near_indexer_config(home_dir, args.clone()).await;
                 let indexer = near_indexer::Indexer::new(indexer_config);
                 if args.store_genesis {
                     let near_config = indexer.near_config().clone();

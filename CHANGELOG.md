@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+
+* Tweak `sync-from-interruption` mode to start syncing from N blocks earlier that actual interruption
+
 ## 0.4.0
 
 * Update `nearcore` dependency
