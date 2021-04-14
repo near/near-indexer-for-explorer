@@ -130,7 +130,11 @@ async fn construct_near_indexer_config(
     home_dir: std::path::PathBuf,
     args: configs::RunArgs,
 ) -> near_indexer::IndexerConfig {
+    // If sync_mode is SyncFromInterruption we need to check delta and find the latest known
+    // block, otherwise we build IndexerConfig as usual
     if let configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) = args.sync_mode {
+        // If delta is 0 we just return IndexerConfig with sync_mode FromInterruption
+        // without any changes
         if interruption_args.delta == 0 {
             return near_indexer::IndexerConfig {
                 home_dir,
@@ -148,6 +152,7 @@ async fn construct_near_indexer_config(
         let latest_block_height = match db_adapters::blocks::latest_block_height(&pool).await {
             Ok(height) => height,
             Err(error_message) => {
+                // If we can't get latest block height we fall down in simple FromInterruption config
                 tracing::warn!(
                     target: crate::INDEXER_FOR_EXPLORER,
                     "latest_block_height() failed with {}. Constructing IndexerConfig to sync from interruption without correction...",
@@ -167,6 +172,8 @@ async fn construct_near_indexer_config(
 
         let sync_from_block_height = latest_block_height - interruption_args.delta;
 
+        // When we have calculated the block to sync from we return IndexerConfig
+        // with actually different sync_mode
         return near_indexer::IndexerConfig {
             home_dir,
             sync_mode: near_indexer::SyncModeEnum::BlockHeight(sync_from_block_height),
