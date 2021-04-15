@@ -130,6 +130,12 @@ async fn construct_near_indexer_config(
     home_dir: std::path::PathBuf,
     args: configs::RunArgs,
 ) -> near_indexer::IndexerConfig {
+    // Extract await mode to avoid duplication
+    let await_for_node_synced = if args.stream_while_syncing {
+        near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+    } else {
+        near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+    };
     // If sync_mode is SyncFromInterruption we need to check delta and find the latest known
     // block, otherwise we build IndexerConfig as usual
     if let configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) = args.sync_mode {
@@ -139,18 +145,26 @@ async fn construct_near_indexer_config(
             return near_indexer::IndexerConfig {
                 home_dir,
                 sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                await_for_node_synced: if args.stream_while_syncing {
-                    near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-                } else {
-                    near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-                },
+                await_for_node_synced,
             };
         }
 
         let pool = models::establish_connection();
 
         let latest_block_height = match db_adapters::blocks::latest_block_height(&pool).await {
-            Ok(height) => height,
+            Ok(Some(height)) => height,
+            Ok(None) => {
+                // In case of None we fall down in simple FormInterruption config
+                tracing::warn!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "latest_block_height() returned None. Constructing IndexerConfig to sync from interruption without correction...",
+                );
+                return near_indexer::IndexerConfig {
+                    home_dir,
+                    sync_mode: near_indexer::SyncModeEnum::FromInterruption,
+                    await_for_node_synced,
+                };
+            }
             Err(error_message) => {
                 // If we can't get latest block height we fall down in simple FromInterruption config
                 tracing::warn!(
@@ -161,11 +175,7 @@ async fn construct_near_indexer_config(
                 return near_indexer::IndexerConfig {
                     home_dir,
                     sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                    await_for_node_synced: if args.stream_while_syncing {
-                        near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-                    } else {
-                        near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-                    },
+                    await_for_node_synced,
                 };
             }
         };
@@ -187,11 +197,7 @@ async fn construct_near_indexer_config(
         return near_indexer::IndexerConfig {
             home_dir,
             sync_mode: args.clone().try_into().expect("Error in run arguments"),
-            await_for_node_synced: if args.stream_while_syncing {
-                near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-            } else {
-                near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-            },
+            await_for_node_synced,
         };
     }
 }

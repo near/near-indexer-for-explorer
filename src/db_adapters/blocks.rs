@@ -44,21 +44,12 @@ pub(crate) async fn store_block(
 /// Gets the latest block's height from database
 pub(crate) async fn latest_block_height(
     pool: &actix_diesel::Database<PgConnection>,
-) -> Result<u64, String> {
-    let result: Vec<models::blocks::Block> = schema::blocks::table
-        .limit(1)
+) -> Result<Option<u64>, String> {
+    Ok(schema::blocks::table
+        .select((schema::blocks::dsl::block_height,))
         .order(schema::blocks::dsl::block_height.desc())
-        .load_async(&pool)
+        .get_optional_result_async::<(bigdecimal::BigDecimal,)>(&pool)
         .await
-        .unwrap_or_else(|_| vec![]);
-
-    if result.is_empty() {
-        return Err("No blocks found in database".to_string());
-    }
-
-    Ok(result[0]
-        .block_height
-        .clone()
-        .to_u64()
-        .expect("Failed to convert block_height from BigDecimal to u64"))
+        .map_err(|err| format!("DB Error: {}", err))?
+        .and_then(|(block_height,)| block_height.to_u64()))
 }
