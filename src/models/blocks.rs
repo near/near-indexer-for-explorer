@@ -7,7 +7,7 @@ use near_indexer::near_primitives;
 use crate::schema;
 use schema::blocks;
 
-#[derive(Insertable, Clone, Debug)]
+#[derive(Insertable, Queryable, Clone, Debug)]
 pub struct Block {
     pub block_height: BigDecimal,
     pub block_hash: String,

@@ -80,7 +80,7 @@ Command to run NEAR Indexer for Explorer have to contain sync mode.
 
 You can choose NEAR Indexer for Explorer sync mode by setting what to stream:
  - `sync-from-latest` - start indexing blocks from the latest finalized block
- - `sync-from-interruption` - start indexing blocks from the block NEAR Indexer was interrupted last time
+ - `sync-from-interruption --delta <number_of_blocks>` - start indexing blocks from the block NEAR Indexer was interrupted last time but earlier for `<number_of_blocks>` if provided
  - `sync-from-block --height <block_height>` - start indexing blocks from the specific block height
 
 Optionally you can tell Indexer to store data from genesis (Accounts and Access Keys) by adding key `--store-genesis` to the `run` command.

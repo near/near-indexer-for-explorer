@@ -40,11 +40,18 @@ pub(crate) struct RunArgs {
 #[derive(Clap, Debug, Clone)]
 pub(crate) enum SyncModeSubCommand {
     /// continue from the block Indexer was interrupted
-    SyncFromInterruption,
+    SyncFromInterruption(InterruptionArgs),
     /// start from the newest block after node finishes syncing
     SyncFromLatest,
     /// start from specified block height
     SyncFromBlock(BlockArgs),
+}
+
+#[derive(Clap, Debug, Clone)]
+pub(crate) struct InterruptionArgs {
+    /// start sycing this amount of blocks earlier than actual interruption
+    #[clap(long, default_value = "0")]
+    pub delta: u64,
 }
 
 #[derive(Clap, Debug, Clone)]
@@ -59,7 +66,7 @@ impl TryFrom<RunArgs> for near_indexer::SyncModeEnum {
 
     fn try_from(run_args: RunArgs) -> Result<Self, Self::Error> {
         match run_args.sync_mode {
-            SyncModeSubCommand::SyncFromInterruption => Ok(Self::FromInterruption),
+            SyncModeSubCommand::SyncFromInterruption(_) => Err("Unable to convert SyncFromInterruption variant because it has additional parameter which is not acceptable by near_indexer::SyncModeEnum::SyncFromInterruption"),
             SyncModeSubCommand::SyncFromLatest => Ok(Self::LatestSynced),
             SyncModeSubCommand::SyncFromBlock(args) => Ok(Self::BlockHeight(args.height)),
         }
