@@ -9,14 +9,17 @@ use crate::schema;
 /// Saves Transaction to database
 pub(crate) async fn store_transactions(
     pool: &actix_diesel::Database<PgConnection>,
-    chunks: &[near_indexer::IndexerChunkView],
+    shards: &[near_indexer::IndexerShard],
     block_hash: &str,
     block_timestamp: u64,
 ) {
-    if chunks.is_empty() {
+    if shards.is_empty() {
         return;
     }
-    let futures = chunks.iter().map(|chunk| {
+
+    let chunks = shards.iter().filter_map(|shard| shard.chunk.as_ref());
+
+    let futures = chunks.map(|chunk| {
         store_chunk_transactions(
             &pool,
             chunk

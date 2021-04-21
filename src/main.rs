@@ -30,7 +30,7 @@ async fn handle_message(
     // Chunks
     db_adapters::chunks::store_chunks(
         &pool,
-        &streamer_message.chunks,
+        &streamer_message.shards,
         &streamer_message.block.header.hash,
     )
     .await;
@@ -38,23 +38,25 @@ async fn handle_message(
     // Transaction
     db_adapters::transactions::store_transactions(
         &pool,
-        &streamer_message.chunks,
+        &streamer_message.shards,
         &streamer_message.block.header.hash.to_string(),
         streamer_message.block.header.timestamp,
     )
     .await;
 
     // Receipts
-    for chunk in &streamer_message.chunks {
-        db_adapters::receipts::store_receipts(
-            &pool,
-            &chunk.receipts,
-            &streamer_message.block.header.hash.to_string(),
-            &chunk.header.chunk_hash,
-            streamer_message.block.header.timestamp,
-            strict_mode,
-        )
-        .await;
+    for shard in &streamer_message.shards {
+        if let Some(chunk) = shard.chunk {
+            db_adapters::receipts::store_receipts(
+                &pool,
+                &chunk.receipts,
+                &streamer_message.block.header.hash.to_string(),
+                &chunk.header.chunk_hash,
+                streamer_message.block.header.timestamp,
+                strict_mode,
+            )
+            .await;
+        }
     }
 
     // ExecutionOutcomes
@@ -66,10 +68,10 @@ async fn handle_message(
 
     // Accounts
     let accounts_future = async {
-        for chunk in &streamer_message.chunks {
+        for shard in &streamer_message.shards {
             db_adapters::accounts::handle_accounts(
                 &pool,
-                &chunk.receipt_execution_outcomes,
+                &shard.receipt_execution_outcomes,
                 streamer_message.block.header.height,
             )
             .await;
@@ -78,10 +80,10 @@ async fn handle_message(
 
     // AccessKeys
     let access_keys_future = async {
-        for chunk in &streamer_message.chunks {
+        for shard in &streamer_message.shards {
             db_adapters::access_keys::handle_access_keys(
                 &pool,
-                &chunk.receipt_execution_outcomes,
+                &shard.receipt_execution_outcomes,
                 streamer_message.block.header.height,
             )
             .await;
