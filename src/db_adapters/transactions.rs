@@ -17,20 +17,21 @@ pub(crate) async fn store_transactions(
         return;
     }
 
-    let chunks = shards.iter().filter_map(|shard| shard.chunk.as_ref());
-
-    let futures = chunks.map(|chunk| {
-        store_chunk_transactions(
-            &pool,
-            chunk
-                .transactions
-                .iter()
-                .collect::<Vec<&near_indexer::IndexerTransactionWithOutcome>>(),
-            &chunk.header.chunk_hash,
-            block_hash,
-            block_timestamp,
-        )
-    });
+    let futures = shards
+        .iter()
+        .filter_map(|shard| shard.chunk.as_ref())
+        .map(|chunk| {
+            store_chunk_transactions(
+                &pool,
+                chunk
+                    .transactions
+                    .iter()
+                    .collect::<Vec<&near_indexer::IndexerTransactionWithOutcome>>(),
+                &chunk.header.chunk_hash,
+                block_hash,
+                block_timestamp,
+            )
+        });
 
     join_all(futures).await;
 }

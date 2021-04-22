@@ -14,15 +14,15 @@ pub(crate) async fn store_chunks(
     if shards.is_empty() {
         return;
     }
-    let chunks = shards.iter().filter_map(|shard| shard.chunk.as_ref());
-
-    if shards.is_empty() {
-        return;
-    }
-
-    let chunk_models: Vec<models::chunks::Chunk> = chunks
+    let chunk_models: Vec<models::chunks::Chunk> = shards
+        .iter()
+        .filter_map(|shard| shard.chunk.as_ref())
         .map(|chunk| models::chunks::Chunk::from_chunk_view(&chunk, block_hash))
         .collect();
+
+    if chunk_models.is_empty() {
+        return;
+    }
 
     let mut interval = crate::INTERVAL;
     loop {

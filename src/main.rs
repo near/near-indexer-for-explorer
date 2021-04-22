@@ -46,7 +46,7 @@ async fn handle_message(
 
     // Receipts
     for shard in &streamer_message.shards {
-        if let Some(chunk) = shard.chunk {
+        if let Some(chunk) = &shard.chunk {
             db_adapters::receipts::store_receipts(
                 &pool,
                 &chunk.receipts,
@@ -62,7 +62,7 @@ async fn handle_message(
     // ExecutionOutcomes
     let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
         &pool,
-        &streamer_message.chunks,
+        &streamer_message.shards,
         streamer_message.block.header.timestamp,
     );
 

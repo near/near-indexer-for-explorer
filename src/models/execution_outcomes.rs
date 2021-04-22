@@ -12,12 +12,12 @@ pub struct ExecutionOutcome {
     pub receipt_id: String,
     pub executed_in_block_hash: String,
     pub executed_in_block_timestamp: BigDecimal,
-    pub executed_in_chunk_hash: String,
     pub index_in_chunk: i32,
     pub gas_burnt: BigDecimal,
     pub tokens_burnt: BigDecimal,
     pub executor_account_id: String,
     pub status: ExecutionOutcomeStatus,
+    pub shard_id: BigDecimal,
 }
 
 impl ExecutionOutcome {
@@ -25,11 +25,10 @@ impl ExecutionOutcome {
         execution_outcome: &near_indexer::near_primitives::views::ExecutionOutcomeWithIdView,
         index_in_chunk: i32,
         executed_in_block_timestamp: u64,
-        executed_in_chunk_hash: &str,
+        shard_id: u64,
     ) -> Self {
         Self {
             executed_in_block_hash: execution_outcome.block_hash.to_string(),
-            executed_in_chunk_hash: executed_in_chunk_hash.to_string(),
             executed_in_block_timestamp: executed_in_block_timestamp.into(),
             index_in_chunk,
             receipt_id: execution_outcome.id.to_string(),
@@ -40,6 +39,7 @@ impl ExecutionOutcome {
             .expect("`tokens_burnt` expected to be u128"),
             executor_account_id: execution_outcome.outcome.executor_id.to_string(),
             status: execution_outcome.outcome.status.clone().into(),
+            shard_id: shard_id.into(),
         }
     }
 }

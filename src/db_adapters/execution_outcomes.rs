@@ -8,14 +8,14 @@ use diesel::pg::expression::array_comparison::any;
 
 pub(crate) async fn store_execution_outcomes(
     pool: &actix_diesel::Database<PgConnection>,
-    chunks: &[near_indexer::IndexerChunkView],
+    shards: &[near_indexer::IndexerShard],
     block_timestamp: u64,
 ) {
-    for chunk in chunks {
+    for shard in shards {
         store_execution_outcomes_for_chunk(
             &pool,
-            &chunk.receipt_execution_outcomes,
-            &chunk.header.chunk_hash,
+            &shard.receipt_execution_outcomes,
+            shard.shard_id,
             block_timestamp,
         )
         .await;
@@ -26,7 +26,7 @@ pub(crate) async fn store_execution_outcomes(
 pub async fn store_execution_outcomes_for_chunk(
     pool: &actix_diesel::Database<PgConnection>,
     execution_outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
-    chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
+    shard_id: near_indexer::near_primitives::types::ShardId,
     block_timestamp: u64,
 ) {
     let mut interval = crate::INTERVAL;
@@ -72,7 +72,7 @@ pub async fn store_execution_outcomes_for_chunk(
             &outcome.execution_outcome,
             index_in_chunk as i32,
             block_timestamp,
-            &chunk_hash.to_string(),
+            shard_id,
         );
         outcome_models.push(model);
 
