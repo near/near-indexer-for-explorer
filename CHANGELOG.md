@@ -4,7 +4,7 @@
 
 * Upgrade `nearcore` to get NEAR Indexer Framework 0.9.0
 * Corresponding changes into adapters according to changes in `StreamerMessage` structure
-
+* NEAR Indexer for Explorer now uses stable Rust (`rust-toolchain` has been updated accordingly) 
 
 ## 0.5.0
 
