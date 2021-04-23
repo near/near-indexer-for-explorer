@@ -209,6 +209,10 @@ fn main() {
     // (sending telemetry and downloading genesis)
     openssl_probe::init_ssl_cert_env_vars();
 
+    // This is a sanity check. Indexer should fail .env file with credentials is missing
+    // We prefer to fail as soon as possible to avoid heavy running for nothing
+    models::get_database_credentials();
+
     let mut env_filter = EnvFilter::new(
         "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer_for_explorer=info",
     );
