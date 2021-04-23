@@ -65,10 +65,18 @@ pub(crate) async fn store_receipts(
 
     save_receipts(&pool, receipt_models).await;
 
-    let (action_receipts, data_receipts): (Vec<&near_indexer::near_primitives::views::ReceiptView>, Vec<&near_indexer::near_primitives::views::ReceiptView>) = receipts
+    let (action_receipts, data_receipts): (
+        Vec<&near_indexer::near_primitives::views::ReceiptView>,
+        Vec<&near_indexer::near_primitives::views::ReceiptView>,
+    ) = receipts
         .iter()
         .filter(|r| !skipping_receipt_ids.contains(&r.receipt_id))
-        .partition(|receipt| matches!(receipt.receipt, near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }));
+        .partition(|receipt| {
+            matches!(
+                receipt.receipt,
+                near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }
+            )
+        });
 
     let process_receipt_actions_future = store_receipt_actions(&pool, action_receipts);
 
@@ -176,21 +184,22 @@ async fn find_tx_hashes_for_receipts(
         let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = loop {
             match schema::execution_outcome_receipts::table
                 .inner_join(
-                    schema::receipts::table.on(
-                        schema::execution_outcome_receipts::dsl::executed_receipt_id
-                            .eq(schema::receipts::dsl::receipt_id),
-                    ),
+                    schema::receipts::table
+                        .on(schema::execution_outcome_receipts::dsl::executed_receipt_id
+                            .eq(schema::receipts::dsl::receipt_id)),
                 )
                 .filter(
-                    schema::execution_outcome_receipts::dsl::produced_receipt_id
-                        .eq(any(receipts
-                                .clone()
-                                .iter()
-                                .filter(|r| matches!(r.receipt, near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }))
-                                .map(|r| r.receipt_id.to_string())
-                                .collect::<Vec<String>>()
+                    schema::execution_outcome_receipts::dsl::produced_receipt_id.eq(any(receipts
+                        .clone()
+                        .iter()
+                        .filter(|r| {
+                            matches!(
+                                r.receipt,
+                                near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }
                             )
-                        ),
+                        })
+                        .map(|r| r.receipt_id.to_string())
+                        .collect::<Vec<String>>())),
                 )
                 .select((
                     schema::execution_outcome_receipts::dsl::produced_receipt_id,
@@ -230,12 +239,19 @@ async fn find_tx_hashes_for_receipts(
         let mut interval = crate::INTERVAL;
         let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
             match schema::transactions::table
-                .filter(schema::transactions::dsl::converted_into_receipt_id.eq(any(receipts
-                    .clone()
-                    .iter()
-                    .filter(|r| matches!(r.receipt, near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }))
-                    .map(|r| r.receipt_id.to_string())
-                    .collect::<Vec<String>>())))
+                .filter(
+                    schema::transactions::dsl::converted_into_receipt_id.eq(any(receipts
+                        .clone()
+                        .iter()
+                        .filter(|r| {
+                            matches!(
+                                r.receipt,
+                                near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }
+                            )
+                        })
+                        .map(|r| r.receipt_id.to_string())
+                        .collect::<Vec<String>>())),
+                )
                 .select((
                     schema::transactions::dsl::converted_into_receipt_id,
                     schema::transactions::dsl::transaction_hash,
