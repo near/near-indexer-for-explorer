@@ -6,4 +6,5 @@ UPDATE execution_outcomes SET executed_in_chunk_hash = chunks.chunk_hash
         WHERE execution_outcomes.executed_in_block_hash = chunks.included_in_block_hash
             AND execution_outcomes.shard_id = chunks.shard_id;
 
+ALTER TABLE execution_outcomes ALTER COLUMN executed_in_chunk_hash DROP DEFAULT;
 ALTER TABLE execution_outcomes DROP COLUMN shard_id;

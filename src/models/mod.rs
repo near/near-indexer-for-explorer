@@ -28,10 +28,11 @@ pub mod receipts;
 mod serializers;
 pub mod transactions;
 
+/// Get database credentials from `.env` or fail
 pub(crate) fn get_database_credentials() -> String {
     dotenv().ok();
 
-    env::var("DATABASE_URL").unwrap_or_else(|_| panic!("DATABASE_URL must be set in .env file"))
+    env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file")
 }
 
 pub(crate) fn establish_connection() -> actix_diesel::Database<PgConnection> {
