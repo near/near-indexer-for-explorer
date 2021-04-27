@@ -1,6 +1,6 @@
 [package]
 name = "indexer-explorer"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Near Inc <hello@nearprotocol.com>"]
 edition = "2018"
 
@@ -31,5 +31,5 @@ tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 
 actix-diesel = { git = "https://github.com/frol/actix-diesel", branch="actix-0.11-beta.2" }
-near-indexer = { git = "https://github.com/near/nearcore", rev="baa8dd861b3830c4185b834205db5d2dd2480a5a" }
-near-crypto = { git = "https://github.com/near/nearcore", rev="baa8dd861b3830c4185b834205db5d2dd2480a5a" }
+near-indexer = { git = "https://github.com/near/nearcore", rev="379f87e5dd5d3c1e798baf164068e0a0517fdcfc" }
+near-crypto = { git = "https://github.com/near/nearcore", rev="379f87e5dd5d3c1e798baf164068e0a0517fdcfc" }

@@ -30,7 +30,7 @@ async fn handle_message(
     // Chunks
     db_adapters::chunks::store_chunks(
         &pool,
-        &streamer_message.chunks,
+        &streamer_message.shards,
         &streamer_message.block.header.hash,
     )
     .await;
@@ -38,38 +38,40 @@ async fn handle_message(
     // Transaction
     db_adapters::transactions::store_transactions(
         &pool,
-        &streamer_message.chunks,
+        &streamer_message.shards,
         &streamer_message.block.header.hash.to_string(),
         streamer_message.block.header.timestamp,
     )
     .await;
 
     // Receipts
-    for chunk in &streamer_message.chunks {
-        db_adapters::receipts::store_receipts(
-            &pool,
-            &chunk.receipts,
-            &streamer_message.block.header.hash.to_string(),
-            &chunk.header.chunk_hash,
-            streamer_message.block.header.timestamp,
-            strict_mode,
-        )
-        .await;
+    for shard in &streamer_message.shards {
+        if let Some(chunk) = &shard.chunk {
+            db_adapters::receipts::store_receipts(
+                &pool,
+                &chunk.receipts,
+                &streamer_message.block.header.hash.to_string(),
+                &chunk.header.chunk_hash,
+                streamer_message.block.header.timestamp,
+                strict_mode,
+            )
+            .await;
+        }
     }
 
     // ExecutionOutcomes
     let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
         &pool,
-        &streamer_message.chunks,
+        &streamer_message.shards,
         streamer_message.block.header.timestamp,
     );
 
     // Accounts
     let accounts_future = async {
-        for chunk in &streamer_message.chunks {
+        for shard in &streamer_message.shards {
             db_adapters::accounts::handle_accounts(
                 &pool,
-                &chunk.receipt_execution_outcomes,
+                &shard.receipt_execution_outcomes,
                 streamer_message.block.header.height,
             )
             .await;
@@ -78,10 +80,10 @@ async fn handle_message(
 
     // AccessKeys
     let access_keys_future = async {
-        for chunk in &streamer_message.chunks {
+        for shard in &streamer_message.shards {
             db_adapters::access_keys::handle_access_keys(
                 &pool,
-                &chunk.receipt_execution_outcomes,
+                &shard.receipt_execution_outcomes,
                 streamer_message.block.header.height,
             )
             .await;
@@ -206,6 +208,10 @@ fn main() {
     // We use it to automatically search the for root certificates to perform HTTPS calls
     // (sending telemetry and downloading genesis)
     openssl_probe::init_ssl_cert_env_vars();
+
+    // This is a sanity check. Indexer should fail .env file with credentials is missing
+    // We prefer to fail as soon as possible to avoid heavy running for nothing
+    models::get_database_credentials();
 
     let mut env_filter = EnvFilter::new(
         "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer_for_explorer=info",

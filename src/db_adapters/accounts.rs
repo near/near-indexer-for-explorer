@@ -29,7 +29,7 @@ pub(crate) async fn handle_accounts(
                 _ => false,
             }
         })
-        .filter_map(|outcome_with_receipt| outcome_with_receipt.receipt.as_ref());
+        .map(|outcome_with_receipt| &outcome_with_receipt.receipt);
 
     let mut accounts =
         HashMap::<near_primitives::types::AccountId, models::accounts::Account>::new();

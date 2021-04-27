@@ -8,16 +8,21 @@ use crate::schema;
 /// Saves chunks to database
 pub(crate) async fn store_chunks(
     pool: &actix_diesel::Database<PgConnection>,
-    chunks: &[near_indexer::IndexerChunkView],
+    shards: &[near_indexer::IndexerShard],
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
 ) {
-    if chunks.is_empty() {
+    if shards.is_empty() {
         return;
     }
-    let chunk_models: Vec<models::chunks::Chunk> = chunks
+    let chunk_models: Vec<models::chunks::Chunk> = shards
         .iter()
-        .map(|chunk| models::chunks::Chunk::from_chunk_view(chunk, block_hash))
+        .filter_map(|shard| shard.chunk.as_ref())
+        .map(|chunk| models::chunks::Chunk::from_chunk_view(&chunk, block_hash))
         .collect();
+
+    if chunk_models.is_empty() {
+        return;
+    }
 
     let mut interval = crate::INTERVAL;
     loop {

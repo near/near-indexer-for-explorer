@@ -140,12 +140,12 @@ table! {
         receipt_id -> Text,
         executed_in_block_hash -> Text,
         executed_in_block_timestamp -> Numeric,
-        executed_in_chunk_hash -> Text,
         index_in_chunk -> Int4,
         gas_burnt -> Numeric,
         tokens_burnt -> Numeric,
         executor_account_id -> Text,
         status -> Execution_outcome_status,
+        shard_id -> Numeric,
     }
 }
 
@@ -208,7 +208,6 @@ joinable!(chunks -> blocks (included_in_block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (executed_receipt_id));
 joinable!(execution_outcomes -> blocks (executed_in_block_hash));
-joinable!(execution_outcomes -> chunks (executed_in_chunk_hash));
 joinable!(execution_outcomes -> receipts (receipt_id));
 joinable!(receipts -> blocks (included_in_block_hash));
 joinable!(receipts -> chunks (included_in_chunk_hash));

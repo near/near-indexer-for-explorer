@@ -30,7 +30,7 @@ pub(crate) async fn handle_access_keys(
                 _ => false,
             }
         })
-        .filter_map(|outcome_with_receipt| outcome_with_receipt.receipt.as_ref());
+        .map(|outcome_with_receipt| &outcome_with_receipt.receipt);
 
     let mut access_keys = HashMap::<(String, String), models::access_keys::AccessKey>::new();
     let mut deleted_accounts = HashMap::<String, String>::new();
