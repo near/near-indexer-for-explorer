@@ -78,7 +78,7 @@ pub(crate) async fn store_receipts(
             )
         });
 
-    let process_receipt_actions_future = store_receipt_actions(&pool, action_receipts);
+    let process_receipt_actions_future = store_receipt_actions(&pool, action_receipts, block_timestamp);
 
     let process_receipt_data_future = store_receipt_data(&pool, data_receipts);
 
@@ -344,6 +344,7 @@ async fn save_receipts(
 async fn store_receipt_actions(
     pool: &actix_diesel::Database<PgConnection>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
+    block_timestamp: u64,
 ) {
     let receipt_actions: Vec<models::ActionReceipt> = receipts
         .iter()
@@ -362,6 +363,9 @@ async fn store_receipt_actions(
                         receipt.receipt_id.to_string(),
                         i32::from_usize(index).expect("We expect usize to not overflow i32 here"),
                         action,
+                        receipt.clone().predecessor_id.to_string(),
+                        receipt.clone().receiver_id.to_string(),
+                        block_timestamp,
                     )
                 }))
             } else {

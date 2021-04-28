@@ -51,6 +51,9 @@ table! {
         index_in_action_receipt -> Int4,
         action_kind -> Action_kind,
         args -> Jsonb,
+        predecessor_account_id -> Text,
+        receiver_account_id -> Text,
+        included_in_block_timestamp -> Numeric,
     }
 }
 
