@@ -78,7 +78,8 @@ pub(crate) async fn store_receipts(
             )
         });
 
-    let process_receipt_actions_future = store_receipt_actions(&pool, action_receipts, block_timestamp);
+    let process_receipt_actions_future =
+        store_receipt_actions(&pool, action_receipts, block_timestamp);
 
     let process_receipt_data_future = store_receipt_data(&pool, data_receipts);
 
