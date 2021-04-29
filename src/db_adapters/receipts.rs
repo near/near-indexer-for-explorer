@@ -364,8 +364,8 @@ async fn store_receipt_actions(
                         receipt.receipt_id.to_string(),
                         i32::from_usize(index).expect("We expect usize to not overflow i32 here"),
                         action,
-                        receipt.clone().predecessor_id.to_string(),
-                        receipt.clone().receiver_id.to_string(),
+                        receipt.predecessor_id.to_string(),
+                        receipt.receiver_id.to_string(),
                         block_timestamp,
                     )
                 }))
