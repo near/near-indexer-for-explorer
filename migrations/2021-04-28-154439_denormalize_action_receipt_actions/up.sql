@@ -17,6 +17,10 @@ ALTER TABLE action_receipt_actions
     ALTER COLUMN receiver_account_id DROP DEFAULT,
     ALTER COLUMN included_in_block_timestamp DROP DEFAULT;
 
+CREATE INDEX action_receipt_actions_predecessor_account_id_idx ON action_receipt_actions(predecessor_account_id);
+CREATE INDEX action_receipt_actions_receiver_account_id_idx ON action_receipt_actions(receiver_account_id);
+CREATE INDEX action_receipt_actions_included_in_block_timestamp_idx ON action_receipt_actions(included_in_block_timestamp);
+
 CREATE INDEX action_receipt_actions_args_function_call_idx ON action_receipt_actions((args->>'method_name'))
     WHERE action_receipt_actions.action_kind = 'FUNCTION_CALL';
 
