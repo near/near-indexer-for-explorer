@@ -11,6 +11,10 @@ UPDATE action_receipt_actions
     FROM receipts
     WHERE action_receipt_actions.receipt_id = receipts.receipt_id;
 
+UPDATE action_receipt_actions
+    SET args = jsonb_set(args, '{args_json}', convert_from(decode(args->>'args_base64', 'base64'), 'UTF8')::jsonb, true)
+WHERE action_kind = 'FUNCTION_CALL';
+
 
 ALTER TABLE action_receipt_actions
     ALTER COLUMN predecessor_account_id DROP DEFAULT,
