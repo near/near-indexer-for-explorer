@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+* Upgrade `nearcore` to support newer protocol version (45)
+
 ## 0.6.0
 
 * Upgrade `nearcore` to get NEAR Indexer Framework 0.9.0
