@@ -5,7 +5,15 @@ use clap::Clap;
 /// NEAR Indexer for Explorer
 /// Watches for stream of blocks from the chain
 #[derive(Clap, Debug)]
-#[clap(version = "0.1", author = "Near Inc. <hello@nearprotocol.com>")]
+#[clap(
+    version,
+    author,
+    about,
+    setting(clap::AppSettings::ColoredHelp),
+    setting(clap::AppSettings::DisableHelpSubcommand),
+    setting(clap::AppSettings::VersionlessSubcommands),
+    setting(clap::AppSettings::NextLineHelp)
+)]
 pub(crate) struct Opts {
     /// Sets a custom config dir. Defaults to ~/.near/
     #[clap(short, long)]
