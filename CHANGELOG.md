@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2
+
+* Upgrade `nearcore` dependency to exclude recent updates to runtime which caused a bug ([see for ref](https://github.com/near/nearcore/releases/tag/1.19.0-rc.2))
+
 ## 0.6.1
 
 * Upgrade `nearcore` to support newer protocol version (45)
