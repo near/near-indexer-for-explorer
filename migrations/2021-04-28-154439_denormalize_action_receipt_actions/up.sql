@@ -11,21 +11,6 @@ UPDATE action_receipt_actions
     FROM receipts
     WHERE action_receipt_actions.receipt_id = receipts.receipt_id;
 
-CREATE OR REPLACE FUNCTION decode_or_null(bytea) RETURNS jsonb
-   LANGUAGE plpgsql AS
-$$BEGIN
-   RETURN convert_from($1, 'UTF8')::jsonb;
-EXCEPTION
-   WHEN others THEN
-      RAISE WARNING '%', SQLERRM;
-RETURN '{}'::jsonb;
-
-END;$$;
-
-UPDATE action_receipt_actions
-    SET args = jsonb_set(args, '{args_json}', decode_or_null(decode(args->>'args_base64', 'base64')), true)
-WHERE action_kind = 'FUNCTION_CALL' AND receiver_account_id != 'client.bridge.near';
-
 ALTER TABLE action_receipt_actions
     ALTER COLUMN predecessor_account_id DROP DEFAULT,
     ALTER COLUMN receiver_account_id DROP DEFAULT,
