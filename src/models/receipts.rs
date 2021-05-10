@@ -118,9 +118,9 @@ pub struct ActionReceiptAction {
     pub index_in_action_receipt: i32,
     pub action_kind: ActionKind,
     pub args: serde_json::Value,
-    pub predecessor_account_id: String,
-    pub receiver_account_id: String,
-    pub included_in_block_timestamp: BigDecimal,
+    pub receipt_predecessor_account_id: String,
+    pub receipt_receiver_account_id: String,
+    pub receipt_included_in_block_timestamp: BigDecimal,
 }
 
 impl ActionReceiptAction {
@@ -140,9 +140,9 @@ impl ActionReceiptAction {
             index_in_action_receipt: index,
             args,
             action_kind,
-            predecessor_account_id,
-            receiver_account_id,
-            included_in_block_timestamp: block_timestamp.into(),
+            receipt_predecessor_account_id: predecessor_account_id,
+            receipt_receiver_account_id: receiver_account_id,
+            receipt_included_in_block_timestamp: block_timestamp.into(),
         }
     }
 }
