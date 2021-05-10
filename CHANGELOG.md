@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.3
+
+* Denormalize table `action_receipt_actions` in order to speed up some queries by avoid
+  additional joins
+* Extend `extract_action_type_and_value_from_action_view` function to try to parse base64 encoded args
+  as a JSON object to put them decoded in the function call args `action_receipt_actions.args` additionally
+
 ## 0.6.2
 
 * Upgrade `nearcore` dependency to exclude recent updates to runtime which caused a bug ([see for ref](https://github.com/near/nearcore/releases/tag/1.19.0-rc.2))

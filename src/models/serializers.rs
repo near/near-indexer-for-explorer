@@ -80,15 +80,26 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
             args,
             gas,
             deposit,
-        } => (
-            ActionKind::FunctionCall,
-            json!({
+        } => {
+            let mut arguments = json!({
                 "method_name": method_name.escape_default().to_string(),
                 "args_base64": args,
                 "gas": gas,
                 "deposit": deposit.to_string(),
-            }),
-        ),
+            });
+
+            // During denormalization of action_receipt_actions table we wanted to try to decode
+            // args which is base64 encoded in case if it is a JSON object and put them near initial
+            // args_base64
+            // See for reference https://github.com/near/near-indexer-for-explorer/issues/87
+            if let Ok(decoded_args) = base64::decode(args) {
+                if let Ok(args_json) = serde_json::from_slice(&decoded_args) {
+                    arguments["args_json"] = args_json;
+                }
+            }
+
+            (ActionKind::FunctionCall, arguments)
+        }
         ActionView::Transfer { deposit } => (
             ActionKind::Transfer,
             json!({ "deposit": deposit.to_string() }),

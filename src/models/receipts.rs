@@ -118,6 +118,9 @@ pub struct ActionReceiptAction {
     pub index_in_action_receipt: i32,
     pub action_kind: ActionKind,
     pub args: serde_json::Value,
+    pub receipt_predecessor_account_id: String,
+    pub receipt_receiver_account_id: String,
+    pub receipt_included_in_block_timestamp: BigDecimal,
 }
 
 impl ActionReceiptAction {
@@ -125,14 +128,21 @@ impl ActionReceiptAction {
         receipt_id: String,
         index: i32,
         action_view: &near_indexer::near_primitives::views::ActionView,
+        predecessor_account_id: String,
+        receiver_account_id: String,
+        block_timestamp: u64,
     ) -> Self {
         let (action_kind, args) =
             crate::models::extract_action_type_and_value_from_action_view(&action_view);
+
         Self {
             receipt_id,
             index_in_action_receipt: index,
             args,
             action_kind,
+            receipt_predecessor_account_id: predecessor_account_id,
+            receipt_receiver_account_id: receiver_account_id,
+            receipt_included_in_block_timestamp: block_timestamp.into(),
         }
     }
 }
