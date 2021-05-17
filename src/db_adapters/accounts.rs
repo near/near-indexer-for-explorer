@@ -80,7 +80,7 @@ pub(crate) async fn handle_accounts(
         }
     }
 
-    let (accounts_to_insert, accounts_to_update): (
+    let (accounts_to_create_or_update, accounts_to_delete): (
         Vec<models::accounts::Account>,
         Vec<models::accounts::Account>,
     ) = accounts
@@ -88,8 +88,8 @@ pub(crate) async fn handle_accounts(
         .cloned()
         .partition(|model| model.created_by_receipt_id.is_some());
 
-    let update_accounts_future = async {
-        for value in accounts_to_update {
+    let delete_accounts_future = async {
+        for value in accounts_to_delete {
             let target = schema::accounts::table
                 .filter(schema::accounts::dsl::account_id.eq(value.account_id))
                 .filter(
@@ -127,11 +127,11 @@ pub(crate) async fn handle_accounts(
         }
     };
 
-    let insert_accounts_future = async {
+    let create_or_update_accounts_future = async {
         let mut interval = crate::INTERVAL;
         loop {
             match diesel::insert_into(schema::accounts::table)
-                .values(accounts_to_insert.clone())
+                .values(accounts_to_create_or_update.clone())
                 .on_conflict_do_nothing()
                 .execute_async(&pool)
                 .await
@@ -152,7 +152,59 @@ pub(crate) async fn handle_accounts(
             }
         }
 
-        for value in accounts_to_insert {
+        // [Implicit accounts](https://docs.near.org/docs/roles/integrator/implicit-accounts)
+        // pretend to be created on each transfer to these accounts and cause some confusion
+        // Resolving the issue https://github.com/near/near-indexer-for-explorer/issues/68 to avoid confusion
+        // we block updating `created_by_receipt_id` for implicit accounts that were not deleted
+        // (have `deleted_by_receipt_id` NOT NULL)
+        // For this purpose we separate such accounts from others to handle them properly
+        let (implicit_accounts_to_recreate, other_accounts_to_update): (
+            Vec<models::accounts::Account>,
+            Vec<models::accounts::Account>,
+        ) = accounts_to_create_or_update.into_iter().partition(|model| {
+            model.account_id.len() == 64 && model.deleted_by_receipt_id.is_none()
+        });
+
+        for value in implicit_accounts_to_recreate {
+            let target = schema::accounts::table
+                .filter(schema::accounts::dsl::account_id.eq(value.account_id))
+                .filter(schema::accounts::dsl::deleted_by_receipt_id.is_not_null()) // this filter ensures we update only "deleted" accounts
+                .filter(
+                    schema::accounts::dsl::last_update_block_height
+                        .lt(value.last_update_block_height.clone()),
+                );
+
+            loop {
+                match diesel::update(target.clone())
+                    .set((
+                        schema::accounts::dsl::created_by_receipt_id
+                            .eq(value.created_by_receipt_id.clone()),
+                        schema::accounts::dsl::deleted_by_receipt_id
+                            .eq(value.deleted_by_receipt_id.clone()),
+                        schema::accounts::dsl::last_update_block_height
+                            .eq(value.last_update_block_height.clone()),
+                    ))
+                    .execute_async(&pool)
+                    .await
+                {
+                    Ok(_) => break,
+                    Err(async_error) => {
+                        error!(
+                            target: crate::INDEXER_FOR_EXPLORER,
+                            "Error occurred while updating Account. Retry in {} milliseconds... \n {:#?}",
+                            interval.as_millis(),
+                            async_error,
+                        );
+                        tokio::time::sleep(interval).await;
+                        if interval < crate::MAX_DELAY_TIME {
+                            interval *= 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        for value in other_accounts_to_update {
             let target = schema::accounts::table
                 .filter(schema::accounts::dsl::account_id.eq(value.account_id))
                 .filter(
@@ -194,7 +246,7 @@ pub(crate) async fn handle_accounts(
 
     // Joining it unless we can't execute it in the correct order
     // see https://github.com/nearprotocol/nearcore/issues/3467
-    join!(update_accounts_future, insert_accounts_future);
+    join!(delete_accounts_future, create_or_update_accounts_future);
 }
 
 pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearConfig) {
