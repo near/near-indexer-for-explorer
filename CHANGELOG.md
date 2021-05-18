@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.4
+
+* Fix the overwriting of `created_by_receipt_id` for implicit accounts that may confuse users ([see issue #68 for ref](https://github.com/near/near-indexer-for-explorer/issues/68))
+
 ## 0.6.3
 
 * Denormalize table `action_receipt_actions` in order to speed up some queries by avoid
