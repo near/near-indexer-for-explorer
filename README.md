@@ -47,7 +47,7 @@ $ cargo install diesel_cli --no-default-features --features "postgres"
 And apply migrations
 
 ```bash
-$ diesel migation run
+$ diesel migration run
 ```
 
 To connect NEAR Indexer for Explorer to the specific chain you need to have necessary configs, you can generate it as follows:
