@@ -1,10 +1,14 @@
 # Changelog
 
+## 0.6.6 (hotfix)
+
+* Upgrade `nearcore` to 1.19.1 (hotfix)
+
 ## 0.6.5
 
 * Update NEAR Indexer Framework version to 0.9.1 (previous contained a bug with processing delayed local receipts)
 
-## 0.6.4
+## 0.6.4 (contains bug)
 
 * Fix the overwriting of `created_by_receipt_id` for implicit accounts that may confuse users ([see issue #68 for ref](https://github.com/near/near-indexer-for-explorer/issues/68))
 
