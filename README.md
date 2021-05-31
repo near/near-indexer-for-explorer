@@ -172,6 +172,38 @@ All the backups can be downloaded from the public S3 bucket which contains lates
 
 See https://docs.near.org/docs/roles/integrator/exchange-integration#running-an-archival-node for reference
 
+## Local debugging
+
+If you want to play with the code locally, it's better not to copy existing mainnet/testnet (it requires LOTS of memory), but to have your own small example.
+You need to have empty DB (we suggest to use [Docker](https://hub.docker.com/_/postgres) for that).
+Go through steps [above](https://github.com/near/near-indexer-for-explorer#self-hosting) until (including) diesel migration.
+Then,
+
+```bash
+$ cargo run --release -- --home-dir ~/.near/localnet init --chain-id localnet
+```
+
+Edit `~/.near/localnet/config.json` by adding tracking shards and archiving option (see [example above](https://github.com/near/near-indexer-for-explorer#running-near-indexer-for-explorer-as-archival-node)).
+
+```bash
+$ cargo run -- --home-dir ~/.near/localnet run --store-genesis sync-from-latest
+```
+
+Congrats, the blocks are being produced right now!
+There should be some lines in the DB.
+Now, we need to generate some activity to add new examples.
+
+```bash
+$ npm i -g near-cli
+$ NEAR_ENV=local near create-account awesome.test.near --initialBalance 30 --masterAccount test.near --keyPath=~/.near/localnet/validator_key.json
+$ NEAR_ENV=local near send test.near awesome.test.near 5
+```
+
+All available commands are [here](https://github.com/near/near-cli#near-cli-command-line-interface).
+
+You can stop and re-run the example at any time.
+Blocks will continue producing from the last state.
+
 ## Troubleshooting
 
 When operating normally, you should see "INFO indexer_for_explorer: Block height ..." messages in the logs.
