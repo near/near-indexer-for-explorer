@@ -1,0 +1,2 @@
+-- This file is empty since we can't remove items from enum in Postgres.
+-- To be honest, it does not sound as a big problem. `IF_NOT_EXISTS` will prevent re-adding it.
