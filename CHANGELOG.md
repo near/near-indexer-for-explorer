@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.7
+
+* Remove duplicates from `account_changes` table by fixing unique index ([see issue #74](https://github.com/near/near-indexer-for-explorer/issues/74))
+
 ## 0.6.6 (hotfix)
 
 * Upgrade `nearcore` to 1.19.1 (hotfix)
