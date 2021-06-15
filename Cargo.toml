@@ -31,5 +31,8 @@ tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 
 actix-diesel = { git = "https://github.com/frol/actix-diesel", branch="actix-0.11-beta.2" }
-near-indexer = { git = "https://github.com/near/nearcore", rev="576b0a21fa78c320a66ca75739f10eaa25fdcdae" }
-near-crypto = { git = "https://github.com/near/nearcore", rev="576b0a21fa78c320a66ca75739f10eaa25fdcdae" }
+# near-indexer = { git = "https://github.com/near/nearcore", rev="576b0a21fa78c320a66ca75739f10eaa25fdcdae" }
+# near-crypto = { git = "https://github.com/near/nearcore", rev="576b0a21fa78c320a66ca75739f10eaa25fdcdae" }
+
+near-indexer = { path = "../nearcore/chain/indexer" }
+near-crypto = { path = "../nearcore/core/crypto" }

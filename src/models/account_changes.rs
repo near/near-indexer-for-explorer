@@ -4,9 +4,10 @@ use bigdecimal::BigDecimal;
 
 use crate::models::enums::StateChangeReasonKind;
 use crate::schema;
-use schema::account_changes;
+use schema::account_changes_new;
 
 #[derive(Insertable, Clone, Debug)]
+#[table_name="account_changes_new"]
 pub struct AccountChange {
     pub affected_account_id: String,
     pub changed_in_block_timestamp: BigDecimal,

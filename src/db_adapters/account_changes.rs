@@ -29,7 +29,7 @@ pub(crate) async fn store_account_changes(
 
     let mut interval = crate::INTERVAL;
     loop {
-        match diesel::insert_into(schema::account_changes::table)
+        match diesel::insert_into(schema::account_changes_new::table)
             .values(account_changes_models.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool)
