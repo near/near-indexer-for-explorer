@@ -43,7 +43,7 @@ pub(crate) struct RunArgs {
     #[clap(subcommand)]
     pub sync_mode: SyncModeSubCommand,
     #[clap(long, default_value = "1")]
-    pub concurrency: std::num::NonZeroU16
+    pub concurrency: std::num::NonZeroU16,
 }
 
 #[allow(clippy::enum_variant_names)] // we want commands to be more explicit
