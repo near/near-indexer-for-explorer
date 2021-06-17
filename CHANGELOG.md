@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.8
+
+* Update NEAR Indexer Framework version to 0.9.2 (with optimized delayed receipts tracking system)
+
 ## 0.6.7
 
 * Remove duplicates from `account_changes` table by fixing unique index ([see issue #74](https://github.com/near/near-indexer-for-explorer/issues/74))
