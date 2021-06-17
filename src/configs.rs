@@ -42,7 +42,7 @@ pub(crate) struct RunArgs {
     pub allow_missing_relations_in_first_blocks: Option<u32>,
     #[clap(subcommand)]
     pub sync_mode: SyncModeSubCommand,
-    #[clap(long, default_value = "100")]
+    #[clap(long, default_value = "1")]
     pub concurrency: std::num::NonZeroU16
 }
 

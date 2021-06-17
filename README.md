@@ -99,7 +99,7 @@ To disable strict mode you need to provide:
 
 Sometimes you may want to index block while sync process is happening, by default an indexer node is waiting for full sync to complete but you can enable indexing while the node is syncing by passing `--stream-while-syncing`
 
-By default NEAR Indexer for Explorer is allowing 100 simultaneously running asynchronous adapters to store the data. You can adjust this number with `--concurrency` key
+By default NEAR Indexer for Explorer processes only a single block at a time. You can adjust this with the `--concurrency` argument (when the blocks are mostly empty, it is fine to go with as many as 100 blocks of concurrency).
 
 So final command to run NEAR Indexer for Explorer can look like:
 
