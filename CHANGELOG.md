@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.9
+
+* Add `--concurrency` parameter to adjust the number of simultaneously running asynchronous adapters
+
 ## 0.6.8
 
 * Update NEAR Indexer Framework version to 0.9.2 (with optimized delayed receipts tracking system)

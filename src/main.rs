@@ -108,6 +108,7 @@ async fn handle_message(
 
 async fn listen_blocks(
     stream: mpsc::Receiver<near_indexer::StreamerMessage>,
+    concurrency: std::num::NonZeroU16,
     allow_missing_relation_in_start_blocks: Option<u32>,
 ) {
     let pool = models::establish_connection();
@@ -122,7 +123,7 @@ async fn listen_blocks(
                 index >= strict_mode as usize,
             )
         })
-        .buffer_unordered(100);
+        .buffer_unordered(usize::from(concurrency.get()));
 
     while let Some(_handled_message) = handle_messages.next().await {}
 }
@@ -260,6 +261,7 @@ fn main() {
                 let stream = indexer.streamer();
                 actix::spawn(listen_blocks(
                     stream,
+                    args.concurrency,
                     args.allow_missing_relations_in_first_blocks,
                 ));
             });
