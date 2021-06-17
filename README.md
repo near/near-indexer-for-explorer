@@ -99,10 +99,12 @@ To disable strict mode you need to provide:
 
 Sometimes you may want to index block while sync process is happening, by default an indexer node is waiting for full sync to complete but you can enable indexing while the node is syncing by passing `--stream-while-syncing`
 
+By default NEAR Indexer for Explorer is allowing 100 simultaneously running asynchronous adapters to store the data. You can adjust this number with `--concurrency` key
+
 So final command to run NEAR Indexer for Explorer can look like:
 
 ```bash
-$ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --allow-missing-relations-in-first-blocks 1000 sync-from-latest
+$ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --allow-missing-relations-in-first-blocks 1000 --concurrency 100 sync-from-latest
 ```
 
 After the network is synced, you should see logs of every block height currently received by NEAR Indexer for Explorer.
