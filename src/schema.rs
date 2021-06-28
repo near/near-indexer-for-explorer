@@ -118,6 +118,31 @@ table! {
 table! {
     use diesel::sql_types::*;
 
+    circulating_supply (block_hash) {
+        block_timestamp -> Numeric,
+        block_hash -> Text,
+        value -> Numeric,
+        total_supply -> Numeric,
+        lockups_number -> Numeric,
+        active_lockups_number -> Numeric,
+        foundation_locked_supply -> Numeric,
+        lockups_locked_supply -> Numeric,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
+    lockups(account_id) {
+        account_id -> Text,
+        creation_block_height -> Nullable<Numeric>,
+        deletion_block_height -> Nullable<Numeric>,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
     data_receipts (data_id) {
         data_id -> Text,
         receipt_id -> Text,
@@ -208,6 +233,7 @@ joinable!(account_changes -> receipts (caused_by_receipt_id));
 joinable!(account_changes -> transactions (caused_by_transaction_hash));
 joinable!(action_receipt_actions -> receipts (receipt_id));
 joinable!(chunks -> blocks (included_in_block_hash));
+joinable!(circulating_supply -> blocks (block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (executed_receipt_id));
 joinable!(execution_outcomes -> blocks (executed_in_block_hash));
@@ -229,6 +255,7 @@ allow_tables_to_appear_in_same_query!(
     action_receipts,
     blocks,
     chunks,
+    circulating_supply,
     data_receipts,
     execution_outcome_receipts,
     execution_outcomes,

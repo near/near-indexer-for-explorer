@@ -1,7 +1,8 @@
+use bigdecimal::BigDecimal;
 use std::collections::HashMap;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
-use diesel::{ExpressionMethods, PgConnection, QueryDsl};
+use diesel::{BoolExpressionMethods, ExpressionMethods, PgConnection, QueryDsl};
 use futures::{join, StreamExt};
 use itertools::Itertools;
 use tracing::{error, info};
@@ -325,4 +326,45 @@ pub(crate) async fn store_accounts_from_genesis(near_config: near_indexer::NearC
         target: crate::INDEXER_FOR_EXPLORER,
         "Accounts from genesis were added/updated successful."
     );
+}
+
+pub(crate) async fn collect_lockups_for_block(
+    block_height: u64,
+    pool: &actix_diesel::Database<PgConnection>,
+) -> Vec<String> {
+    // Diesel does not support named joins
+    // https://github.com/diesel-rs/diesel/pull/2254
+    // Raw SQL (diesel-1.4.7/src/query_builder/functions.rs:464) does not support async methods
+    // So we decided to use view + simple SQL with `where` clause
+    // Initial SQL statement:
+    //   let raw_sql: String = format!("
+    //   SELECT accounts.account_id, blocks_start.block_height, blocks_end.block_height
+    //   FROM accounts
+    //            LEFT JOIN receipts AS receipts_start ON accounts.created_by_receipt_id = receipts_start.receipt_id
+    //            LEFT JOIN blocks AS blocks_start ON receipts_start.included_in_block_hash = blocks_start.block_hash
+    //            LEFT JOIN receipts AS receipts_end ON accounts.deleted_by_receipt_id = receipts_end.receipt_id
+    //            LEFT JOIN blocks AS blocks_end ON receipts_end.included_in_block_hash = blocks_end.block_hash
+    //   WHERE accounts.account_id like '%.lockup.near'
+    //     AND (blocks_start.block_height IS NULL OR blocks_start.block_height <= {0})
+    //     AND (blocks_end.block_height IS NULL OR blocks_end.block_height >= {0});
+    // ", block_height);
+
+    return schema::lockups::table
+        .select(schema::lockups::dsl::account_id)
+        .filter(
+            schema::lockups::dsl::creation_block_height
+                .is_null()
+                .or(schema::lockups::dsl::creation_block_height.le(BigDecimal::from(block_height))),
+        )
+        .filter(
+            schema::lockups::dsl::deletion_block_height
+                .is_null()
+                .or(schema::lockups::dsl::deletion_block_height.ge(BigDecimal::from(block_height))),
+        )
+        .get_results_async::<String>(&pool)
+        .await
+        .expect(&format!(
+            "DB error while collecting lockups for block {}",
+            block_height
+        ));
 }

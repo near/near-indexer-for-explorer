@@ -1,5 +1,5 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
-use bigdecimal::ToPrimitive;
+use bigdecimal::{BigDecimal, ToPrimitive};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use tracing::error;
 
@@ -52,4 +52,17 @@ pub(crate) async fn latest_block_height(
         .await
         .map_err(|err| format!("DB Error: {}", err))?
         .and_then(|(block_height,)| block_height.to_u64()))
+}
+
+/// Gets the latest block before given timestamp (nanos) from database
+pub(crate) async fn closest_block_for(
+    pool: &actix_diesel::Database<PgConnection>,
+    timestamp: u64,
+) -> Result<models::Block, String> {
+    Ok(schema::blocks::table
+        .filter(schema::blocks::dsl::block_timestamp.le(BigDecimal::from(timestamp)))
+        .order(schema::blocks::dsl::block_timestamp.desc())
+        .first_async::<models::Block>(&pool)
+        .await
+        .map_err(|err| format!("DB Error: {}", err))?)
 }

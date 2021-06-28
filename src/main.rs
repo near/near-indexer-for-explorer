@@ -1,16 +1,20 @@
 use std::convert::TryInto;
 
 use clap::Clap;
+
 #[macro_use]
 extern crate diesel;
+
 use diesel::PgConnection;
 use futures::{join, StreamExt};
 use tokio::sync::mpsc;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
+use crate::circulating_supply::circulating_supply_provider::compute_circulating_supply;
 use crate::configs::{Opts, SubCommand};
 
+mod circulating_supply;
 mod configs;
 mod db_adapters;
 mod models;
@@ -264,6 +268,9 @@ fn main() {
                     args.concurrency,
                     args.allow_missing_relations_in_first_blocks,
                 ));
+
+                let view_client = indexer.client_actors().0;
+                actix::spawn(compute_circulating_supply(view_client));
             });
             system.run().unwrap();
         }
