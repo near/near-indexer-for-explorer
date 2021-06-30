@@ -109,4 +109,8 @@ pub(crate) struct InitConfigArgs {
     /// Specify a custom download URL for the genesis-file.
     #[clap(long)]
     pub download_genesis_url: Option<String>,
+    /// Customize max_gas_burnt_view runtime limit.  If not specified, value
+    /// from genesis configuration will be taken.
+    #[clap(long)]
+    pub max_gas_burnt_view: Option<u64>,
 }
