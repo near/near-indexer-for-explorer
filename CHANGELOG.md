@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0
+
+- Handle null-bytes in `AddKey` actions
+- Update nearcore version to 1.20.0
+
+## Breaking change
+
+`init_configs` function from nearcore has been extended with additional optional parameter `max_gas_burnt_view`. We've extended NEAR Indexer for Explorer `InitConfigArgs`
+
 ## 0.6.9
 
 * Add `--concurrency` parameter to adjust the number of simultaneously running asynchronous adapters
