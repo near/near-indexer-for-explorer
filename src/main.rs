@@ -277,6 +277,9 @@ fn main() {
             config.genesis.as_ref().map(AsRef::as_ref),
             config.download,
             config.download_genesis_url.as_ref().map(AsRef::as_ref),
+            true,
+            None,
+            None,
             config.max_gas_burnt_view,
         ),
     }
