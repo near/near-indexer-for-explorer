@@ -1,9 +1,13 @@
 # Changelog
 
+## 0.7.1
+
+* Update nearcore version to 1.20.0-rc.2
+
 ## 0.7.0
 
-- Handle null-bytes in `AddKey` actions
-- Update nearcore version to 1.20.0
+* Handle null-bytes in `AddKey` actions
+* Update nearcore version to 1.20.0
 
 ## Breaking change
 
