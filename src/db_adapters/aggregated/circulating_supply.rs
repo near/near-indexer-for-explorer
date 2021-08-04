@@ -3,7 +3,7 @@ use bigdecimal::BigDecimal;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use tracing::error;
 
-use crate::models::circulating_supply::CirculatingSupply;
+use crate::models::aggregated::circulating_supply::CirculatingSupply;
 use crate::schema;
 
 pub(crate) async fn add_circulating_supply(
@@ -12,7 +12,7 @@ pub(crate) async fn add_circulating_supply(
 ) {
     let mut interval = crate::INTERVAL;
     loop {
-        match diesel::insert_into(schema::circulating_supply::table)
+        match diesel::insert_into(schema::aggregated__circulating_supply::table)
             .values(stats.to_owned())
             .on_conflict_do_nothing()
             .execute_async(&pool)
@@ -23,7 +23,7 @@ pub(crate) async fn add_circulating_supply(
             }
             Err(async_error) => {
                 error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
+                    target: crate::AGGREGATED,
                     "Error occurred while Circulating Supply was adding to database. Retrying in {} milliseconds... \n {:#?}",
                     interval.as_millis(),
                     async_error
@@ -37,21 +37,25 @@ pub(crate) async fn add_circulating_supply(
     }
 }
 
-pub(crate) async fn get_precomputed_circulating_supply(
-    timestamp: u64,
+pub(crate) async fn get_precomputed_circulating_supply_for_timestamp(
     pool: &actix_diesel::Database<PgConnection>,
+    timestamp: u64,
 ) -> Result<Option<u128>, String> {
-    let supply = schema::circulating_supply::table
-        .select(schema::circulating_supply::dsl::value)
-        .filter(schema::circulating_supply::dsl::block_timestamp.eq(BigDecimal::from(timestamp)))
+    let supply = schema::aggregated__circulating_supply::table
+        .select(schema::aggregated__circulating_supply::dsl::circulating_tokens_supply)
+        .filter(
+            schema::aggregated__circulating_supply::dsl::computed_at_block_timestamp
+                .eq(BigDecimal::from(timestamp)),
+        )
         .get_optional_result_async::<bigdecimal::BigDecimal>(&pool)
         .await;
 
-    return match supply {
-        Ok(Some(value)) => Ok(Some(
-            u128::from_str_radix(&value.to_string(), 10).expect("`value` expected to be u128"),
-        )),
+    match supply {
+        Ok(Some(value)) => match u128::from_str_radix(&value.to_string(), 10) {
+            Ok(res) => Ok(Some(res)),
+            Err(_) => Err("`circulating_tokens_supply` expected to be u128".to_string()),
+        },
         Ok(None) => Ok(None),
         Err(err) => Err(format!("DB Error: {}", err)),
-    };
+    }
 }

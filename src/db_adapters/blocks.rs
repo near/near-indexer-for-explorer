@@ -54,8 +54,7 @@ pub(crate) async fn latest_block_height(
         .and_then(|(block_height,)| block_height.to_u64()))
 }
 
-/// Gets the latest block before given timestamp (nanos) from database
-pub(crate) async fn closest_block_for(
+pub(crate) async fn get_latest_block_before_timestamp(
     pool: &actix_diesel::Database<PgConnection>,
     timestamp: u64,
 ) -> Result<models::Block, String> {

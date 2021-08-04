@@ -1,55 +1,80 @@
-use crate::circulating_supply::types::{
-    LockupContract, TransfersInformation, VestingInformation, VestingSchedule, WrappedBalance, U256,
-};
 use actix::Addr;
+
 use near_client::{Query, ViewClientActor};
+use near_indexer::near_primitives::hash::CryptoHash;
 use near_indexer::near_primitives::types::{BlockId, BlockReference};
 use near_indexer::near_primitives::views::{QueryRequest, QueryResponseKind};
 use near_sdk::borsh::BorshDeserialize;
 use near_sdk::json_types::{U128, U64};
 
+use crate::aggregated::circulating_supply::lockup_types::{
+    LockupContract, TransfersInformation, VestingInformation, VestingSchedule, WrappedBalance, U256,
+};
+
+// The timestamp (nanos) when transfers were enabled in the Mainnet after community voting
+// Tuesday, 13 October 2020 18:38:58.293
 pub const TRANSFERS_ENABLED: u64 = 1602614338293769340;
 
-pub async fn get_account_state(
+pub(crate) async fn get_account_state(
     view_client: &Addr<ViewClientActor>,
-    account_id: &String,
+    account_id: &str,
     block_height: u64,
-) -> LockupContract {
+) -> Result<LockupContract, String> {
     let block_reference = BlockReference::BlockId(BlockId::Height(block_height));
     let request = QueryRequest::ViewState {
-        account_id: account_id.parse().unwrap(),
+        account_id: account_id
+            .parse()
+            .map_err(|_| "Failed to parse `account_id`")?,
         prefix: vec![].into(),
     };
     let query = Query::new(block_reference, request);
 
-    let wrapped_response = view_client.send(query).await;
-    let state_response = wrapped_response
-        .expect(&format!(
-            "Error while delivering account state for {}, block {}",
-            account_id, block_height
-        ))
-        .expect(&format!(
-            "Invalid query: account {}, block {}",
-            account_id, block_height
-        ));
+    let state_response = view_client
+        .send(query)
+        .await
+        .map_err(|err| {
+            format!(
+                "Error while delivering ViewState for account {}, block_height {}: {}",
+                account_id, block_height, err
+            )
+        })?
+        .map_err(|_| {
+            format!(
+                "Invalid ViewState query for account {}, block_height {}",
+                account_id, block_height
+            )
+        })?;
 
     let view_state_result = match state_response.kind {
         QueryResponseKind::ViewState(x) => x,
         _ => {
-            panic!(
-                "ViewState result expected for {}, block {}",
+            return Err(format!(
+                "ViewState result expected for account {}, block_height {}",
                 account_id, block_height
-            )
+            ))
         }
     };
-    let view_state = view_state_result.values.get(0).expect(&format!(
-        "Encoded contract expected for {}, block {}",
+    let view_state = view_state_result.values.get(0).ok_or(format!(
+        "Encoded contract expected for account {}, block_height {}",
         account_id, block_height
-    ));
+    ))?;
 
-    let mut state =
-        LockupContract::try_from_slice(base64::decode(&view_state.value).unwrap().as_slice())
-            .unwrap();
+    let mut state = LockupContract::try_from_slice(
+        base64::decode(&view_state.value)
+            .map_err(|err| {
+                format!(
+                    "Failed to decode `view_state` for the account {}: {}",
+                    account_id, err
+                )
+            })?
+            .as_slice(),
+    )
+    .map_err(|err| {
+        format!(
+            "Failed to construct LockupContract for the account {}: {}",
+            account_id, err
+        )
+    })?;
 
     // If owner of the lockup account didn't call the
     // `check_transfers_vote` contract method we won't be able to
@@ -58,56 +83,25 @@ pub async fn get_account_state(
     state.lockup_information.transfers_information = TransfersInformation::TransfersEnabled {
         transfers_timestamp: U64(TRANSFERS_ENABLED),
     };
-    return state;
+    Ok(state)
 }
 
-pub async fn get_code_version(
-    view_client: &Addr<ViewClientActor>,
-    account_id: &String,
-    block_height: u64,
-) -> String {
-    let block_reference = BlockReference::BlockId(BlockId::Height(block_height));
-    let request = QueryRequest::ViewAccount {
-        account_id: account_id.parse().unwrap(),
-    };
-    let query = Query::new(block_reference, request);
-
-    let wrapped_response = view_client.send(query).await;
-    let account_response = wrapped_response
-        .expect(&format!(
-            "Error while delivering account details for {}, block {}",
-            account_id, block_height
-        ))
-        .expect(&format!(
-            "Invalid query: account {}, block {}",
-            account_id, block_height
-        ));
-
-    let view_account_result = match account_response.kind {
-        QueryResponseKind::ViewAccount(x) => x,
-        _ => {
-            panic!(
-                "ViewAccount result expected for {}, block {}",
-                account_id, block_height
-            )
-        }
-    };
-    return view_account_result.code_hash.to_string();
-}
-
-pub fn is_bug_inside(code_hash: &String, acc_id: &String) -> bool {
-    match &*code_hash.to_owned() {
+// The lockup contract implementation had a bug that affected lockup start date.
+// For each contract, we should choose the logic based on the binary version of the contract
+pub(crate) fn is_bug_inside_contract(code_hash: &CryptoHash, acc_id: &str) -> Result<bool, String> {
+    match &*code_hash.to_string() {
         // The first realization, with the bug
-        "3kVY9qcVRoW3B5498SMX6R3rtSLiCdmBzKs7zcnzDJ7Q" => true,
+        "3kVY9qcVRoW3B5498SMX6R3rtSLiCdmBzKs7zcnzDJ7Q" => Ok(true),
         // We have 6 lockups created at 6th of April 2021, assume it's buggy
-        "DiC9bKCqUHqoYqUXovAnqugiuntHWnM3cAc7KrgaHTu" => true,
+        "DiC9bKCqUHqoYqUXovAnqugiuntHWnM3cAc7KrgaHTu" => Ok(true),
         // Another 5 lockups created in May/June 2021, assume they are OK
-        "Cw7bnyp4B6ypwvgZuMmJtY6rHsxP2D4PC8deqeJ3HP7D" => false,
+        "Cw7bnyp4B6ypwvgZuMmJtY6rHsxP2D4PC8deqeJ3HP7D" => Ok(false),
         // The most fresh one
-        "4Pfw2RU6e35dUsHQQoFYfwX8KFFvSRNwMSNLXuSFHXrC" => false,
-        other => {
-            panic!("New code hash {}, acc {}", other, acc_id);
-        }
+        "4Pfw2RU6e35dUsHQQoFYfwX8KFFvSRNwMSNLXuSFHXrC" => Ok(false),
+        other => Err(format!(
+            "Unable to recognise the version of contract {}, code hash {}",
+            acc_id, other
+        )),
     }
 }
 

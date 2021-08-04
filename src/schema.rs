@@ -118,22 +118,24 @@ table! {
 table! {
     use diesel::sql_types::*;
 
-    circulating_supply (block_hash) {
-        block_timestamp -> Numeric,
-        block_hash -> Text,
-        value -> Numeric,
-        total_supply -> Numeric,
-        lockups_number -> Numeric,
-        active_lockups_number -> Numeric,
-        foundation_locked_supply -> Numeric,
-        lockups_locked_supply -> Numeric,
+    #[allow(non_snake_case)]
+    aggregated__circulating_supply (computed_at_block_hash) {
+        computed_at_block_timestamp -> Numeric,
+        computed_at_block_hash -> Text,
+        circulating_tokens_supply -> Numeric,
+        total_tokens_supply -> Numeric,
+        total_lockup_contracts_count -> Numeric,
+        unfinished_lockup_contracts_count -> Numeric,
+        foundation_locked_tokens -> Numeric,
+        lockups_locked_tokens -> Numeric,
     }
 }
 
 table! {
     use diesel::sql_types::*;
 
-    lockups(account_id) {
+    #[allow(non_snake_case)]
+    aggregated__lockups(account_id) {
         account_id -> Text,
         creation_block_height -> Nullable<Numeric>,
         deletion_block_height -> Nullable<Numeric>,
@@ -233,7 +235,6 @@ joinable!(account_changes -> receipts (caused_by_receipt_id));
 joinable!(account_changes -> transactions (caused_by_transaction_hash));
 joinable!(action_receipt_actions -> receipts (receipt_id));
 joinable!(chunks -> blocks (included_in_block_hash));
-joinable!(circulating_supply -> blocks (block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (executed_receipt_id));
 joinable!(execution_outcomes -> blocks (executed_in_block_hash));
@@ -245,6 +246,8 @@ joinable!(transaction_actions -> transactions (transaction_hash));
 joinable!(transactions -> blocks (included_in_block_hash));
 joinable!(transactions -> chunks (included_in_chunk_hash));
 
+joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
+
 allow_tables_to_appear_in_same_query!(
     access_keys,
     account_changes,
@@ -255,11 +258,11 @@ allow_tables_to_appear_in_same_query!(
     action_receipts,
     blocks,
     chunks,
-    circulating_supply,
     data_receipts,
     execution_outcome_receipts,
     execution_outcomes,
     receipts,
     transaction_actions,
     transactions,
+    aggregated__circulating_supply,
 );

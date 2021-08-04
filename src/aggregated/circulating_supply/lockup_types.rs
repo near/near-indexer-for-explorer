@@ -2,11 +2,12 @@
 // https://github.com/near/core-contracts/blob/master/lockup/src/types.rs
 // https://github.com/near/core-contracts/blob/master/lockup/src/lib.rs
 
+use uint::construct_uint;
+
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::json_types::{Base64VecU8, U128, U64};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{AccountId, Balance};
-use uint::construct_uint;
 
 construct_uint! {
     /// 256-bit unsigned integer.
