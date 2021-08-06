@@ -17,6 +17,7 @@ pub struct AccountChange {
     pub affected_account_nonstaked_balance: BigDecimal,
     pub affected_account_staked_balance: BigDecimal,
     pub affected_account_storage_usage: BigDecimal,
+    pub index_in_block: i32,
 }
 
 impl AccountChange {
@@ -24,6 +25,7 @@ impl AccountChange {
         state_change_with_cause: &near_indexer::near_primitives::views::StateChangeWithCauseView,
         changed_in_block_hash: &near_indexer::near_primitives::hash::CryptoHash,
         changed_in_block_timestamp: u64,
+        index_in_block: i32,
     ) -> Option<Self> {
         let near_indexer::near_primitives::views::StateChangeWithCauseView { cause, value } =
             state_change_with_cause;
@@ -75,7 +77,8 @@ impl AccountChange {
                 acc.storage_usage.into()
             } else {
                 BigDecimal::from(0)
-            }
+            },
+            index_in_block
         })
     }
 }
