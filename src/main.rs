@@ -252,7 +252,6 @@ fn main() {
             system.block_on(async move {
                 let indexer_config =
                     construct_near_indexer_config(&pool, home_dir, args.clone()).await;
-                let home_dir = indexer_config.home_dir.clone();
                 let indexer = near_indexer::Indexer::new(indexer_config);
                 if args.store_genesis {
                     let near_config = indexer.near_config().clone();
@@ -278,13 +277,13 @@ fn main() {
                 // Spawning the computation of aggregated data
                 let view_client = indexer.client_actors().0;
 
-                // TODO Is there another way to find out which blockchain do we listen? It's awful
-                let home_dir_str = home_dir.as_path().to_str().unwrap_or("");
-                if home_dir_str.contains("mainnet") {
-                    actix::spawn(circulating_supply_provider::compute_circulating_supply(
-                        view_client,
-                        pool,
-                    ));
+                if indexer.near_config().genesis.config.chain_id == "mainnet" {
+                    actix::spawn(
+                        circulating_supply_provider::run_circulating_supply_computation(
+                            view_client,
+                            pool,
+                        ),
+                    );
                 }
             });
             system.run().unwrap();

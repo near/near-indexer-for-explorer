@@ -4,8 +4,8 @@ CREATE TABLE aggregated__circulating_supply
     computed_at_block_hash            text           NOT NULL,
     circulating_tokens_supply         numeric(45, 0) NOT NULL,
     total_tokens_supply               numeric(45, 0) NOT NULL,
-    total_lockup_contracts_count      numeric(45, 0) NOT NULL,
-    unfinished_lockup_contracts_count numeric(45, 0) NOT NULL,
+    total_lockup_contracts_count      integer        NOT NULL,
+    unfinished_lockup_contracts_count integer        NOT NULL,
     foundation_locked_tokens          numeric(45, 0) NOT NULL,
     lockups_locked_tokens             numeric(45, 0) NOT NULL
 );

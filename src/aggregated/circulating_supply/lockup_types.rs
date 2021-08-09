@@ -1,4 +1,4 @@
-// Copied from
+// Copied from lockup contract code
 // https://github.com/near/core-contracts/blob/master/lockup/src/types.rs
 // https://github.com/near/core-contracts/blob/master/lockup/src/lib.rs
 

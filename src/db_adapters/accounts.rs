@@ -331,10 +331,10 @@ pub(crate) async fn store_accounts_from_genesis(
     );
 }
 
-pub(crate) async fn get_lockup_ids_at_block_height(
+pub(crate) async fn get_lockup_account_ids_at_block_height(
     pool: &actix_diesel::Database<PgConnection>,
-    block_height: u64,
-) -> Result<Vec<String>, String> {
+    block_height: &near_primitives::types::BlockHeight,
+) -> Result<Vec<near_primitives::types::AccountId>, String> {
     // Diesel does not support named joins
     // https://github.com/diesel-rs/diesel/pull/2254
     // Raw SQL (diesel-1.4.7/src/query_builder/functions.rs:464) does not support async methods
@@ -358,19 +358,19 @@ pub(crate) async fn get_lockup_ids_at_block_height(
             schema::aggregated__lockups::dsl::creation_block_height
                 .is_null()
                 .or(schema::aggregated__lockups::dsl::creation_block_height
-                    .le(BigDecimal::from(block_height))),
+                    .le(BigDecimal::from(*block_height))),
         )
         .filter(
             schema::aggregated__lockups::dsl::deletion_block_height
                 .is_null()
                 .or(schema::aggregated__lockups::dsl::deletion_block_height
-                    .ge(BigDecimal::from(block_height))),
+                    .ge(BigDecimal::from(*block_height))),
         )
-        .get_results_async::<String>(&pool)
+        .get_results_async::<near_primitives::types::AccountId>(&pool)
         .await
         .map_err(|err| {
             format!(
-                "DB error while collecting lockups for block_height {}: {}",
+                "DB error while collecting lockup account ids for block_height {}: {}",
                 block_height, err
             )
         })

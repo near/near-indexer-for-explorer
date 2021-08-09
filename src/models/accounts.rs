@@ -3,8 +3,8 @@ use bigdecimal::BigDecimal;
 use crate::schema;
 use schema::accounts;
 
-#[table_name = "accounts"]
 #[derive(Insertable, Debug, Clone, QueryableByName)]
+#[table_name = "accounts"]
 pub struct Account {
     pub account_id: String,
     pub created_by_receipt_id: Option<String>,

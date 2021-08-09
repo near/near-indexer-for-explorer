@@ -10,8 +10,8 @@ pub struct CirculatingSupply {
     pub computed_at_block_hash: String,
     pub circulating_tokens_supply: BigDecimal,
     pub total_tokens_supply: BigDecimal,
-    pub total_lockup_contracts_count: BigDecimal,
-    pub unfinished_lockup_contracts_count: BigDecimal,
+    pub total_lockup_contracts_count: i32,
+    pub unfinished_lockup_contracts_count: i32,
     pub foundation_locked_tokens: BigDecimal,
     pub lockups_locked_tokens: BigDecimal,
 }

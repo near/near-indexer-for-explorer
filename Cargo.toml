@@ -13,6 +13,7 @@ actix_derive = "=0.6.0-beta.1"
 base64 = "0.11"
 bigdecimal = "=0.1.0"
 borsh = "0.7.1"
+chrono = "0.4.19"
 clap = "3.0.0-beta.1"
 diesel = { version = "1.4.4", features = ["postgres", "numeric", "serde_json"] }
 # Using hacky diesel-derive-enum https://github.com/adwhit/diesel-derive-enum/issues/52

@@ -2013,6 +2013,7 @@ dependencies = [
  "base64 0.11.0",
  "bigdecimal",
  "borsh 0.7.2",
+ "chrono",
  "clap 3.0.0-beta.2",
  "diesel",
  "diesel-derive-enum",

@@ -1,40 +1,40 @@
 use actix::Addr;
 
 use near_client::{Query, ViewClientActor};
-use near_indexer::near_primitives::hash::CryptoHash;
-use near_indexer::near_primitives::types::{Balance, BlockId, BlockReference};
-use near_indexer::near_primitives::views::{AccountView, QueryRequest, QueryResponseKind};
+use near_indexer::near_primitives;
 
 pub(crate) async fn get_account_balance(
     view_client: &Addr<ViewClientActor>,
-    account_id: &str,
-    block_height: u64,
-) -> Result<Balance, String> {
+    account_id: &near_primitives::types::AccountId,
+    block_height: &near_primitives::types::BlockHeight,
+) -> Result<near_primitives::types::Balance, String> {
     get_account_view_for_block_height(view_client, account_id, block_height)
         .await
-        .map(|acc| acc.amount)
+        .map(|account| account.amount)
+        .map_err(|err| format!("Unable to get account balance: {}", err))
 }
 
 pub(crate) async fn get_contract_code_hash(
     view_client: &Addr<ViewClientActor>,
-    account_id: &str,
-    block_height: u64,
-) -> Result<CryptoHash, String> {
+    account_id: &near_primitives::types::AccountId,
+    block_height: &near_primitives::types::BlockHeight,
+) -> Result<near_primitives::hash::CryptoHash, String> {
     get_account_view_for_block_height(view_client, account_id, block_height)
         .await
-        .map(|acc| acc.code_hash)
+        .map(|account| account.code_hash)
+        .map_err(|err| format!("Unable to get contract code hash: {}", err))
 }
 
 async fn get_account_view_for_block_height(
     view_client: &Addr<ViewClientActor>,
-    account_id: &str,
-    block_height: u64,
-) -> Result<AccountView, String> {
-    let block_reference = BlockReference::BlockId(BlockId::Height(block_height));
-    let request = QueryRequest::ViewAccount {
-        account_id: account_id
-            .parse()
-            .map_err(|_| "Failed to parse `account_id`")?,
+    account_id: &near_primitives::types::AccountId,
+    block_height: &near_primitives::types::BlockHeight,
+) -> Result<near_primitives::views::AccountView, String> {
+    let block_reference = near_primitives::types::BlockReference::BlockId(
+        near_primitives::types::BlockId::Height(*block_height),
+    );
+    let request = near_primitives::views::QueryRequest::ViewAccount {
+        account_id: account_id.to_string(),
     };
     let query = Query::new(block_reference, request);
 
@@ -43,21 +43,21 @@ async fn get_account_view_for_block_height(
         .await
         .map_err(|err| {
             format!(
-                "Error while delivering ViewAccount for account {}, block {}: {}",
+                "Failed to deliver ViewAccount for account {}, block {}: {}",
                 account_id, block_height, err
             )
         })?
-        .map_err(|_| {
+        .map_err(|err| {
             format!(
-                "Invalid ViewAccount query for account {}, block {}",
-                account_id, block_height
+                "Invalid ViewAccount query for account {}, block {}: {:?}",
+                account_id, block_height, err
             )
         })?;
 
     match account_response.kind {
-        QueryResponseKind::ViewAccount(account) => Ok(account),
+        near_primitives::views::QueryResponseKind::ViewAccount(account) => Ok(account),
         _ => Err(format!(
-            "ViewAccount result expected for {}, block {}",
+            "Failed to extract ViewAccount response for account {}, block {}",
             account_id, block_height
         )),
     }

@@ -124,8 +124,8 @@ table! {
         computed_at_block_hash -> Text,
         circulating_tokens_supply -> Numeric,
         total_tokens_supply -> Numeric,
-        total_lockup_contracts_count -> Numeric,
-        unfinished_lockup_contracts_count -> Numeric,
+        total_lockup_contracts_count -> Int4,
+        unfinished_lockup_contracts_count -> Int4,
         foundation_locked_tokens -> Numeric,
         lockups_locked_tokens -> Numeric,
     }

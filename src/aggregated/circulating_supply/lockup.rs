@@ -1,9 +1,9 @@
+use std::time::Duration;
+
 use actix::Addr;
 
 use near_client::{Query, ViewClientActor};
-use near_indexer::near_primitives::hash::CryptoHash;
-use near_indexer::near_primitives::types::{BlockId, BlockReference};
-use near_indexer::near_primitives::views::{QueryRequest, QueryResponseKind};
+use near_indexer::near_primitives;
 use near_sdk::borsh::BorshDeserialize;
 use near_sdk::json_types::{U128, U64};
 
@@ -13,15 +13,17 @@ use crate::aggregated::circulating_supply::lockup_types::{
 
 // The timestamp (nanos) when transfers were enabled in the Mainnet after community voting
 // Tuesday, 13 October 2020 18:38:58.293
-pub const TRANSFERS_ENABLED: u64 = 1602614338293769340;
+pub const TRANSFERS_ENABLED: Duration = Duration::from_nanos(1602614338293769340);
 
-pub(crate) async fn get_account_state(
+pub(crate) async fn get_lockup_contract_state(
     view_client: &Addr<ViewClientActor>,
-    account_id: &str,
-    block_height: u64,
+    account_id: &near_primitives::types::AccountId,
+    block_height: &near_primitives::types::BlockHeight,
 ) -> Result<LockupContract, String> {
-    let block_reference = BlockReference::BlockId(BlockId::Height(block_height));
-    let request = QueryRequest::ViewState {
+    let block_reference = near_primitives::types::BlockReference::BlockId(
+        near_primitives::types::BlockId::Height(*block_height),
+    );
+    let request = near_primitives::views::QueryRequest::ViewState {
         account_id: account_id
             .parse()
             .map_err(|_| "Failed to parse `account_id`")?,
@@ -34,28 +36,28 @@ pub(crate) async fn get_account_state(
         .await
         .map_err(|err| {
             format!(
-                "Error while delivering ViewState for account {}, block_height {}: {}",
+                "Failed to deliver ViewState for lockup contract {}, block_height {}: {}",
                 account_id, block_height, err
             )
         })?
-        .map_err(|_| {
+        .map_err(|err| {
             format!(
-                "Invalid ViewState query for account {}, block_height {}",
-                account_id, block_height
+                "Invalid ViewState query for lockup contract {}, block_height {}: {:?}",
+                account_id, block_height, err
             )
         })?;
 
     let view_state_result = match state_response.kind {
-        QueryResponseKind::ViewState(x) => x,
+        near_primitives::views::QueryResponseKind::ViewState(x) => x,
         _ => {
             return Err(format!(
-                "ViewState result expected for account {}, block_height {}",
+                "Failed to extract ViewState response for lockup contract {}, block_height {}",
                 account_id, block_height
-            ))
+            ));
         }
     };
     let view_state = view_state_result.values.get(0).ok_or(format!(
-        "Encoded contract expected for account {}, block_height {}",
+        "Failed to find encoded lockup contract for {}, block_height {}",
         account_id, block_height
     ))?;
 
@@ -63,7 +65,7 @@ pub(crate) async fn get_account_state(
         base64::decode(&view_state.value)
             .map_err(|err| {
                 format!(
-                    "Failed to decode `view_state` for the account {}: {}",
+                    "Failed to decode `view_state` for lockup contract {}: {}",
                     account_id, err
                 )
             })?
@@ -71,7 +73,7 @@ pub(crate) async fn get_account_state(
     )
     .map_err(|err| {
         format!(
-            "Failed to construct LockupContract for the account {}: {}",
+            "Failed to construct LockupContract for {}: {}",
             account_id, err
         )
     })?;
@@ -81,14 +83,17 @@ pub(crate) async fn get_account_state(
     // get proper information based on timestamp, that's why we inject
     // the `transfer_timestamp` which is phase2 timestamp
     state.lockup_information.transfers_information = TransfersInformation::TransfersEnabled {
-        transfers_timestamp: U64(TRANSFERS_ENABLED),
+        transfers_timestamp: U64(TRANSFERS_ENABLED.as_nanos() as u64),
     };
     Ok(state)
 }
 
 // The lockup contract implementation had a bug that affected lockup start date.
 // For each contract, we should choose the logic based on the binary version of the contract
-pub(crate) fn is_bug_inside_contract(code_hash: &CryptoHash, acc_id: &str) -> Result<bool, String> {
+pub(crate) fn is_bug_inside_contract(
+    code_hash: &near_primitives::hash::CryptoHash,
+    account_id: &near_primitives::types::AccountId,
+) -> Result<bool, String> {
     match &*code_hash.to_string() {
         // The first realization, with the bug
         "3kVY9qcVRoW3B5498SMX6R3rtSLiCdmBzKs7zcnzDJ7Q" => Ok(true),
@@ -100,7 +105,7 @@ pub(crate) fn is_bug_inside_contract(code_hash: &CryptoHash, acc_id: &str) -> Re
         "4Pfw2RU6e35dUsHQQoFYfwX8KFFvSRNwMSNLXuSFHXrC" => Ok(false),
         other => Err(format!(
             "Unable to recognise the version of contract {}, code hash {}",
-            acc_id, other
+            account_id, other
         )),
     }
 }
