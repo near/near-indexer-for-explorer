@@ -41,6 +41,7 @@ pub(crate) async fn run_circulating_supply_computation(
         .sub(Duration::from_secs(
             lockup::TRANSFERS_ENABLED.as_secs() % DAY.as_secs(),
         ))
+        .add(DAY)
         .add(Duration::from_secs(10 * 60));
 
     loop {
