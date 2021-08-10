@@ -78,11 +78,21 @@ async fn check_and_collect_daily_circulating_supply(
     request_datetime: &Duration,
 ) -> Result<Option<CirculatingSupply>, String> {
     let start_of_day = request_datetime.as_nanos() - request_datetime.as_nanos() % DAY.as_nanos();
+    let latest_block_height = blocks::latest_block_height(&pool).await?.unwrap_or(0);
+
     let block = blocks::get_latest_block_before_timestamp(&pool, start_of_day as u64).await?;
     let block_timestamp = block
         .block_timestamp
         .to_u64()
         .ok_or("`block_timestamp` expected to be u64")?;
+    let block_height = block
+        .block_height
+        .to_u64()
+        .ok_or("`block_height` expected to be u64")?;
+
+    if latest_block_height <= block_height {
+        return Err("Requested block is not finalized".to_string());
+    }
 
     match get_precomputed_circulating_supply_for_timestamp(&pool, block_timestamp).await {
         Ok(None) => {
