@@ -18,11 +18,13 @@ pub(crate) async fn store_account_changes(
 
     let account_changes_models: Vec<models::account_changes::AccountChange> = state_changes
         .iter()
-        .filter_map(|state_change| {
+        .enumerate()
+        .filter_map(|(index_in_block, state_change)| {
             models::account_changes::AccountChange::from_state_change_with_cause(
                 state_change,
                 &block_hash,
                 block_timestamp,
+                index_in_block as i32,
             )
         })
         .collect();

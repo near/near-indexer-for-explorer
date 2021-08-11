@@ -27,6 +27,7 @@ table! {
         affected_account_nonstaked_balance -> Numeric,
         affected_account_staked_balance -> Numeric,
         affected_account_storage_usage -> Numeric,
+        index_in_block -> Int4,
     }
 }
 
