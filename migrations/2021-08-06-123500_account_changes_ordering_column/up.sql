@@ -60,3 +60,5 @@ ALTER TABLE account_changes
 
 ALTER TABLE account_changes
     ALTER COLUMN index_in_block DROP DEFAULT;
+
+CREATE INDEX account_changes_sorting_idx ON account_changes (changed_in_block_timestamp, index_in_block);
