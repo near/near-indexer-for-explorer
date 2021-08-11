@@ -8,8 +8,8 @@ ALTER TABLE account_changes
 
 -- from sqlalchemy import create_engine
 --
---     START = 1595370903490523743
---     STEP = 1000 * 1000 * 1000 * 1000  # 1000 secs -> ~17 minutes
+-- START = 1595370903490523743
+-- STEP = 1000 * 1000 * 1000 * 1000  # 1000 secs -> ~17 minutes
 -- END = 1628683241000000000
 -- ESTIMATED_STEPS = (END - START) / STEP
 -- connection_string = 'postgresql+psycopg2://user:pass@host/database'
@@ -20,6 +20,7 @@ ALTER TABLE account_changes
 --     Generates str for SQL query to convert args_base64 to args_json if possible
 --     """
 --     return f"""
+--     BEGIN;
 --     WITH indexes AS
 --          (
 --              SELECT id, row_number() OVER (PARTITION BY changed_in_block_timestamp ORDER BY id) - 1 as index_in_block
@@ -34,6 +35,7 @@ ALTER TABLE account_changes
 --         AND account_changes.index_in_block = -1
 --         AND account_changes.changed_in_block_timestamp >= {from_timestamp}
 --         AND account_changes.changed_in_block_timestamp <= {to_timestamp};
+--     COMMIT;
 --     """
 --
 --
@@ -43,18 +45,18 @@ ALTER TABLE account_changes
 --     print(f"Estimated queries to execute: {ESTIMATED_STEPS}.")
 --     from_timestamp = START-STEP
 --     to_timestamp = START
--- counter = 1
--- with engine.connect() as con:
---     while True:
---     from_timestamp += STEP
---     to_timestamp += STEP
---     if (END - to_timestamp) < STEP:
---     break
---     print(f"{counter}/{ESTIMATED_STEPS} (from {from_timestamp} to {to_timestamp})")
+--     counter = 1
 --
---     out = con.execute(generate_sql(from_timestamp, to_timestamp))
---     print(out.rowcount)
---     counter += 1
+--     with engine.connect() as con:
+--         while True:
+--             from_timestamp += STEP
+--             to_timestamp += STEP
+--             if (END - to_timestamp) < STEP:
+--                 break
+--             print(f"{counter}/{ESTIMATED_STEPS} (from {from_timestamp} to {to_timestamp})")
+--
+--             out = con.execute(generate_sql(from_timestamp, to_timestamp))
+--             counter += 1
 --
 --     print("FINISHED")
 
