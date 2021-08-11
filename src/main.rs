@@ -11,7 +11,7 @@ use tokio::sync::mpsc;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-use crate::aggregated::circulating_supply::circulating_supply_provider;
+use crate::aggregated::circulating_supply;
 use crate::configs::{Opts, SubCommand};
 
 mod aggregated;
@@ -280,12 +280,10 @@ fn main() {
                 let view_client = indexer.client_actors().0;
 
                 if indexer.near_config().genesis.config.chain_id == "mainnet" {
-                    actix::spawn(
-                        circulating_supply_provider::run_circulating_supply_computation(
-                            view_client,
-                            pool,
-                        ),
-                    );
+                    actix::spawn(circulating_supply::run_circulating_supply_computation(
+                        view_client,
+                        pool,
+                    ));
                 }
             });
             system.run().unwrap();
