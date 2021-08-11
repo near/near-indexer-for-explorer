@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Sub};
+use std::ops::{Add, Sub};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 
@@ -24,6 +24,8 @@ use crate::models;
 use crate::models::aggregated::circulating_supply::CirculatingSupply;
 
 const DAY: std::time::Duration = std::time::Duration::from_secs(86400);
+// 2 hours
+const RETRY_DURATION: std::time::Duration = std::time::Duration::from_secs(7200);
 
 // Compute circulating supply on a daily basis, starting from 13 Oct 2020
 // (Transfers enabled moment on the Mainnet), and put it to the Indexer DB.
@@ -34,8 +36,6 @@ pub(crate) async fn run_circulating_supply_computation(
     view_client: Addr<near_client::ViewClientActor>,
     pool: Database<PgConnection>,
 ) {
-    let retry_duration = DAY.div(12);
-
     // We perform actual computations 00:10 UTC each day to be sure that the data is finalized
     let mut day_to_compute = lockup::TRANSFERS_ENABLED
         .sub(Duration::from_secs(
@@ -52,31 +52,7 @@ pub(crate) async fn run_circulating_supply_computation(
         if now < day_to_compute {
             time::sleep_until(Instant::now().add(day_to_compute.sub(now))).await;
         }
-
-        loop {
-            match get_final_block_timestamp(&view_client).await {
-                Ok(timestamp) => {
-                    if timestamp > day_to_compute {
-                        break;
-                    }
-                    warn!(
-                        target: crate::AGGREGATED,
-                        "Blocks are not loaded for calculating circulating supply for {}. Wait for {} hours",
-                        NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0).date(),
-                        retry_duration.as_secs() / 60 / 60,
-                    );
-                }
-                Err(err) => {
-                    error!(
-                        target: crate::AGGREGATED,
-                        "Failed to get latest block timestamp: {}. Retry in {} hours",
-                        err,
-                        retry_duration.as_secs() / 60 / 60,
-                    );
-                }
-            }
-            time::sleep(retry_duration).await;
-        }
+        wait_for_loading_needed_blocks(&view_client, &day_to_compute).await;
 
         match check_and_collect_daily_circulating_supply(&view_client, &pool, &day_to_compute).await
         {
@@ -89,9 +65,9 @@ pub(crate) async fn run_circulating_supply_computation(
                     "Failed to compute circulating supply for {}: {}. Retry in {} hours",
                     NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0).date(),
                     err,
-                    retry_duration.as_secs() / 60 / 60,
+                    RETRY_DURATION.as_secs() / 60 / 60,
                 );
-                time::sleep(retry_duration).await;
+                time::sleep(RETRY_DURATION).await;
             }
         };
     }
@@ -203,6 +179,36 @@ async fn compute_circulating_supply_for_block(
         lockups_locked_tokens: BigDecimal::from_str(&lockups_locked_tokens.to_string())
             .map_err(|_| "`lockups_locked_supply` expected to be u128")?,
     })
+}
+
+async fn wait_for_loading_needed_blocks(
+    view_client: &Addr<near_client::ViewClientActor>,
+    day_to_compute: &Duration,
+) {
+    loop {
+        match get_final_block_timestamp(&view_client).await {
+            Ok(timestamp) => {
+                if timestamp > *day_to_compute {
+                    return;
+                }
+                warn!(
+                        target: crate::AGGREGATED,
+                        "Blocks are not loaded for calculating circulating supply for {}. Wait for {} hours",
+                        NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0).date(),
+                        RETRY_DURATION.as_secs() / 60 / 60,
+                    );
+            }
+            Err(err) => {
+                error!(
+                    target: crate::AGGREGATED,
+                    "Failed to get latest block timestamp: {}. Retry in {} hours",
+                    err,
+                    RETRY_DURATION.as_secs() / 60 / 60,
+                );
+            }
+        }
+        time::sleep(RETRY_DURATION).await;
+    }
 }
 
 async fn get_final_block_timestamp(
