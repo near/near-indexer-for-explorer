@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
+use actix_diesel::Database;
 use bigdecimal::BigDecimal;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::{join, StreamExt};
@@ -277,13 +278,14 @@ pub(crate) async fn handle_access_keys(
     );
 }
 
-pub(crate) async fn store_access_keys_from_genesis(near_config: near_indexer::NearConfig) {
+pub(crate) async fn store_access_keys_from_genesis(
+    pool: Database<PgConnection>,
+    near_config: near_indexer::NearConfig,
+) {
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Adding/updating access keys from genesis..."
     );
-    let pool = crate::models::establish_connection();
-
     let genesis_height = near_config.genesis.config.genesis_height;
 
     let access_keys_models = near_config

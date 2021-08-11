@@ -118,6 +118,33 @@ table! {
 table! {
     use diesel::sql_types::*;
 
+    #[allow(non_snake_case)]
+    aggregated__circulating_supply (computed_at_block_hash) {
+        computed_at_block_timestamp -> Numeric,
+        computed_at_block_hash -> Text,
+        circulating_tokens_supply -> Numeric,
+        total_tokens_supply -> Numeric,
+        total_lockup_contracts_count -> Int4,
+        unfinished_lockup_contracts_count -> Int4,
+        foundation_locked_tokens -> Numeric,
+        lockups_locked_tokens -> Numeric,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
+    #[allow(non_snake_case)]
+    aggregated__lockups(account_id) {
+        account_id -> Text,
+        creation_block_height -> Nullable<Numeric>,
+        deletion_block_height -> Nullable<Numeric>,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
     data_receipts (data_id) {
         data_id -> Text,
         receipt_id -> Text,
@@ -219,6 +246,8 @@ joinable!(transaction_actions -> transactions (transaction_hash));
 joinable!(transactions -> blocks (included_in_block_hash));
 joinable!(transactions -> chunks (included_in_chunk_hash));
 
+joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
+
 allow_tables_to_appear_in_same_query!(
     access_keys,
     account_changes,
@@ -235,4 +264,5 @@ allow_tables_to_appear_in_same_query!(
     receipts,
     transaction_actions,
     transactions,
+    aggregated__circulating_supply,
 );

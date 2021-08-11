@@ -3,25 +3,32 @@ use std::convert::TryInto;
 use clap::Clap;
 #[macro_use]
 extern crate diesel;
+
+use actix_diesel::Database;
 use diesel::PgConnection;
 use futures::{join, StreamExt};
 use tokio::sync::mpsc;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
+use crate::aggregated::circulating_supply::circulating_supply_provider;
 use crate::configs::{Opts, SubCommand};
 
+mod aggregated;
 mod configs;
 mod db_adapters;
 mod models;
 mod schema;
 
+// Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
+const AGGREGATED: &str = "aggregated";
+
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
 async fn handle_message(
-    pool: actix_diesel::Database<PgConnection>,
+    pool: &actix_diesel::Database<PgConnection>,
     streamer_message: near_indexer::StreamerMessage,
     strict_mode: bool,
 ) {
@@ -108,20 +115,19 @@ async fn handle_message(
 
 async fn listen_blocks(
     stream: mpsc::Receiver<near_indexer::StreamerMessage>,
+    pool: Database<PgConnection>,
     concurrency: std::num::NonZeroU16,
     allow_missing_relation_in_start_blocks: Option<u32>,
 ) {
-    let pool = models::establish_connection();
     let strict_mode = allow_missing_relation_in_start_blocks.unwrap_or(0);
     let mut handle_messages = tokio_stream::wrappers::ReceiverStream::new(stream)
         .enumerate()
         .map(|(index, streamer_message)| {
-            info!(target: "indexer_for_explorer", "Block height {}", &streamer_message.block.header.height);
-            handle_message(
-                pool.clone(),
-                streamer_message,
-                index >= strict_mode as usize,
-            )
+            info!(
+                target: crate::INDEXER_FOR_EXPLORER,
+                "Block height {}", &streamer_message.block.header.height
+            );
+            handle_message(&pool, streamer_message, index >= strict_mode as usize)
         })
         .buffer_unordered(usize::from(concurrency.get()));
 
@@ -130,6 +136,7 @@ async fn listen_blocks(
 
 /// Takes `home_dir` and `RunArgs` to build proper IndexerConfig and returns it
 async fn construct_near_indexer_config(
+    pool: &Database<PgConnection>,
     home_dir: std::path::PathBuf,
     args: configs::RunArgs,
 ) -> near_indexer::IndexerConfig {
@@ -151,8 +158,6 @@ async fn construct_near_indexer_config(
                 await_for_node_synced,
             };
         }
-
-        let pool = models::establish_connection();
 
         let latest_block_height = match db_adapters::blocks::latest_block_height(&pool).await {
             Ok(Some(height)) => height,
@@ -210,12 +215,12 @@ fn main() {
     // (sending telemetry and downloading genesis)
     openssl_probe::init_ssl_cert_env_vars();
 
-    // This is a sanity check. Indexer should fail .env file with credentials is missing
-    // We prefer to fail as soon as possible to avoid heavy running for nothing
-    models::get_database_credentials();
+    // We establish connection as early as possible as an additional sanity check.
+    // Indexer should fail if .env file with credentials is missing/wrong
+    let pool = models::establish_connection();
 
     let mut env_filter = EnvFilter::new(
-        "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer_for_explorer=info",
+        "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer_for_explorer=info,aggregated=info",
     );
 
     if let Ok(rust_log) = std::env::var("RUST_LOG") {
@@ -247,23 +252,41 @@ fn main() {
         SubCommand::Run(args) => {
             let system = actix::System::new();
             system.block_on(async move {
-                let indexer_config = construct_near_indexer_config(home_dir, args.clone()).await;
+                let indexer_config =
+                    construct_near_indexer_config(&pool, home_dir, args.clone()).await;
                 let indexer = near_indexer::Indexer::new(indexer_config);
                 if args.store_genesis {
                     let near_config = indexer.near_config().clone();
                     actix::spawn(db_adapters::accounts::store_accounts_from_genesis(
+                        pool.clone(),
                         near_config.clone(),
                     ));
                     actix::spawn(db_adapters::access_keys::store_access_keys_from_genesis(
+                        pool.clone(),
                         near_config,
                     ));
                 }
+
+                // Regular indexer process starts here
                 let stream = indexer.streamer();
                 actix::spawn(listen_blocks(
                     stream,
+                    pool.clone(),
                     args.concurrency,
                     args.allow_missing_relations_in_first_blocks,
                 ));
+
+                // Spawning the computation of aggregated data
+                let view_client = indexer.client_actors().0;
+
+                if indexer.near_config().genesis.config.chain_id == "mainnet" {
+                    actix::spawn(
+                        circulating_supply_provider::run_circulating_supply_computation(
+                            view_client,
+                            pool,
+                        ),
+                    );
+                }
             });
             system.run().unwrap();
         }
