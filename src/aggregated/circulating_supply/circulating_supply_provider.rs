@@ -79,6 +79,7 @@ async fn check_and_collect_daily_circulating_supply(
     request_datetime: &Duration,
 ) -> Result<Option<CirculatingSupply>, String> {
     let start_of_day = request_datetime.as_nanos() - request_datetime.as_nanos() % DAY.as_nanos();
+    let printable_date = NaiveDateTime::from_timestamp(request_datetime.as_secs() as i64, 0).date();
     let block = blocks::get_latest_block_before_timestamp(&pool, start_of_day as u64).await?;
     let block_timestamp = block
         .block_timestamp
@@ -89,13 +90,16 @@ async fn check_and_collect_daily_circulating_supply(
         Ok(None) => {
             info!(
                 target: crate::AGGREGATED,
-                "Computing circulating supply for the timestamp {}", block_timestamp
+                "Computing circulating supply for {} (timestamp {})",
+                printable_date,
+                block_timestamp
             );
             let supply = compute_circulating_supply_for_block(&pool, view_client, &block).await?;
             add_circulating_supply(&pool, &supply).await;
             info!(
                 target: crate::AGGREGATED,
-                "Circulating supply for the timestamp {} is {}",
+                "Circulating supply for {} (timestamp {}) is {}",
+                printable_date,
                 block_timestamp,
                 supply.circulating_tokens_supply
             );
@@ -104,7 +108,8 @@ async fn check_and_collect_daily_circulating_supply(
         Ok(Some(supply)) => {
             info!(
                 target: crate::AGGREGATED,
-                "Circulating supply for the timestamp {} was already computed: {}",
+                "Circulating supply for {} (timestamp {}) was already computed: {}",
+                printable_date,
                 block_timestamp,
                 supply
             );
@@ -193,7 +198,7 @@ async fn wait_for_loading_needed_blocks(
                 }
                 warn!(
                         target: crate::AGGREGATED,
-                        "Blocks are not loaded for calculating circulating supply for {}. Wait for {} hours",
+                        "Blocks are not loaded to calculate circulating supply for {}. Wait for {} hours",
                         NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0).date(),
                         RETRY_DURATION.as_secs() / 60 / 60,
                     );
