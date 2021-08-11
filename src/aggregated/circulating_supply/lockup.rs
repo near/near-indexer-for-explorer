@@ -7,7 +7,7 @@ use near_indexer::near_primitives;
 use near_sdk::borsh::BorshDeserialize;
 use near_sdk::json_types::{U128, U64};
 
-use crate::aggregated::circulating_supply::lockup_types::{
+use super::lockup_types::{
     LockupContract, TransfersInformation, VestingInformation, VestingSchedule, WrappedBalance, U256,
 };
 
@@ -89,13 +89,14 @@ pub(crate) async fn get_lockup_contract_state(
 }
 
 // The lockup contract implementation had a bug that affected lockup start date.
+// https://github.com/near/core-contracts/pull/136
 // For each contract, we should choose the logic based on the binary version of the contract
 pub(crate) fn is_bug_inside_contract(
     code_hash: &near_primitives::hash::CryptoHash,
     account_id: &near_primitives::types::AccountId,
 ) -> Result<bool, String> {
     match &*code_hash.to_string() {
-        // The first realization, with the bug
+        // The first implementation, with the bug
         "3kVY9qcVRoW3B5498SMX6R3rtSLiCdmBzKs7zcnzDJ7Q" => Ok(true),
         // We have 6 lockups created at 6th of April 2021, assume it's buggy
         "DiC9bKCqUHqoYqUXovAnqugiuntHWnM3cAc7KrgaHTu" => Ok(true),
