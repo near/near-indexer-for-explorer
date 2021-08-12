@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0
+
+* Background calculation of circulating supply and storing it to DB
+* Improvements on some tables (add indexes, simplify sorting etc.)
+
 ## 0.7.1
 
 * Update nearcore version to 1.20.0-rc.2
