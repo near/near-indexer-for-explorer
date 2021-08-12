@@ -113,6 +113,38 @@ fn my_func() {
 
 The rationale behind this is that there are plenty of different `Account` types in various contexts (e.g. DB schema, NEAR account, local crate struct).
 
+## Checklist before submitting PR
+
+We created a list of things that should be surely fixed before the review. It will save your time and the time of the reviewer. Here it is:
+
+1. Automatic checks
+    - `cargo fmt`
+    - `cargo clippy`
+2. Code structure
+    - Is the code self-explanatory? Can you rewrite it to be so? If not, can you add some comments to make the life of the future you easier? Consider using links to other materials if it's suitable
+    - Take care of function parameter types and return values. Do something meaningful if you know Rust; otherwise, simply pass parameters by reference (&)
+    - Use as narrow scope as you can. At least change `pub` to `pub(crate)`
+3. Imports
+    - Imports should be frugal. Read about it [above](https://github.com/near/near-indexer-for-explorer/blob/master/CONTRIBUTING.md#module-imports-vs-leaf-item-imports)
+    - Use relative import (`super`) if you use the same module
+    - Check [imports ordering](https://github.com/near/near-indexer-for-explorer/blob/master/CONTRIBUTING.md#imports-ordering-and-grouping)
+4. Types
+    - Use `str` instead of `String` if it's possible
+    - Use wrapper type instead of a raw one. E.g. `AccountId` instead of `str`, `Duration` instead of `u64`
+5. Wording
+    - Get rid of short name versions, we do not pay for symbols. `account_id` is better than `acc`
+    - Spend time on the naming of variables and functions. It does matter. Look around, the codebase should help you
+    - Spend time on the wording in logging. Does it explain what is going on? Does it help to solve the issue?
+    - Use Grammarly for docstrings
+6. "I just learn Rust and I do weird things"
+    - `x.to_string().as_str()` -> `&x.to_string()`
+    - `for x in items.iter()` -> `for x in &items`
+    - Use `{:?}` if you need to log the value and `{}` does not work
+    - Do not use `return` if you can, it's Rust, the last statement is the result for the function
+7. Do not forget to re-check everything again before sending the code
+
+(...to be continued)
+
 # Setting up the environment
 
 `nearcore` uses nightly Rust features, so you will need nightly rust installed. See [this document](https://doc.rust-lang.org/1.2.0/book/nightly-rust.html) for details. NEAR Indexer for Explorer follows `rust-toolchain` specified by `nearcore`.
