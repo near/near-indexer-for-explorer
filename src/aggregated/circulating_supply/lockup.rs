@@ -24,9 +24,7 @@ pub(crate) async fn get_lockup_contract_state(
         near_primitives::types::BlockId::Height(*block_height),
     );
     let request = near_primitives::views::QueryRequest::ViewState {
-        account_id: account_id
-            .parse()
-            .map_err(|_| "Failed to parse `account_id`")?,
+        account_id: account_id.clone(),
         prefix: vec![].into(),
     };
     let query = Query::new(block_reference, request);

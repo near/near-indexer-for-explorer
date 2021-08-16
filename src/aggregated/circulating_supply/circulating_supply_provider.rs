@@ -160,8 +160,12 @@ async fn compute_circulating_supply_for_block(
     }
 
     // The list is taken from the conversation with Yessin
-    let foundation_locked_account_ids: [near_primitives::types::AccountId; 2] =
-        ["lockup.near".to_string(), "contributors.near".to_string()];
+    let foundation_locked_account_ids: [near_primitives::types::AccountId; 2] = [
+        near_primitives::types::AccountId::from_str("lockup.near")
+            .expect("lockup.near expected to be a valid AccountId"),
+        near_primitives::types::AccountId::from_str("contributors.near")
+            .expect("contributors.near expected to be a valid AccountId"),
+    ];
     let mut foundation_locked_tokens: u128 = 0;
     for account_id in &foundation_locked_account_ids {
         foundation_locked_tokens +=

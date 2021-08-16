@@ -47,7 +47,9 @@ pub(crate) async fn handle_access_keys(
                         );
                         access_keys
                             .iter_mut()
-                            .filter(|((_, receiver_id), _)| receiver_id == &receipt.receiver_id)
+                            .filter(|((_, receiver_id), _)| {
+                                receiver_id == &receipt.receiver_id.to_string()
+                            })
                             .for_each(|(_, access_key)| {
                                 access_key.deleted_by_receipt_id =
                                     Some(receipt.receipt_id.to_string());
@@ -61,7 +63,7 @@ pub(crate) async fn handle_access_keys(
                             (public_key.to_string(), receipt.receiver_id.to_string()),
                             models::access_keys::AccessKey::from_action_view(
                                 public_key,
-                                &receipt.receiver_id,
+                                &receipt.receiver_id.to_string(),
                                 access_key,
                                 &receipt.receipt_id,
                                 block_height,
@@ -90,7 +92,8 @@ pub(crate) async fn handle_access_keys(
                         if receipt.receiver_id.len() != 64usize {
                             continue;
                         }
-                        if let Ok(public_key_bytes) = hex::decode(&receipt.receiver_id) {
+                        if let Ok(public_key_bytes) = hex::decode(&receipt.receiver_id.to_string())
+                        {
                             if let Ok(public_key) =
                                 near_crypto::ED25519PublicKey::try_from(&public_key_bytes[..])
                             {
@@ -98,7 +101,7 @@ pub(crate) async fn handle_access_keys(
                                     (near_crypto::PublicKey::from(public_key).to_string(), receipt.receiver_id.to_string()),
                                     models::access_keys::AccessKey::from_action_view(
                                         &near_crypto::PublicKey::from(public_key),
-                                        &receipt.receiver_id,
+                                        &receipt.receiver_id.to_string(),
                                         &near_primitives::views::AccessKeyView {
                                             nonce: 0,
                                             permission: near_primitives::views::AccessKeyPermissionView::FullAccess
@@ -302,7 +305,7 @@ pub(crate) async fn store_access_keys_from_genesis(
             {
                 Some(models::access_keys::AccessKey::from_genesis(
                     &public_key,
-                    &account_id,
+                    &account_id.to_string(),
                     &access_key,
                     genesis_height,
                 ))

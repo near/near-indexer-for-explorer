@@ -104,8 +104,14 @@ pub(crate) struct InitConfigArgs {
     #[clap(short, long)]
     pub genesis: Option<String>,
     #[clap(short, long)]
+    /// Download the verified NEAR config file automatically.
+    #[clap(long)]
+    pub download_config: bool,
+    #[clap(long)]
+    pub download_config_url: Option<String>,
     /// Download the verified NEAR genesis file automatically.
-    pub download: bool,
+    #[clap(long)]
+    pub download_genesis: bool,
     /// Specify a custom download URL for the genesis-file.
     #[clap(long)]
     pub download_genesis_url: Option<String>,
@@ -113,4 +119,8 @@ pub(crate) struct InitConfigArgs {
     /// from genesis configuration will be taken.
     #[clap(long)]
     pub max_gas_burnt_view: Option<u64>,
+    /// Initialize boots nodes in <node_key>@<ip_addr> format seperated by commas
+    /// to bootstrap the network and store them in config.json
+    #[clap(long)]
+    pub boot_nodes: Option<String>,
 }

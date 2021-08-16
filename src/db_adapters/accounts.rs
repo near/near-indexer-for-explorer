@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::Database;
@@ -366,12 +367,21 @@ pub(crate) async fn get_lockup_account_ids_at_block_height(
                 .or(schema::aggregated__lockups::dsl::deletion_block_height
                     .ge(BigDecimal::from(*block_height))),
         )
-        .get_results_async::<near_primitives::types::AccountId>(&pool)
+        .get_results_async::<String>(&pool)
         .await
         .map_err(|err| {
             format!(
                 "DB error while collecting lockup account ids for block_height {}: {}",
                 block_height, err
+            )
+        })
+        .and_then(|results| {
+            Ok(results
+                .into_iter()
+                .map(|account_id_string|
+                    near_primitives::types::AccountId::from_str(&account_id_string)
+                        .expect("Selecting lockup account ids bumped into the account_id which is not valid"))
+                .collect()
             )
         })
 }

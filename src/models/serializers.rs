@@ -1,6 +1,9 @@
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use near_indexer::near_primitives;
 use near_indexer::near_primitives::serialize::option_u128_dec_format;
 use near_indexer::near_primitives::views::ActionView;
 
@@ -55,7 +58,8 @@ impl From<near_indexer::near_primitives::views::AccessKeyPermissionView>
                 method_names,
             } => Self::FunctionCall {
                 allowance,
-                receiver_id,
+                receiver_id: near_primitives::types::AccountId::from_str(&receiver_id)
+                    .expect("receiver_id is not valid AccountId"),
                 method_names: method_names
                     .into_iter()
                     .map(|method_name| method_name.escape_default().to_string())
