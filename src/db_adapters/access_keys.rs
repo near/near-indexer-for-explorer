@@ -92,7 +92,7 @@ pub(crate) async fn handle_access_keys(
                         if receipt.receiver_id.len() != 64usize {
                             continue;
                         }
-                        if let Ok(public_key_bytes) = hex::decode(&receipt.receiver_id.to_string())
+                        if let Ok(public_key_bytes) = hex::decode(receipt.receiver_id.as_ref())
                         {
                             if let Ok(public_key) =
                                 near_crypto::ED25519PublicKey::try_from(&public_key_bytes[..])
