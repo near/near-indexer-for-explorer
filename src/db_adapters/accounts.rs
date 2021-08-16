@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::str::FromStr;
+use std::convert::TryFrom;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::Database;
@@ -45,7 +45,7 @@ pub(crate) async fn handle_accounts(
                         accounts.insert(
                             receipt.receiver_id.clone(),
                             models::accounts::Account::new_from_receipt(
-                                receipt.receiver_id.to_string(),
+                                &receipt.receiver_id,
                                 &receipt.receipt_id,
                                 block_height,
                             ),
@@ -56,7 +56,7 @@ pub(crate) async fn handle_accounts(
                             accounts.insert(
                                 receipt.receiver_id.clone(),
                                 models::accounts::Account::new_from_receipt(
-                                    receipt.receiver_id.to_string(),
+                                    &receipt.receiver_id,
                                     &receipt.receipt_id,
                                     block_height,
                                 ),
@@ -274,7 +274,7 @@ pub(crate) async fn store_accounts_from_genesis(
             } = record
             {
                 Some(models::accounts::Account::new_from_genesis(
-                    account_id.to_string(),
+                    &account_id,
                     genesis_height,
                 ))
             } else {
@@ -379,8 +379,8 @@ pub(crate) async fn get_lockup_account_ids_at_block_height(
             Ok(results
                 .into_iter()
                 .map(|account_id_string|
-                    near_primitives::types::AccountId::from_str(&account_id_string)
-                        .expect("Selecting lockup account ids bumped into the account_id which is not valid"))
+                    near_primitives::types::AccountId::try_from(account_id_string)
+                        .expect("Selecting lockup account ids bumped into the account_id which is not valid; that should never happen"))
                 .collect()
             )
         })

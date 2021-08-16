@@ -1,5 +1,4 @@
-use std::convert::TryInto;
-use std::str::FromStr;
+use std::convert::{TryFrom, TryInto};
 
 use clap::Clap;
 #[macro_use]
@@ -294,13 +293,10 @@ fn main() {
         SubCommand::Init(config) => near_indexer::init_configs(
             &home_dir,
             config.chain_id.as_ref().map(AsRef::as_ref),
-            match config.account_id {
-                Some(account_id_string) => Some(
-                    near_indexer::near_primitives::types::AccountId::from_str(&account_id_string)
-                        .expect("Failed to parse &str into AccountId"),
-                ),
-                None => None,
-            },
+            config.account_id.map(|account_id_string| {
+                near_indexer::near_primitives::types::AccountId::try_from(account_id_string)
+                    .expect("Received accound_id is not valid")
+            }),
             config.test_seed.as_ref().map(AsRef::as_ref),
             config.num_shards,
             config.fast,
