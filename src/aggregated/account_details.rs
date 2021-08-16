@@ -34,7 +34,7 @@ async fn get_account_view_for_block_height(
         near_primitives::types::BlockId::Height(*block_height),
     );
     let request = near_primitives::views::QueryRequest::ViewAccount {
-        account_id: account_id.to_string(),
+        account_id: account_id.clone(),
     };
     let query = Query::new(block_reference, request);
 

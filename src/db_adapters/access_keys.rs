@@ -47,7 +47,9 @@ pub(crate) async fn handle_access_keys(
                         );
                         access_keys
                             .iter_mut()
-                            .filter(|((_, receiver_id), _)| receiver_id == &receipt.receiver_id)
+                            .filter(|((_, receiver_id), _)| {
+                                receiver_id == receipt.receiver_id.as_ref()
+                            })
                             .for_each(|(_, access_key)| {
                                 access_key.deleted_by_receipt_id =
                                     Some(receipt.receipt_id.to_string());
@@ -90,7 +92,7 @@ pub(crate) async fn handle_access_keys(
                         if receipt.receiver_id.len() != 64usize {
                             continue;
                         }
-                        if let Ok(public_key_bytes) = hex::decode(&receipt.receiver_id) {
+                        if let Ok(public_key_bytes) = hex::decode(receipt.receiver_id.as_ref()) {
                             if let Ok(public_key) =
                                 near_crypto::ED25519PublicKey::try_from(&public_key_bytes[..])
                             {

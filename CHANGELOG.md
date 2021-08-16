@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.0
+
+* Upgrade `nearcore` to 1.21.0
+
+## Breaking changes
+
+* `init` command has changed according to changes in `nearcore`:
+  - `download` argument has been replaced with `download_config` and `download_genesis`
+  - `boot_nodes` argument was added
+  - `download_config_url` was added
+* `AccountId` from `near-primitives` was replaced with separate crate `near-account-id` and it is no longer an alias for `String`
+  - All the fields related to an account id have type `near_account_id::AccountId`
+
 ## 0.8.0
 
 * Background calculation of circulating supply and storing it to DB

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::TryFrom;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::Database;
@@ -44,7 +45,7 @@ pub(crate) async fn handle_accounts(
                         accounts.insert(
                             receipt.receiver_id.clone(),
                             models::accounts::Account::new_from_receipt(
-                                receipt.receiver_id.to_string(),
+                                &receipt.receiver_id,
                                 &receipt.receipt_id,
                                 block_height,
                             ),
@@ -55,7 +56,7 @@ pub(crate) async fn handle_accounts(
                             accounts.insert(
                                 receipt.receiver_id.clone(),
                                 models::accounts::Account::new_from_receipt(
-                                    receipt.receiver_id.to_string(),
+                                    &receipt.receiver_id,
                                     &receipt.receipt_id,
                                     block_height,
                                 ),
@@ -273,7 +274,7 @@ pub(crate) async fn store_accounts_from_genesis(
             } = record
             {
                 Some(models::accounts::Account::new_from_genesis(
-                    account_id.to_string(),
+                    &account_id,
                     genesis_height,
                 ))
             } else {
@@ -366,12 +367,21 @@ pub(crate) async fn get_lockup_account_ids_at_block_height(
                 .or(schema::aggregated__lockups::dsl::deletion_block_height
                     .ge(BigDecimal::from(*block_height))),
         )
-        .get_results_async::<near_primitives::types::AccountId>(&pool)
+        .get_results_async::<String>(&pool)
         .await
         .map_err(|err| {
             format!(
                 "DB error while collecting lockup account ids for block_height {}: {}",
                 block_height, err
+            )
+        })
+        .and_then(|results| {
+            Ok(results
+                .into_iter()
+                .map(|account_id_string|
+                    near_primitives::types::AccountId::try_from(account_id_string)
+                        .expect("Selecting lockup account ids bumped into the account_id which is not valid; that should never happen"))
+                .collect()
             )
         })
 }
