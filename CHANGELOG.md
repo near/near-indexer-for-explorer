@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.9.0
+## 0.9.1
+
+* Upgrade `nearcore` to 1.21.0 (rc1)
+
+## 0.9.0 (nearcore dependency contains bug)
 
 * Upgrade `nearcore` to 1.21.0
 
