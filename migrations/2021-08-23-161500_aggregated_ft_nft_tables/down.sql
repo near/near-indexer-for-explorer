@@ -1,0 +1,2 @@
+DROP TABLE aggregated__fungible_tokens;
+DROP TABLE aggregated__non_fungible_tokens;
