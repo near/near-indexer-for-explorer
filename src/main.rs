@@ -65,6 +65,18 @@ async fn handle_message(
         }
     }
 
+    // TODO Ask Bohdan how to generate schema.patch properly
+    // Now I do
+    // [check that schema.rs looks exactly like you want]
+    // cp src/schema.rs src/schema-copy.rs
+    // [comment patch line in diesel.toml]
+    // diesel migration run
+    // diff -U6 src/schema.rs src/schema-copy.rs > src/schema.patch
+    // [uncomment patch line]
+    //
+    // Assets (FT)
+    db_adapters::assets::fungible_token_operations::store_ft(&pool, &streamer_message).await;
+
     // ExecutionOutcomes
     let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
         &pool,

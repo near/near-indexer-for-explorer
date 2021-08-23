@@ -112,6 +112,22 @@ table! {
     use diesel::sql_types::*;
 
     #[allow(non_snake_case)]
+    assets__fungible_token_operations (processed_in_receipt_id) {
+        processed_in_receipt_id -> Text,
+        processed_in_block_timestamp -> Numeric,
+        called_method -> Text,
+        ft_contract_account_id -> Text,
+        ft_sender_account_id -> Text,
+        ft_receiver_account_id -> Text,
+        ft_amount -> Numeric,
+        args -> Jsonb,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
+    #[allow(non_snake_case)]
     aggregated__lockups(account_id) {
         account_id -> Text,
         creation_block_height -> Nullable<Numeric>,
@@ -240,6 +256,7 @@ joinable!(account_changes -> receipts (caused_by_receipt_id));
 joinable!(account_changes -> transactions (caused_by_transaction_hash));
 joinable!(action_receipt_actions -> receipts (receipt_id));
 joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
+joinable!(assets__fungible_token_operations -> receipts (processed_in_receipt_id));
 joinable!(chunks -> blocks (included_in_block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (executed_receipt_id));
@@ -261,6 +278,7 @@ allow_tables_to_appear_in_same_query!(
     action_receipt_output_data,
     action_receipts,
     aggregated__circulating_supply,
+    assets__fungible_token_operations,
     blocks,
     chunks,
     data_receipts,
