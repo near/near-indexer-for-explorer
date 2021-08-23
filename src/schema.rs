@@ -33,6 +33,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     accounts (id) {
         id -> Int8,
@@ -60,6 +61,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     action_receipt_input_data (input_data_id, input_to_receipt_id) {
         input_data_id -> Text,
@@ -69,6 +71,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     action_receipt_output_data (output_data_id, output_from_receipt_id) {
         output_data_id -> Text,
@@ -79,6 +82,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     action_receipts (receipt_id) {
         receipt_id -> Text,
@@ -90,36 +94,8 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
-    blocks (block_hash) {
-        block_height -> Numeric,
-        block_hash -> Text,
-        prev_block_hash -> Text,
-        block_timestamp -> Numeric,
-        total_supply -> Numeric,
-        gas_price -> Numeric,
-        author_account_id -> Text,
-    }
-}
-
-table! {
-    use diesel::sql_types::*;
-
-    chunks (chunk_hash) {
-        included_in_block_hash -> Text,
-        chunk_hash -> Text,
-        shard_id -> Numeric,
-        signature -> Text,
-        gas_limit -> Numeric,
-        gas_used -> Numeric,
-        author_account_id -> Text,
-    }
-}
-
-table! {
-    use diesel::sql_types::*;
-
-    #[allow(non_snake_case)]
     aggregated__circulating_supply (computed_at_block_hash) {
         computed_at_block_timestamp -> Numeric,
         computed_at_block_hash -> Text,
@@ -134,17 +110,37 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
-    #[allow(non_snake_case)]
-    aggregated__lockups(account_id) {
-        account_id -> Text,
-        creation_block_height -> Nullable<Numeric>,
-        deletion_block_height -> Nullable<Numeric>,
+    blocks (block_hash) {
+        block_height -> Numeric,
+        block_hash -> Text,
+        prev_block_hash -> Text,
+        block_timestamp -> Numeric,
+        total_supply -> Numeric,
+        gas_price -> Numeric,
+        author_account_id -> Text,
     }
 }
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
+
+    chunks (chunk_hash) {
+        included_in_block_hash -> Text,
+        chunk_hash -> Text,
+        shard_id -> Numeric,
+        signature -> Text,
+        gas_limit -> Numeric,
+        gas_used -> Numeric,
+        author_account_id -> Text,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     data_receipts (data_id) {
         data_id -> Text,
@@ -155,6 +151,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
+    use crate::models::enums::*;
 
     execution_outcome_receipts (executed_receipt_id, index_in_execution_outcome, produced_receipt_id) {
         executed_receipt_id -> Text,
@@ -235,6 +232,7 @@ joinable!(account_changes -> blocks (changed_in_block_hash));
 joinable!(account_changes -> receipts (caused_by_receipt_id));
 joinable!(account_changes -> transactions (caused_by_transaction_hash));
 joinable!(action_receipt_actions -> receipts (receipt_id));
+joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
 joinable!(chunks -> blocks (included_in_block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (executed_receipt_id));
@@ -247,8 +245,6 @@ joinable!(transaction_actions -> transactions (transaction_hash));
 joinable!(transactions -> blocks (included_in_block_hash));
 joinable!(transactions -> chunks (included_in_chunk_hash));
 
-joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
-
 allow_tables_to_appear_in_same_query!(
     access_keys,
     account_changes,
@@ -257,6 +253,7 @@ allow_tables_to_appear_in_same_query!(
     action_receipt_input_data,
     action_receipt_output_data,
     action_receipts,
+    aggregated__circulating_supply,
     blocks,
     chunks,
     data_receipts,
@@ -265,5 +262,4 @@ allow_tables_to_appear_in_same_query!(
     receipts,
     transaction_actions,
     transactions,
-    aggregated__circulating_supply,
 );
