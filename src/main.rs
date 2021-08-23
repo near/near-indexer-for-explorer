@@ -118,6 +118,7 @@ async fn listen_blocks(
     concurrency: std::num::NonZeroU16,
     allow_missing_relation_in_start_blocks: Option<u32>,
 ) {
+    tracing::info!(target: crate::INDEXER_FOR_EXPLORER, "Stream has started");
     let strict_mode = allow_missing_relation_in_start_blocks.unwrap_or(0);
     let mut handle_messages = tokio_stream::wrappers::ReceiverStream::new(stream)
         .enumerate()
@@ -219,7 +220,7 @@ fn main() {
     let pool = models::establish_connection();
 
     let mut env_filter = EnvFilter::new(
-        "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer_for_explorer=info,aggregated=info",
+        "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer=info,indexer_for_explorer=info,aggregated=info",
     );
 
     if let Ok(rust_log) = std::env::var("RUST_LOG") {
@@ -249,6 +250,12 @@ fn main() {
 
     match opts.subcmd {
         SubCommand::Run(args) => {
+            tracing::info!(
+                target: crate::INDEXER_FOR_EXPLORER,
+                "NEAR Indexer for Explorer v{} starting...",
+                env!("CARGO_PKG_VERSION")
+            );
+
             let system = actix::System::new();
             system.block_on(async move {
                 let indexer_config =

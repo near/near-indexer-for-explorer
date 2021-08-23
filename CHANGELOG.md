@@ -3,6 +3,7 @@
 ## 0.9.3 (hotfix)
 
 * Escape `args_json` on the fly to avoid null-byte issues
+* Improve logging to better understand what Indexer for Explorer is doing on the start
 
 ## 0.9.2 (hotfix)
 
