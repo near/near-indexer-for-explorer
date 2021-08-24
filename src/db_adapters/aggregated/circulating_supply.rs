@@ -40,7 +40,7 @@ pub(crate) async fn add_circulating_supply(
 pub(crate) async fn get_precomputed_circulating_supply_for_timestamp(
     pool: &actix_diesel::Database<PgConnection>,
     timestamp: u64,
-) -> Result<Option<u128>, String> {
+) -> anyhow::Result<Option<u128>> {
     let supply = schema::aggregated__circulating_supply::table
         .select(schema::aggregated__circulating_supply::dsl::circulating_tokens_supply)
         .filter(
@@ -53,9 +53,9 @@ pub(crate) async fn get_precomputed_circulating_supply_for_timestamp(
     match supply {
         Ok(Some(value)) => match u128::from_str_radix(&value.to_string(), 10) {
             Ok(res) => Ok(Some(res)),
-            Err(_) => Err("`circulating_tokens_supply` expected to be u128".to_string()),
+            Err(_) => anyhow::bail!("`circulating_tokens_supply` expected to be u128"),
         },
         Ok(None) => Ok(None),
-        Err(err) => Err(format!("DB Error: {}", err)),
+        Err(err) => anyhow::bail!("DB Error: {}", err),
     }
 }

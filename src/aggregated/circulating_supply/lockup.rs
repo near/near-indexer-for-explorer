@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use actix::Addr;
+use anyhow::Context;
 
 use near_client::{Query, ViewClientActor};
 use near_indexer::near_primitives;
@@ -19,7 +20,7 @@ pub(super) async fn get_lockup_contract_state(
     view_client: &Addr<ViewClientActor>,
     account_id: &near_primitives::types::AccountId,
     block_height: &near_primitives::types::BlockHeight,
-) -> Result<LockupContract, String> {
+) -> anyhow::Result<LockupContract> {
     let block_reference = near_primitives::types::BlockReference::BlockId(
         near_primitives::types::BlockId::Height(*block_height),
     );
@@ -32,49 +33,47 @@ pub(super) async fn get_lockup_contract_state(
     let state_response = view_client
         .send(query)
         .await
-        .map_err(|err| {
+        .with_context(|| {
             format!(
-                "Failed to deliver ViewState for lockup contract {}, block_height {}: {}",
-                account_id, block_height, err
+                "Failed to deliver ViewState for lockup contract {}, block_height {}",
+                account_id, block_height
             )
         })?
-        .map_err(|err| {
+        .with_context(|| {
             format!(
-                "Invalid ViewState query for lockup contract {}, block_height {}: {:?}",
-                account_id, block_height, err
+                "Invalid ViewState query for lockup contract {}, block_height {}",
+                account_id, block_height
             )
         })?;
 
     let view_state_result = match state_response.kind {
         near_primitives::views::QueryResponseKind::ViewState(x) => x,
         _ => {
-            return Err(format!(
+            anyhow::bail!(
                 "Failed to extract ViewState response for lockup contract {}, block_height {}",
-                account_id, block_height
-            ));
+                account_id,
+                block_height
+            )
         }
     };
-    let view_state = view_state_result.values.get(0).ok_or(format!(
-        "Failed to find encoded lockup contract for {}, block_height {}",
-        account_id, block_height
-    ))?;
+    let view_state = view_state_result.values.get(0).with_context(|| {
+        format!(
+            "Failed to find encoded lockup contract for {}, block_height {}",
+            account_id, block_height
+        )
+    })?;
 
     let mut state = LockupContract::try_from_slice(
         base64::decode(&view_state.value)
-            .map_err(|err| {
+            .with_context(|| {
                 format!(
-                    "Failed to decode `view_state` for lockup contract {}: {}",
-                    account_id, err
+                    "Failed to decode `view_state` for lockup contract {}",
+                    account_id
                 )
             })?
             .as_slice(),
     )
-    .map_err(|err| {
-        format!(
-            "Failed to construct LockupContract for {}: {}",
-            account_id, err
-        )
-    })?;
+    .with_context(|| format!("Failed to construct LockupContract for {}", account_id))?;
 
     // If owner of the lockup account didn't call the
     // `check_transfers_vote` contract method we won't be able to
@@ -92,7 +91,7 @@ pub(super) async fn get_lockup_contract_state(
 pub(super) fn is_bug_inside_contract(
     code_hash: &near_primitives::hash::CryptoHash,
     account_id: &near_primitives::types::AccountId,
-) -> Result<bool, String> {
+) -> anyhow::Result<bool> {
     match &*code_hash.to_string() {
         // The first implementation, with the bug
         "3kVY9qcVRoW3B5498SMX6R3rtSLiCdmBzKs7zcnzDJ7Q" => Ok(true),
@@ -102,10 +101,11 @@ pub(super) fn is_bug_inside_contract(
         "Cw7bnyp4B6ypwvgZuMmJtY6rHsxP2D4PC8deqeJ3HP7D" => Ok(false),
         // The most fresh one
         "4Pfw2RU6e35dUsHQQoFYfwX8KFFvSRNwMSNLXuSFHXrC" => Ok(false),
-        other => Err(format!(
+        other => anyhow::bail!(
             "Unable to recognise the version of contract {}, code hash {}",
-            account_id, other
-        )),
+            account_id,
+            other
+        ),
     }
 }
 
