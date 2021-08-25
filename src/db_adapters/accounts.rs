@@ -26,11 +26,11 @@ pub(crate) async fn handle_accounts(
     let successful_receipts = outcomes
         .iter()
         .filter(|outcome_with_receipt| {
-            match outcome_with_receipt.execution_outcome.outcome.status {
+            matches!(
+                outcome_with_receipt.execution_outcome.outcome.status,
                 near_primitives::views::ExecutionStatusView::SuccessValue(_)
-                | near_primitives::views::ExecutionStatusView::SuccessReceiptId(_) => true,
-                _ => false,
-            }
+                    | near_primitives::views::ExecutionStatusView::SuccessReceiptId(_)
+            )
         })
         .map(|outcome_with_receipt| &outcome_with_receipt.receipt);
 
@@ -375,13 +375,12 @@ pub(crate) async fn get_lockup_account_ids_at_block_height(
                 block_height, err
             )
         })
-        .and_then(|results| {
-            Ok(results
+        .map(|results| {
+            results
                 .into_iter()
                 .map(|account_id_string|
                     near_primitives::types::AccountId::try_from(account_id_string)
                         .expect("Selecting lockup account ids bumped into the account_id which is not valid; that should never happen"))
                 .collect()
-            )
         })
 }

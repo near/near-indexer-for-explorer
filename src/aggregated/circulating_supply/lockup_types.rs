@@ -1,3 +1,8 @@
+#![allow(
+    clippy::assign_op_pattern,
+    clippy::manual_range_contains,
+    clippy::ptr_offset_with_cast
+)]
 // Copied from lockup contract code
 // https://github.com/near/core-contracts/blob/master/lockup/src/types.rs
 // https://github.com/near/core-contracts/blob/master/lockup/src/lib.rs

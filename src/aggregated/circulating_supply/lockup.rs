@@ -13,9 +13,9 @@ use super::lockup_types::{
 
 // The timestamp (nanos) when transfers were enabled in the Mainnet after community voting
 // Tuesday, 13 October 2020 18:38:58.293
-pub const TRANSFERS_ENABLED: Duration = Duration::from_nanos(1602614338293769340);
+pub(super) const TRANSFERS_ENABLED: Duration = Duration::from_nanos(1602614338293769340);
 
-pub(crate) async fn get_lockup_contract_state(
+pub(super) async fn get_lockup_contract_state(
     view_client: &Addr<ViewClientActor>,
     account_id: &near_primitives::types::AccountId,
     block_height: &near_primitives::types::BlockHeight,
@@ -89,7 +89,7 @@ pub(crate) async fn get_lockup_contract_state(
 // The lockup contract implementation had a bug that affected lockup start date.
 // https://github.com/near/core-contracts/pull/136
 // For each contract, we should choose the logic based on the binary version of the contract
-pub(crate) fn is_bug_inside_contract(
+pub(super) fn is_bug_inside_contract(
     code_hash: &near_primitives::hash::CryptoHash,
     account_id: &near_primitives::types::AccountId,
 ) -> Result<bool, String> {
@@ -127,7 +127,7 @@ impl LockupContract {
             let block_timestamp = timestamp;
             if lockup_timestamp <= block_timestamp {
                 let unreleased_amount =
-                    if let &Some(release_duration) = &self.lockup_information.release_duration {
+                    if let Some(release_duration) = self.lockup_information.release_duration {
                         let start_lockup = if has_bug {
                             transfers_timestamp.0
                         } else {

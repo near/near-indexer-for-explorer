@@ -25,11 +25,11 @@ pub(crate) async fn handle_access_keys(
     let successful_receipts = outcomes
         .iter()
         .filter(|outcome_with_receipt| {
-            match outcome_with_receipt.execution_outcome.outcome.status {
+            matches!(
+                outcome_with_receipt.execution_outcome.outcome.status,
                 near_primitives::views::ExecutionStatusView::SuccessValue(_)
-                | near_primitives::views::ExecutionStatusView::SuccessReceiptId(_) => true,
-                _ => false,
-            }
+                    | near_primitives::views::ExecutionStatusView::SuccessReceiptId(_)
+            )
         })
         .map(|outcome_with_receipt| &outcome_with_receipt.receipt);
 
