@@ -1,4 +1,5 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
+use anyhow::Context;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use tracing::error;
@@ -57,11 +58,11 @@ pub(crate) async fn latest_block_height(
 pub(crate) async fn get_latest_block_before_timestamp(
     pool: &actix_diesel::Database<PgConnection>,
     timestamp: u64,
-) -> Result<models::Block, String> {
+) -> anyhow::Result<models::Block> {
     Ok(schema::blocks::table
         .filter(schema::blocks::dsl::block_timestamp.le(BigDecimal::from(timestamp)))
         .order(schema::blocks::dsl::block_timestamp.desc())
         .first_async::<models::Block>(&pool)
         .await
-        .map_err(|err| format!("DB Error: {}", err))?)
+        .context("DB Error")?)
 }
