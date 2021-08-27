@@ -1,8 +1,10 @@
 # Changelog
 
-## 0.9.3 (hotfix)
+## 0.9.3
 
 * Escape `args_json` on the fly to avoid null-byte issues
+* Upgrade to NEAR Indexer Framework `0.10.0`
+* Refactor the storing Accounts and AccessKeys from genesis to optimize memory usage
 * Improve logging to better understand what Indexer for Explorer is doing on the start
 
 ## 0.9.2 (hotfix)

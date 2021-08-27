@@ -5,8 +5,7 @@ use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::Database;
 use bigdecimal::BigDecimal;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
-use futures::{join, StreamExt};
-use itertools::Itertools;
+use futures::join;
 use tracing::{error, info};
 
 use near_indexer::near_primitives;
@@ -282,83 +281,34 @@ pub(crate) async fn handle_access_keys(
 
 pub(crate) async fn store_access_keys_from_genesis(
     pool: Database<PgConnection>,
-    near_config: near_indexer::NearConfig,
+    access_keys_models: Vec<models::access_keys::AccessKey>,
 ) {
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Adding/updating access keys from genesis..."
     );
-    let genesis_height = near_config.genesis.config.genesis_height;
 
-    let access_keys_models = near_config
-        .genesis
-        .records
-        .as_ref()
-        .iter()
-        .filter_map(|record| {
-            if let near_indexer::near_primitives::state_record::StateRecord::AccessKey {
-                account_id,
-                public_key,
-                access_key,
-            } = record
-            {
-                Some(models::access_keys::AccessKey::from_genesis(
-                    &public_key,
-                    &account_id,
-                    &access_key,
-                    genesis_height,
-                ))
-            } else {
-                None
-            }
-        });
-
-    let portion_size = 5000;
-    let total_access_keys_chunks = access_keys_models.clone().count() / portion_size + 1;
-    let access_keys_portion = access_keys_models.chunks(portion_size);
-
-    let insert_genesis_access_keys: futures::stream::FuturesUnordered<_> = access_keys_portion
-        .into_iter()
-        .map(|access_keys| async {
-            let collected_access_keys = access_keys.collect::<Vec<models::access_keys::AccessKey>>();
-            let mut interval = crate::INTERVAL;
-            loop {
-                match diesel::insert_into(schema::access_keys::table)
-                    .values(collected_access_keys.clone())
-                    .on_conflict_do_nothing()
-                    .execute_async(&pool)
-                    .await
-                {
-                    Ok(result) => break result,
-                    Err(async_error) => {
-                        error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Error occurred while AccessKeys from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
-                        tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
-                            interval *= 2;
-                        }
-                    }
+    let mut interval = crate::INTERVAL;
+    loop {
+        match diesel::insert_into(schema::access_keys::table)
+            .values(access_keys_models.clone())
+            .on_conflict_do_nothing()
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while AccessKeys from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
+                    interval.as_millis(),
+                    async_error,
+                );
+                tokio::time::sleep(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
                 }
             }
-        })
-        .collect();
-
-    let mut insert_genesis_access_keys = insert_genesis_access_keys.enumerate();
-
-    while let Some((index, _result)) = insert_genesis_access_keys.next().await {
-        info!(
-            target: crate::INDEXER_FOR_EXPLORER,
-            "AccessKeys from genesis adding {}%",
-            index * 100 / total_access_keys_chunks
-        );
+        }
     }
-
-    info!(
-        target: crate::INDEXER_FOR_EXPLORER,
-        "AccessKeys from genesis were added/updated successful."
-    );
 }

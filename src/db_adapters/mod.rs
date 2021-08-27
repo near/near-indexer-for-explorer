@@ -5,5 +5,6 @@ pub(crate) mod aggregated;
 pub(crate) mod blocks;
 pub(crate) mod chunks;
 pub(crate) mod execution_outcomes;
+pub(crate) mod genesis;
 pub(crate) mod receipts;
 pub(crate) mod transactions;

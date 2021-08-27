@@ -263,14 +263,8 @@ fn main() {
                 let indexer = near_indexer::Indexer::new(indexer_config);
                 if args.store_genesis {
                     let near_config = indexer.near_config().clone();
-                    actix::spawn(db_adapters::accounts::store_accounts_from_genesis(
-                        pool.clone(),
-                        near_config.clone(),
-                    ));
-                    actix::spawn(db_adapters::access_keys::store_access_keys_from_genesis(
-                        pool.clone(),
-                        near_config,
-                    ));
+                    db_adapters::genesis::store_genesis_records(pool.clone(), near_config.clone())
+                        .await;
                 }
 
                 // Regular indexer process starts here
