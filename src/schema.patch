@@ -1,0 +1,142 @@
+diff --git a/src/schema.rs b/src/schema.rs
+index d0d6a3b..8928a6e 100644
+--- a/src/schema.rs
++++ b/src/schema.rs
+@@ -1,6 +1,10 @@
++// This file is generated with command `diesel print-schema > src/schema.rs
++// Do not edit it manually. Consider editing `diesel.toml`
++// ref: https://diesel.rs/guides/configuring-diesel-cli.html
++
+ table! {
+     use diesel::sql_types::*;
+     use crate::models::enums::*;
+ 
+     access_keys (public_key, account_id) {
+         public_key -> Text,
+@@ -30,13 +34,12 @@ table! {
+         index_in_block -> Int4,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
+ 
+     accounts (id) {
+         id -> Int8,
+         account_id -> Text,
+         created_by_receipt_id -> Nullable<Text>,
+         deleted_by_receipt_id -> Nullable<Text>,
+@@ -58,47 +61,44 @@ table! {
+         receipt_included_in_block_timestamp -> Numeric,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
+ 
+     action_receipt_input_data (input_data_id, input_to_receipt_id) {
+         input_data_id -> Text,
+         input_to_receipt_id -> Text,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
+ 
+     action_receipt_output_data (output_data_id, output_from_receipt_id) {
+         output_data_id -> Text,
+         output_from_receipt_id -> Text,
+         receiver_account_id -> Text,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
+ 
+     action_receipts (receipt_id) {
+         receipt_id -> Text,
+         signer_account_id -> Text,
+         signer_public_key -> Text,
+         gas_price -> Numeric,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
+ 
++    #[allow(non_snake_case)]
+     aggregated__circulating_supply (computed_at_block_hash) {
+         computed_at_block_timestamp -> Numeric,
+         computed_at_block_hash -> Text,
+         circulating_tokens_supply -> Numeric,
+         total_tokens_supply -> Numeric,
+         total_lockup_contracts_count -> Int4,
+@@ -107,13 +107,23 @@ table! {
+         lockups_locked_tokens -> Numeric,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
++
++    #[allow(non_snake_case)]
++    aggregated__lockups(account_id) {
++        account_id -> Text,
++        creation_block_height -> Nullable<Numeric>,
++        deletion_block_height -> Nullable<Numeric>,
++    }
++}
++
++table! {
++    use diesel::sql_types::*;
+ 
+     blocks (block_hash) {
+         block_height -> Numeric,
+         block_hash -> Text,
+         prev_block_hash -> Text,
+         block_timestamp -> Numeric,
+@@ -122,13 +132,12 @@ table! {
+         author_account_id -> Text,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
+ 
+     chunks (chunk_hash) {
+         included_in_block_hash -> Text,
+         chunk_hash -> Text,
+         shard_id -> Numeric,
+         signature -> Text,
+@@ -137,24 +146,22 @@ table! {
+         author_account_id -> Text,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
+ 
+     data_receipts (data_id) {
+         data_id -> Text,
+         receipt_id -> Text,
+         data -> Nullable<Bytea>,
+     }
+ }
+ 
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
+ 
+     execution_outcome_receipts (executed_receipt_id, index_in_execution_outcome, produced_receipt_id) {
+         executed_receipt_id -> Text,
+         index_in_execution_outcome -> Int4,
+         produced_receipt_id -> Text,
+     }

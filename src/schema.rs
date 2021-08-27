@@ -1,3 +1,7 @@
+// This file is generated with command `diesel print-schema > src/schema.rs
+// Do not edit it manually. Consider editing `diesel.toml`
+// ref: https://diesel.rs/guides/configuring-diesel-cli.html
+
 table! {
     use diesel::sql_types::*;
     use crate::models::enums::*;
@@ -91,6 +95,33 @@ table! {
 table! {
     use diesel::sql_types::*;
 
+    #[allow(non_snake_case)]
+    aggregated__circulating_supply (computed_at_block_hash) {
+        computed_at_block_timestamp -> Numeric,
+        computed_at_block_hash -> Text,
+        circulating_tokens_supply -> Numeric,
+        total_tokens_supply -> Numeric,
+        total_lockup_contracts_count -> Int4,
+        unfinished_lockup_contracts_count -> Int4,
+        foundation_locked_tokens -> Numeric,
+        lockups_locked_tokens -> Numeric,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
+    #[allow(non_snake_case)]
+    aggregated__lockups(account_id) {
+        account_id -> Text,
+        creation_block_height -> Nullable<Numeric>,
+        deletion_block_height -> Nullable<Numeric>,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+
     blocks (block_hash) {
         block_height -> Numeric,
         block_hash -> Text,
@@ -113,33 +144,6 @@ table! {
         gas_limit -> Numeric,
         gas_used -> Numeric,
         author_account_id -> Text,
-    }
-}
-
-table! {
-    use diesel::sql_types::*;
-
-    #[allow(non_snake_case)]
-    aggregated__circulating_supply (computed_at_block_hash) {
-        computed_at_block_timestamp -> Numeric,
-        computed_at_block_hash -> Text,
-        circulating_tokens_supply -> Numeric,
-        total_tokens_supply -> Numeric,
-        total_lockup_contracts_count -> Int4,
-        unfinished_lockup_contracts_count -> Int4,
-        foundation_locked_tokens -> Numeric,
-        lockups_locked_tokens -> Numeric,
-    }
-}
-
-table! {
-    use diesel::sql_types::*;
-
-    #[allow(non_snake_case)]
-    aggregated__lockups(account_id) {
-        account_id -> Text,
-        creation_block_height -> Nullable<Numeric>,
-        deletion_block_height -> Nullable<Numeric>,
     }
 }
 
@@ -235,6 +239,7 @@ joinable!(account_changes -> blocks (changed_in_block_hash));
 joinable!(account_changes -> receipts (caused_by_receipt_id));
 joinable!(account_changes -> transactions (caused_by_transaction_hash));
 joinable!(action_receipt_actions -> receipts (receipt_id));
+joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
 joinable!(chunks -> blocks (included_in_block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
 joinable!(execution_outcome_receipts -> receipts (executed_receipt_id));
@@ -247,8 +252,6 @@ joinable!(transaction_actions -> transactions (transaction_hash));
 joinable!(transactions -> blocks (included_in_block_hash));
 joinable!(transactions -> chunks (included_in_chunk_hash));
 
-joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
-
 allow_tables_to_appear_in_same_query!(
     access_keys,
     account_changes,
@@ -257,6 +260,7 @@ allow_tables_to_appear_in_same_query!(
     action_receipt_input_data,
     action_receipt_output_data,
     action_receipts,
+    aggregated__circulating_supply,
     blocks,
     chunks,
     data_receipts,
@@ -265,5 +269,4 @@ allow_tables_to_appear_in_same_query!(
     receipts,
     transaction_actions,
     transactions,
-    aggregated__circulating_supply,
 );
