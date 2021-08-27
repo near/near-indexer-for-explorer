@@ -14,7 +14,6 @@ index d0d6a3b..8928a6e 100644
      access_keys (public_key, account_id) {
          public_key -> Text,
 @@ -30,13 +34,12 @@ table! {
-aggregated__lockups view as table to schema)
          index_in_block -> Int4,
      }
  }
@@ -28,9 +27,7 @@ aggregated__lockups view as table to schema)
          account_id -> Text,
          created_by_receipt_id -> Nullable<Text>,
          deleted_by_receipt_id -> Nullable<Text>,
-
 @@ -58,47 +61,44 @@ table! {
-aggregated__lockups view as table to schema)
          receipt_included_in_block_timestamp -> Numeric,
      }
  }
@@ -79,9 +76,7 @@ aggregated__lockups view as table to schema)
          circulating_tokens_supply -> Numeric,
          total_tokens_supply -> Numeric,
          total_lockup_contracts_count -> Int4,
-
 @@ -107,13 +107,23 @@ table! {
-aggregated__lockups view as table to schema)
          lockups_locked_tokens -> Numeric,
      }
  }
@@ -106,9 +101,7 @@ aggregated__lockups view as table to schema)
          block_hash -> Text,
          prev_block_hash -> Text,
          block_timestamp -> Numeric,
-
 @@ -122,13 +132,12 @@ table! {
-aggregated__lockups view as table to schema)
          author_account_id -> Text,
      }
  }
@@ -122,9 +115,7 @@ aggregated__lockups view as table to schema)
          chunk_hash -> Text,
          shard_id -> Numeric,
          signature -> Text,
-
 @@ -137,24 +146,22 @@ table! {
-aggregated__lockups view as table to schema)
          author_account_id -> Text,
      }
  }
