@@ -24,19 +24,23 @@ pub(crate) async fn store_genesis_records(
 
     near_config.genesis.for_each_record(|record| {
         if accounts_to_store.len() == 5_000 {
-            let accounts_to_store_copy = accounts_to_store.clone();
+            let mut accounts_to_store_chunk = vec![];
+            std::mem::swap(&mut accounts_to_store, &mut accounts_to_store_chunk);
             let pool_copy = pool.clone();
-            accounts_to_store.clear();
+            // This will block current thread but there is no other async tasks
+            // running at the moment so it is fine to cut this corner for now
             tokio_runtime.block_on(async move {
-                store_accounts_from_genesis(pool_copy, accounts_to_store_copy).await;
+                store_accounts_from_genesis(pool_copy, accounts_to_store_chunk).await;
             });
         }
         if access_keys_to_store.len() == 5_000 {
-            let access_keys_to_store_copy = access_keys_to_store.clone();
+            let mut access_keys_to_store_chunk = vec![];
+            std::mem::swap(&mut access_keys_to_store, &mut access_keys_to_store_chunk);
             let pool_copy = pool.clone();
-            access_keys_to_store.clear();
+            // This will block current thread but there is no other async tasks
+            // running at the moment so it is fine to cut this corner for now
             tokio_runtime.block_on(async move {
-                store_access_keys_from_genesis(pool_copy, access_keys_to_store_copy).await;
+                store_access_keys_from_genesis(pool_copy, access_keys_to_store_chunk).await;
             });
         }
 
