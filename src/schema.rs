@@ -1,3 +1,7 @@
+// This file is generated with command `diesel print-schema > src/schema.rs
+// Do not edit it manually. Consider editing `diesel.toml`
+// ref: https://diesel.rs/guides/configuring-diesel-cli.html
+
 table! {
     use diesel::sql_types::*;
     use crate::models::enums::*;
@@ -33,7 +37,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     accounts (id) {
         id -> Int8,
@@ -61,7 +64,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     action_receipt_input_data (input_data_id, input_to_receipt_id) {
         input_data_id -> Text,
@@ -71,7 +73,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     action_receipt_output_data (output_data_id, output_from_receipt_id) {
         output_data_id -> Text,
@@ -82,7 +83,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     action_receipts (receipt_id) {
         receipt_id -> Text,
@@ -94,8 +94,8 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
+    #[allow(non_snake_case)]
     aggregated__circulating_supply (computed_at_block_hash) {
         computed_at_block_timestamp -> Numeric,
         computed_at_block_hash -> Text,
@@ -110,7 +110,17 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
+
+    #[allow(non_snake_case)]
+    aggregated__lockups(account_id) {
+        account_id -> Text,
+        creation_block_height -> Nullable<Numeric>,
+        deletion_block_height -> Nullable<Numeric>,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
 
     blocks (block_hash) {
         block_height -> Numeric,
@@ -125,7 +135,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     chunks (chunk_hash) {
         included_in_block_hash -> Text,
@@ -140,7 +149,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     data_receipts (data_id) {
         data_id -> Text,
@@ -151,7 +159,6 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::enums::*;
 
     execution_outcome_receipts (executed_receipt_id, index_in_execution_outcome, produced_receipt_id) {
         executed_receipt_id -> Text,
