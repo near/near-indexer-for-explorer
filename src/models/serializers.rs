@@ -55,7 +55,7 @@ impl From<near_indexer::near_primitives::views::AccessKeyPermissionView>
                 method_names,
             } => Self::FunctionCall {
                 allowance,
-                receiver_id,
+                receiver_id: receiver_id.escape_default().to_string(),
                 method_names: method_names
                     .into_iter()
                     .map(|method_name| method_name.escape_default().to_string())
