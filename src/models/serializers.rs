@@ -1,9 +1,6 @@
-use std::str::FromStr;
-
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use near_indexer::near_primitives;
 use near_indexer::near_primitives::serialize::option_u128_dec_format;
 use near_indexer::near_primitives::views::ActionView;
 
@@ -38,7 +35,7 @@ pub(crate) enum AccessKeyPermissionView {
     FunctionCall {
         #[serde(with = "option_u128_dec_format")]
         allowance: Option<near_indexer::near_primitives::types::Balance>,
-        receiver_id: near_indexer::near_primitives::types::AccountId,
+        receiver_id: String,
         method_names: Vec<String>,
     },
     FullAccess,
@@ -58,8 +55,7 @@ impl From<near_indexer::near_primitives::views::AccessKeyPermissionView>
                 method_names,
             } => Self::FunctionCall {
                 allowance,
-                receiver_id: near_primitives::types::AccountId::from_str(&receiver_id)
-                    .expect("receiver_id is not valid AccountId"),
+                receiver_id,
                 method_names: method_names
                     .into_iter()
                     .map(|method_name| method_name.escape_default().to_string())

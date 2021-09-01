@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2 (hotfix)
+
+* Change `receiver_id` field type to `String` to be compatible with `nearcore` `AccessKeyPermissionView` struct (it caused problems during AccessKey serialization)
+
 ## 0.9.1
 
 * Upgrade `nearcore` to 1.21.0 (rc1)
