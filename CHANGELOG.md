@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.3 (hotfix)
+
+* Escape `args_json` on the fly to avoid null-byte issues
+
 ## 0.9.2 (hotfix)
 
 * Change `receiver_id` field type to `String` to be compatible with `nearcore` `AccessKeyPermissionView` struct (it caused problems during AccessKey serialization)
