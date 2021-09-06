@@ -6,8 +6,8 @@ use actix_diesel::Database;
 use anyhow::Context;
 use bigdecimal::BigDecimal;
 use diesel::{BoolExpressionMethods, ExpressionMethods, PgConnection, QueryDsl};
-use futures::{join, StreamExt};
-use itertools::Itertools;
+use futures::join;
+
 use tracing::{error, info};
 
 use near_indexer::near_primitives;
@@ -255,82 +255,36 @@ pub(crate) async fn handle_accounts(
 
 pub(crate) async fn store_accounts_from_genesis(
     pool: Database<PgConnection>,
-    near_config: near_indexer::NearConfig,
+    accounts_models: Vec<models::accounts::Account>,
 ) {
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Adding/updating accounts from genesis..."
     );
-    let genesis_height = near_config.genesis.config.genesis_height;
 
-    let accounts_models = near_config
-        .genesis
-        .records
-        .as_ref()
-        .iter()
-        .filter_map(|record| {
-            if let near_indexer::near_primitives::state_record::StateRecord::Account {
-                account_id,
-                ..
-            } = record
-            {
-                Some(models::accounts::Account::new_from_genesis(
-                    &account_id,
-                    genesis_height,
-                ))
-            } else {
-                None
-            }
-        });
-
-    let portion_size = 5000;
-    let total_accounts_chunks = accounts_models.clone().count() / portion_size + 1;
-    let accounts_portion = accounts_models.chunks(portion_size);
-
-    let insert_genesis_accounts: futures::stream::FuturesUnordered<_> = accounts_portion
-        .into_iter()
-        .map(|accounts| async {
-            let collected_accounts = accounts.collect::<Vec<models::accounts::Account>>();
-            let mut interval = crate::INTERVAL;
-            loop {
-                match diesel::insert_into(schema::accounts::table)
-                    .values(collected_accounts.clone())
-                    .on_conflict_do_nothing()
-                    .execute_async(&pool)
-                    .await
-                {
-                    Ok(result) => break result,
-                    Err(async_error) => {
-                        error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Error occurred while Accounts from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
-                        tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
-                            interval *= 2;
-                        }
-                    }
+    let mut interval = crate::INTERVAL;
+    loop {
+        match diesel::insert_into(schema::accounts::table)
+            .values(accounts_models.clone())
+            .on_conflict_do_nothing()
+            .execute_async(&pool)
+            .await
+        {
+            Ok(_) => break,
+            Err(async_error) => {
+                error!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Error occurred while Accounts from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
+                    interval.as_millis(),
+                    async_error,
+                );
+                tokio::time::sleep(interval).await;
+                if interval < crate::MAX_DELAY_TIME {
+                    interval *= 2;
                 }
             }
-        })
-        .collect();
-
-    let mut insert_genesis_accounts = insert_genesis_accounts.enumerate();
-
-    while let Some((index, _result)) = insert_genesis_accounts.next().await {
-        info!(
-            target: crate::INDEXER_FOR_EXPLORER,
-            "Accounts from genesis adding {}%",
-            index * 100 / total_accounts_chunks
-        );
+        }
     }
-
-    info!(
-        target: crate::INDEXER_FOR_EXPLORER,
-        "Accounts from genesis were added/updated successful."
-    );
 }
 
 pub(crate) async fn get_lockup_account_ids_at_block_height(
