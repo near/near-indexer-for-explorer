@@ -140,6 +140,10 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
     }
 }
 
+/// This function will modify the JSON escaping the values
+/// We can not store data with null-bytes in TEXT or JSONB fields
+/// of PostgreSQL
+/// ref: https://www.commandprompt.com/blog/null-characters-workarounds-arent-good-enough/
 fn escape_json(object: &mut serde_json::Value) {
     match object {
         serde_json::Value::Object(ref mut value) => {
@@ -152,7 +156,7 @@ fn escape_json(object: &mut serde_json::Value) {
                 escape_json(element)
             }
         }
-        serde_json::Value::String(ref mut value) => { *value = value.escape_default().to_string() }
+        serde_json::Value::String(ref mut value) => *value = value.escape_default().to_string(),
         _ => {}
     }
 }
