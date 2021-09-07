@@ -38,12 +38,17 @@ pub(crate) struct RunArgs {
     /// Force streaming while node is syncing
     #[clap(long)]
     pub stream_while_syncing: bool,
+    /// Switches indexer to non-strict mode (skips Receipts without parent Transaction hash, stops storing AccountChanges)
     #[clap(long)]
-    pub allow_missing_relations_in_first_blocks: Option<u32>,
-    #[clap(subcommand)]
-    pub sync_mode: SyncModeSubCommand,
+    pub non_strict_mode: bool,
+    /// Stops indexer completely after indexing the provided amount of blocks
+    #[clap(long, short)]
+    pub stop_after_number_of_blocks: Option<u64>,
+    /// Sets the concurrency for indexing. Note: high concurrency level may lead to race conditions
     #[clap(long, default_value = "1")]
     pub concurrency: std::num::NonZeroU16,
+    #[clap(subcommand)]
+    pub sync_mode: SyncModeSubCommand,
 }
 
 #[allow(clippy::enum_variant_names)] // we want commands to be more explicit
@@ -59,7 +64,7 @@ pub(crate) enum SyncModeSubCommand {
 
 #[derive(Clap, Debug, Clone)]
 pub(crate) struct InterruptionArgs {
-    /// start sycing this amount of blocks earlier than actual interruption
+    /// start syncing this amount of blocks earlier than actual interruption
     #[clap(long, default_value = "0")]
     pub delta: u64,
 }

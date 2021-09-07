@@ -96,7 +96,7 @@ async fn find_tx_hashes_for_receipts(
 ) -> HashMap<String, String> {
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
 
-    let mut retries_left: u8 = 10; // retry at least times even in no-strict mode to avoid data loss
+    let mut retries_left: u8 = 4; // retry at least times even in no-strict mode to avoid data loss
     let mut find_tx_retry_interval = crate::INTERVAL;
     loop {
         let data_ids: Vec<String> = receipts

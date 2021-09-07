@@ -96,38 +96,56 @@ async fn handle_message(
         }
     };
 
-    // StateChange related to Account
-    let account_changes_future = db_adapters::account_changes::store_account_changes(
-        &pool,
-        &streamer_message.state_changes,
-        &streamer_message.block.header.hash,
-        streamer_message.block.header.timestamp,
-    );
+    if strict_mode {
+        // StateChange related to Account
+        let account_changes_future = db_adapters::account_changes::store_account_changes(
+            &pool,
+            &streamer_message.state_changes,
+            &streamer_message.block.header.hash,
+            streamer_message.block.header.timestamp,
+        );
 
-    join!(
-        execution_outcomes_future,
-        accounts_future,
-        access_keys_future,
-        account_changes_future,
-    );
+        join!(
+            execution_outcomes_future,
+            accounts_future,
+            access_keys_future,
+            account_changes_future,
+        );
+    } else {
+        join!(
+            execution_outcomes_future,
+            accounts_future,
+            access_keys_future,
+        );
+    }
 }
 
 async fn listen_blocks(
     stream: mpsc::Receiver<near_indexer::StreamerMessage>,
     pool: Database<PgConnection>,
     concurrency: std::num::NonZeroU16,
-    allow_missing_relation_in_start_blocks: Option<u32>,
+    strict_mode: bool,
+    stop_after_number_of_blocks: Option<u64>,
 ) {
     tracing::info!(target: crate::INDEXER_FOR_EXPLORER, "Stream has started");
-    let strict_mode = allow_missing_relation_in_start_blocks.unwrap_or(0);
     let mut handle_messages = tokio_stream::wrappers::ReceiverStream::new(stream)
         .enumerate()
         .map(|(index, streamer_message)| {
+            if let Some(index_to_stop) = stop_after_number_of_blocks {
+                if (index_to_stop) as usize == index {
+                    info!(
+                        target: crate::INDEXER_FOR_EXPLORER,
+                        "Stopping after according to `--stop-after-number-of-blocks {}`",
+                        index_to_stop,
+                    );
+                    std::process::exit(0);
+                }
+            }
             info!(
                 target: crate::INDEXER_FOR_EXPLORER,
                 "Block height {}", &streamer_message.block.header.height
             );
-            handle_message(&pool, streamer_message, index >= strict_mode as usize)
+            handle_message(&pool, streamer_message, strict_mode)
         })
         .buffer_unordered(usize::from(concurrency.get()));
 
@@ -273,7 +291,8 @@ fn main() {
                     stream,
                     pool.clone(),
                     args.concurrency,
-                    args.allow_missing_relations_in_first_blocks,
+                    !args.non_strict_mode,
+                    args.stop_after_number_of_blocks,
                 ));
 
                 // Spawning the computation of aggregated data

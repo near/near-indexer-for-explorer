@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0
+
+* Drop `--allow-missing-relations-in-first-blocks` flag
+* Introduce `--non-strict-mode` which does the same as `--allow-missing-relations-in-first-blocks` flag did but endlessly
+* Add `--stop-after-number-of-blocks <amount>` flag to plan Indexer for Explorer to stop once it indexed the provided `<amount>` of blocks. May be useful for debug or maintenance purposes.
+
+## Breaking changes
+
+* The flag `--allow-missing-relations-in-first-blocks` is not available anymore in favor of `--non-strict-mode` flag
+
 ## 0.9.3
 
 * Escape `args_json` on the fly to avoid null-byte issues
