@@ -4,7 +4,7 @@
 
 * Drop `--allow-missing-relations-in-first-blocks` flag
 * Introduce `--non-strict-mode` which does the same as `--allow-missing-relations-in-first-blocks` flag did but endlessly
-* Add `--stop-after-number-of-blocks <amount>` flag to plan Indexer for Explorer to stop once it indexed the provided `<amount>` of blocks. May be useful for debug or maintenance purposes.
+* Add `--stop-after-number-of-blocks <count>` flag to plan Indexer for Explorer to stop once it indexed the provided `<count>` of blocks. May be useful for debug or maintenance purposes.
 
 ## Breaking changes
 

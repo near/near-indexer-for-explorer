@@ -44,7 +44,7 @@ pub(crate) struct RunArgs {
     /// Stops indexer completely after indexing the provided amount of blocks
     #[clap(long, short)]
     pub stop_after_number_of_blocks: Option<u64>,
-    /// Sets the concurrency for indexing. Note: high concurrency level may lead to race conditions
+    /// Sets the concurrency for indexing. Note: concurrency (set to 2+) may lead to warnings due to tight constraints between transactions and receipts (those will get resolved eventually, but unless it is the second pass of indexing, concurrency won't help at the moment).
     #[clap(long, default_value = "1")]
     pub concurrency: std::num::NonZeroU16,
     #[clap(subcommand)]
@@ -64,7 +64,7 @@ pub(crate) enum SyncModeSubCommand {
 
 #[derive(Clap, Debug, Clone)]
 pub(crate) struct InterruptionArgs {
-    /// start syncing this amount of blocks earlier than actual interruption
+    /// start indexing this number of blocks earlier than the actual interruption happened
     #[clap(long, default_value = "0")]
     pub delta: u64,
 }
