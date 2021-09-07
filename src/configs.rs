@@ -41,7 +41,7 @@ pub(crate) struct RunArgs {
     /// Switches indexer to non-strict mode (skips Receipts without parent Transaction hash, stops storing AccountChanges)
     #[clap(long)]
     pub non_strict_mode: bool,
-    /// Stops indexer completely after indexing the provided amount of blocks
+    /// Stops indexer completely after indexing the provided number of blocks
     #[clap(long, short)]
     pub stop_after_number_of_blocks: Option<u64>,
     /// Sets the concurrency for indexing. Note: concurrency (set to 2+) may lead to warnings due to tight constraints between transactions and receipts (those will get resolved eventually, but unless it is the second pass of indexing, concurrency won't help at the moment).
