@@ -133,7 +133,11 @@ fn collect_ft_operations(
 }
 
 fn should_handle_function(method_name: &str) -> bool {
-    let not_informative_functions = vec!["ft_transfer_call", "ft_on_transfer"];
+    let not_informative_functions = vec![
+        "ft_on_transfer",
+        "ft_resolve_protocol_call", // https://explorer.near.org/transactions/EeRXHaZxm2NLeowkajeC15qgJESVfWewZoxPFdpv1kV4
+        "ft_transfer_call",
+    ];
     method_name.starts_with("ft_") && !not_informative_functions.contains(&method_name)
 }
 
