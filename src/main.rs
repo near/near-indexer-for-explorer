@@ -1,5 +1,5 @@
-use std::convert::{TryFrom, TryInto};
 use clap::Clap;
+use std::convert::{TryFrom, TryInto};
 #[macro_use]
 extern crate diesel;
 
@@ -127,8 +127,8 @@ async fn listen_blocks(
     stop_after_number_of_blocks: Option<u64>,
 ) {
     tracing::info!(target: crate::INDEXER_FOR_EXPLORER, "Stream has started");
-    let handle_messages = tokio_stream::wrappers::ReceiverStream::new(stream)
-        .map(|streamer_message| {
+    let handle_messages =
+        tokio_stream::wrappers::ReceiverStream::new(stream).map(|streamer_message| {
             info!(
                 target: crate::INDEXER_FOR_EXPLORER,
                 "Block height {}", &streamer_message.block.header.height
@@ -136,7 +136,9 @@ async fn listen_blocks(
             handle_message(&pool, streamer_message, strict_mode)
         });
     let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
-        handle_messages.take(stop_after_n_blocks as usize).boxed_local()
+        handle_messages
+            .take(stop_after_n_blocks as usize)
+            .boxed_local()
     } else {
         handle_messages.boxed_local()
     }
@@ -293,7 +295,8 @@ fn main() {
                     args.concurrency,
                     !args.non_strict_mode,
                     args.stop_after_number_of_blocks,
-                ).await;
+                )
+                .await;
 
                 actix::System::current().stop();
             });
