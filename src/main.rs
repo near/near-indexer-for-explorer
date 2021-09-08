@@ -1,5 +1,4 @@
 use std::convert::{TryFrom, TryInto};
-
 use clap::Clap;
 #[macro_use]
 extern crate diesel;
@@ -128,28 +127,25 @@ async fn listen_blocks(
     stop_after_number_of_blocks: Option<u64>,
 ) {
     tracing::info!(target: crate::INDEXER_FOR_EXPLORER, "Stream has started");
-    let mut handle_messages = tokio_stream::wrappers::ReceiverStream::new(stream)
-        .enumerate()
-        .map(|(index, streamer_message)| {
-            if let Some(index_to_stop) = stop_after_number_of_blocks {
-                if (index_to_stop) as usize == index {
-                    info!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Stopping after according to `--stop-after-number-of-blocks {}`",
-                        index_to_stop,
-                    );
-                    std::process::exit(0);
-                }
-            }
+    let handle_messages = tokio_stream::wrappers::ReceiverStream::new(stream)
+        .map(|streamer_message| {
             info!(
                 target: crate::INDEXER_FOR_EXPLORER,
                 "Block height {}", &streamer_message.block.header.height
             );
             handle_message(&pool, streamer_message, strict_mode)
-        })
-        .buffer_unordered(usize::from(concurrency.get()));
+        });
+    let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
+        handle_messages.take(stop_after_n_blocks as usize).boxed_local()
+    } else {
+        handle_messages.boxed_local()
+    }
+    .buffer_unordered(usize::from(concurrency.get()));
 
     while let Some(_handled_message) = handle_messages.next().await {}
+    // Graceful shutdown
+    drop(handle_messages);
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 }
 
 /// Takes `home_dir` and `RunArgs` to build proper IndexerConfig and returns it
@@ -287,16 +283,19 @@ fn main() {
 
                 // Regular indexer process starts here
                 let stream = indexer.streamer();
-                actix::spawn(listen_blocks(
+
+                // Spawning the computation of aggregated data
+                aggregated::spawn_aggregated_computations(pool.clone(), &indexer);
+
+                listen_blocks(
                     stream,
-                    pool.clone(),
+                    pool,
                     args.concurrency,
                     !args.non_strict_mode,
                     args.stop_after_number_of_blocks,
-                ));
+                ).await;
 
-                // Spawning the computation of aggregated data
-                aggregated::spawn_aggregated_computations(pool, &indexer);
+                actix::System::current().stop();
             });
             system.run().unwrap();
         }
