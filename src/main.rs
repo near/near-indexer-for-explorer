@@ -7,7 +7,7 @@ use actix_diesel::Database;
 use diesel::PgConnection;
 use futures::{join, StreamExt};
 use tokio::sync::mpsc;
-use tracing::info;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 use crate::configs::{Opts, SubCommand};
@@ -83,19 +83,19 @@ async fn handle_message(
         }
     };
 
-    // AccessKeys
-    let access_keys_future = async {
-        for shard in &streamer_message.shards {
-            db_adapters::access_keys::handle_access_keys(
-                &pool,
-                &shard.receipt_execution_outcomes,
-                streamer_message.block.header.height,
-            )
-            .await;
-        }
-    };
-
     if strict_mode {
+        // AccessKeys
+        let access_keys_future = async {
+            for shard in &streamer_message.shards {
+                db_adapters::access_keys::handle_access_keys(
+                    &pool,
+                    &shard.receipt_execution_outcomes,
+                    streamer_message.block.header.height,
+                )
+                .await;
+            }
+        };
+
         // StateChange related to Account
         let account_changes_future = db_adapters::account_changes::store_account_changes(
             &pool,
@@ -111,11 +111,7 @@ async fn handle_message(
             account_changes_future,
         );
     } else {
-        join!(
-            execution_outcomes_future,
-            accounts_future,
-            access_keys_future,
-        );
+        join!(execution_outcomes_future, accounts_future,);
     }
 }
 
@@ -124,9 +120,21 @@ async fn listen_blocks(
     pool: Database<PgConnection>,
     concurrency: std::num::NonZeroU16,
     strict_mode: bool,
-    stop_after_number_of_blocks: Option<u64>,
+    stop_after_number_of_blocks: Option<std::num::NonZeroUsize>,
 ) {
-    tracing::info!(target: crate::INDEXER_FOR_EXPLORER, "Stream has started");
+    if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
+        warn!(
+            target: crate::INDEXER_FOR_EXPLORER,
+            "Indexer will stop after indexing {} blocks", stop_after_n_blocks,
+        );
+    }
+    if !strict_mode {
+        warn!(
+            target: crate::INDEXER_FOR_EXPLORER,
+            "Indexer is starting in NON-STRICT mode",
+        );
+    }
+    info!(target: crate::INDEXER_FOR_EXPLORER, "Stream has started");
     let handle_messages =
         tokio_stream::wrappers::ReceiverStream::new(stream).map(|streamer_message| {
             info!(
@@ -137,7 +145,11 @@ async fn listen_blocks(
         });
     let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
         handle_messages
-            .take(stop_after_n_blocks as usize)
+            .take(
+                stop_after_n_blocks
+                    .try_into()
+                    .expect("NonZeroUsize is expected to be converted into `usize`"),
+            )
             .boxed_local()
     } else {
         handle_messages.boxed_local()
@@ -146,8 +158,12 @@ async fn listen_blocks(
 
     while let Some(_handled_message) = handle_messages.next().await {}
     // Graceful shutdown
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Indexer will be shutdown gracefully in 7 seconds...",
+    );
     drop(handle_messages);
-    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(7)).await;
 }
 
 /// Takes `home_dir` and `RunArgs` to build proper IndexerConfig and returns it
