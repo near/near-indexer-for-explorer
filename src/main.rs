@@ -145,11 +145,7 @@ async fn listen_blocks(
         });
     let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
         handle_messages
-            .take(
-                stop_after_n_blocks
-                    .try_into()
-                    .expect("NonZeroUsize is expected to be converted into `usize`"),
-            )
+            .take(stop_after_n_blocks.get())
             .boxed_local()
     } else {
         handle_messages.boxed_local()
