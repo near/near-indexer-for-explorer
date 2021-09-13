@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1
+
+* Upgrade `nearcore` to 1.21.1
+
 ## 0.10.0
 
 * Drop `--allow-missing-relations-in-first-blocks` flag
