@@ -1,6 +1,5 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::PgConnection;
-use tracing::error;
 
 use crate::models;
 use crate::schema;
@@ -24,28 +23,13 @@ pub(crate) async fn store_chunks(
         return;
     }
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::chunks::table)
+    crate::execute_retriable_or_panic!(
+        diesel::insert_into(schema::chunks::table)
             .values(chunk_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Chunks were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &chunk_models
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        100,
+        "storing Chunks to database".to_string(),
+        &chunk_models
+    );
 }

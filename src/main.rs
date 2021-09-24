@@ -17,6 +17,8 @@ mod configs;
 mod db_adapters;
 mod models;
 mod schema;
+#[macro_use]
+mod retriable;
 
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
