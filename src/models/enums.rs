@@ -130,3 +130,13 @@ impl From<&near_indexer::near_primitives::views::StateChangeCauseView> for State
         }
     }
 }
+
+#[derive(Debug, DbEnum, Clone)]
+#[DbValueStyle = "SCREAMING_SNAKE_CASE"]
+#[DieselType = "Nft_event_kind"]
+#[PgType = "nft_event_kind"]
+pub enum NftEventKind {
+    Mint,
+    Transfer,
+    Burn,
+}

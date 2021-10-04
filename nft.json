@@ -1,0 +1,72 @@
+EVENT_JSON:
+  {
+    "standard": "nep171",
+    "version": "1.0.0",
+    "event": "nft_mint",
+    "data": [
+      {
+        "owner_id": "frol.near",
+        "token_ids": [
+          "awesome_token",
+          "nice_token"
+        ],
+        "memo": "some tokens for frol"
+      },
+      {
+        "owner_id": "olga.near",
+        "token_ids": [
+          "cool_token",
+          "wow_token"
+        ]
+      }
+    ]
+  }
+
+EVENT_JSON:
+  {
+    "standard": "nep171",
+    "version": "1.0.0",
+    "event": "nft_transfer",
+    "data": [
+      {
+        "authorized_id": "bohdan.near",
+        "old_owner_id": "frol.near",
+        "new_owner_id": "olga.near",
+        "token_ids": [
+          "nice_token"
+        ],
+        "memo": "because we can"
+      },
+      {
+        "old_owner_id": "olga.near",
+        "new_owner_id": "bohdan.near",
+        "token_ids": [
+          "cool_token",
+          "wow_token"
+        ]
+      }
+    ]
+  }
+
+EVENT_JSON:
+  {
+    "standard": "nep171",
+    "version": "1.0.0",
+    "event": "nft_burn",
+    "data": [
+      {
+        "authorized_id": "olga.near",
+        "owner_id": "bohdan.near",
+        "token_ids": [
+          "cool_token"
+        ],
+        "memo": "good bye"
+      },
+      {
+        "owner_id": "frol.near",
+        "token_ids": [
+          "awesome_token"
+        ]
+      }
+    ]
+  }

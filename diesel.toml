@@ -6,4 +6,4 @@ file = "src/schema.rs"
 patch_file = "src/schema.patch"
 import_types = ["diesel::sql_types::*", "crate::models::enums::*"]
 # Exclicitly setting `only_tables` to avoid technical tables created by diesel to be included in schema
-filter = { only_tables = ["blocks", "chunks", "receipts", "data_receipts", "action_receipts", "action_receipt_actions", "action_receipt_input_data", "action_receipt_output_data", "execution_outcomes", "execution_outcome_receipts", "transactions", "transaction_actions", "accounts", "access_keys", "account_changes","aggregated__circulating_supply"] }
+filter = { only_tables = ["blocks", "chunks", "receipts", "data_receipts", "action_receipts", "action_receipt_actions", "action_receipt_input_data", "action_receipt_output_data", "execution_outcomes", "execution_outcome_receipts", "transactions", "transaction_actions", "accounts", "access_keys", "account_changes", "aggregated__circulating_supply", "assets__non_fungible_token_events"] }

@@ -43,6 +43,7 @@ pub async fn store_execution_outcomes_for_chunk(
         "Parent Receipt for ExecutionOutcome was fetched".to_string(),
         &execution_outcomes
     )
+    .unwrap_or_default()
     .into_iter()
     .collect();
 
