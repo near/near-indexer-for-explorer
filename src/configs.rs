@@ -76,11 +76,11 @@ pub(crate) struct BlockArgs {
     pub height: u64,
 }
 
-impl TryFrom<RunArgs> for near_indexer::SyncModeEnum {
+impl TryFrom<SyncModeSubCommand> for near_indexer::SyncModeEnum {
     type Error = &'static str;
 
-    fn try_from(run_args: RunArgs) -> Result<Self, Self::Error> {
-        match run_args.sync_mode {
+    fn try_from(sync_mode: SyncModeSubCommand) -> Result<Self, Self::Error> {
+        match sync_mode {
             SyncModeSubCommand::SyncFromInterruption(_) => Err("Unable to convert SyncFromInterruption variant because it has additional parameter which is not acceptable by near_indexer::SyncModeEnum::SyncFromInterruption"),
             SyncModeSubCommand::SyncFromLatest => Ok(Self::LatestSynced),
             SyncModeSubCommand::SyncFromBlock(args) => Ok(Self::BlockHeight(args.height)),

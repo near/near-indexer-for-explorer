@@ -30,6 +30,9 @@ pub(crate) async fn store_block(
 pub(crate) async fn latest_block_height(
     pool: &actix_diesel::Database<PgConnection>,
 ) -> Result<Option<u64>, String> {
+    tracing::debug!(target: crate::INDEXER_FOR_EXPLORER,
+        "fetching latest"
+    );
     Ok(schema::blocks::table
         .select((schema::blocks::dsl::block_height,))
         .order(schema::blocks::dsl::block_height.desc())

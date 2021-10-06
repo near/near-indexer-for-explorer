@@ -1,5 +1,5 @@
 use clap::Clap;
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 #[macro_use]
 extern crate diesel;
 
@@ -171,72 +171,56 @@ async fn construct_near_indexer_config(
     args: configs::RunArgs,
 ) -> near_indexer::IndexerConfig {
     // Extract await mode to avoid duplication
-    let await_for_node_synced = if args.stream_while_syncing {
-        near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-    } else {
-        near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-    };
-    // If sync_mode is SyncFromInterruption we need to check delta and find the latest known
-    // block, otherwise we build IndexerConfig as usual
-    if let configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) = args.sync_mode {
-        // If delta is 0 we just return IndexerConfig with sync_mode FromInterruption
-        // without any changes
-        if interruption_args.delta == 0 {
-            return near_indexer::IndexerConfig {
-                home_dir,
-                sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                await_for_node_synced,
-            };
+    info!(target: crate::INDEXER_FOR_EXPLORER,
+        "construct_near_indexer_config"
+    );
+    let sync_mode: near_indexer::SyncModeEnum = match args.sync_mode {
+        configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) if interruption_args.delta == 1 => {
+            info!(target: crate::INDEXER_FOR_EXPLORER,
+                "got from interruption"
+            );
+            // If delta is 0 we just return IndexerConfig with sync_mode FromInterruption
+            // without any changes
+            near_indexer::SyncModeEnum::FromInterruption
         }
+        configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) => {
+            info!(target: crate::INDEXER_FOR_EXPLORER,
+                "got from interruption"
+            );
+            info!(target: crate::INDEXER_FOR_EXPLORER,
+                "delta is non zero, calculating..."
+            );
 
-        let latest_block_height = match db_adapters::blocks::latest_block_height(&pool).await {
-            Ok(Some(height)) => height,
-            Ok(None) => {
-                // In case of None we fall down in simple FormInterruption config
-                tracing::warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "latest_block_height() returned None. Constructing IndexerConfig to sync from interruption without correction...",
-                );
-                return near_indexer::IndexerConfig {
-                    home_dir,
-                    sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                    await_for_node_synced,
-                };
-            }
-            Err(error_message) => {
-                // If we can't get latest block height we fall down in simple FromInterruption config
-                tracing::warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "latest_block_height() failed with {}. Constructing IndexerConfig to sync from interruption without correction...",
-                    error_message
-                );
-                return near_indexer::IndexerConfig {
-                    home_dir,
-                    sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                    await_for_node_synced,
-                };
-            }
-        };
+            db_adapters::blocks::latest_block_height(&pool)
+                .await
+                .ok()
+                .map(|latest_block_height|
+                    if let Some(height) = latest_block_height {
+                        near_indexer::SyncModeEnum::BlockHeight(
+                            height.saturating_sub(interruption_args.delta)
+                        )
+                    } else {
+                        near_indexer::SyncModeEnum::FromInterruption
+                    }
+                )
+                .unwrap_or_else(|| near_indexer::SyncModeEnum::FromInterruption)
+        }
+        configs::SyncModeSubCommand::SyncFromBlock(block_args) => {
+            near_indexer::SyncModeEnum::BlockHeight(block_args.height)
+        }
+        configs::SyncModeSubCommand::SyncFromLatest => {
+            near_indexer::SyncModeEnum::LatestSynced
+        }
+    };
 
-        let sync_from_block_height = latest_block_height - interruption_args.delta;
-
-        // When we have calculated the block to sync from we return IndexerConfig
-        // with actually different sync_mode
-        return near_indexer::IndexerConfig {
-            home_dir,
-            sync_mode: near_indexer::SyncModeEnum::BlockHeight(sync_from_block_height),
-            await_for_node_synced: if args.stream_while_syncing {
-                near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-            } else {
-                near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-            },
-        };
-    } else {
-        return near_indexer::IndexerConfig {
-            home_dir,
-            sync_mode: args.clone().try_into().expect("Error in run arguments"),
-            await_for_node_synced,
-        };
+    near_indexer::IndexerConfig {
+        home_dir,
+        sync_mode,
+        await_for_node_synced: if args.stream_while_syncing {
+            near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+        } else {
+            near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+        },
     }
 }
 
