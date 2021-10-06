@@ -23,13 +23,13 @@ pub(crate) async fn store_chunks(
         return;
     }
 
-    crate::execute_retriable_or_panic!(
+    crate::await_retry_or_panic!(
         diesel::insert_into(schema::chunks::table)
             .values(chunk_models.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool),
-        100,
-        "storing Chunks to database".to_string(),
+        10,
+        "Chunks were stored to database".to_string(),
         &chunk_models
     );
 }

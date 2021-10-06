@@ -15,13 +15,13 @@ pub(crate) async fn store_block(
 ) {
     let block_model = models::blocks::Block::from(block);
 
-    crate::execute_retriable_or_panic!(
+    crate::await_retry_or_panic!(
         diesel::insert_into(schema::blocks::table)
             .values(block_model.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool),
-        100,
-        "the Block were added to database".to_string(),
+        10,
+        "Block was stored to database".to_string(),
         &block_model
     );
 }

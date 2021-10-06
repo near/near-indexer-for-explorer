@@ -1,7 +1,6 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::PgConnection;
 use futures::future::join_all;
-use tracing::error;
 
 use crate::models;
 use crate::schema;
@@ -57,30 +56,15 @@ async fn store_chunk_transactions(
         })
         .collect();
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::transactions::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::transactions::table)
             .values(transaction_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Transaction were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &transaction_models
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        10,
+        "Transactions were stored in database".to_string(),
+        &transaction_models
+    );
 
     let transaction_action_models: Vec<models::TransactionAction> = transactions
         .into_iter()
@@ -99,28 +83,13 @@ async fn store_chunk_transactions(
         })
         .collect();
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::transaction_actions::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::transaction_actions::table)
             .values(transaction_action_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while TransactionAction were adding to database. Retrying in {} milliseconds... \n {:#?} \n{:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &transaction_action_models,
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        10,
+        "TransactionActions were stored in database".to_string(),
+        &transaction_action_models
+    );
 }

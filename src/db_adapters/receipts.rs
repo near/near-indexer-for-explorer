@@ -181,9 +181,8 @@ async fn find_tx_hashes_for_receipts(
             });
         }
 
-        let mut interval = crate::INTERVAL;
-        let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = loop {
-            match schema::execution_outcome_receipts::table
+        let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = crate::await_retry_or_panic!(
+            schema::execution_outcome_receipts::table
                 .inner_join(
                     schema::receipts::table
                         .on(schema::execution_outcome_receipts::dsl::executed_receipt_id
@@ -206,26 +205,11 @@ async fn find_tx_hashes_for_receipts(
                     schema::execution_outcome_receipts::dsl::produced_receipt_id,
                     schema::receipts::dsl::originated_from_transaction_hash,
                 ))
-                .load_async(&pool)
-                .await
-            {
-                Ok(res) => {
-                    break res;
-                }
-                Err(async_error) => {
-                    error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
-                        interval.as_millis(),
-                        async_error,
-                    );
-                    tokio::time::sleep(interval).await;
-                    if interval < crate::MAX_DELAY_TIME {
-                        interval *= 2;
-                    }
-                }
-            }
-        };
+                .load_async::<(String, String)>(&pool),
+            10,
+            "Parent Transaction for Receipts were fetched".to_string(),
+            &receipts
+        );
 
         let found_hashes_len = tx_hashes_for_receipts_via_outcomes.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
@@ -237,9 +221,8 @@ async fn find_tx_hashes_for_receipts(
         receipts
             .retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
 
-        let mut interval = crate::INTERVAL;
-        let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = loop {
-            match schema::transactions::table
+        let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = crate::await_retry_or_panic!(
+            schema::transactions::table
                 .filter(
                     schema::transactions::dsl::converted_into_receipt_id.eq(any(receipts
                         .clone()
@@ -257,26 +240,11 @@ async fn find_tx_hashes_for_receipts(
                     schema::transactions::dsl::converted_into_receipt_id,
                     schema::transactions::dsl::transaction_hash,
                 ))
-                .load_async(&pool)
-                .await
-            {
-                Ok(res) => {
-                    break res;
-                }
-                Err(async_error) => {
-                    error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while fetching the parent transaction for ExecutionOutcome. Retrying in {} milliseconds... \n {:#?}",
-                        interval.as_millis(),
-                        async_error,
-                    );
-                    tokio::time::sleep(interval).await;
-                    if interval < crate::MAX_DELAY_TIME {
-                        interval *= 2;
-                    }
-                }
-            }
-        };
+                .load_async::<(String, String)>(&pool),
+            10,
+            "Parent Transaction for ExecutionOutcome were fetched".to_string(),
+            &receipts
+        );
 
         let found_hashes_len = tx_hashes_for_receipt_via_transactions.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_transactions);
@@ -316,30 +284,15 @@ async fn save_receipts(
     pool: &actix_diesel::Database<PgConnection>,
     receipts: Vec<models::Receipt>,
 ) {
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::receipts::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::receipts::table)
             .values(receipts.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Receipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n{:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    receipts,
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        };
-    }
+            .execute_async(&pool),
+        10,
+        "Receipts were stored in database".to_string(),
+        &receipts
+    );
 }
 
 async fn store_receipt_actions(
@@ -418,105 +371,45 @@ async fn store_receipt_actions(
         .flatten()
         .collect();
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::action_receipts::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::action_receipts::table)
             .values(receipt_actions.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptActions were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &receipt_actions,
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        };
-    }
+            .execute_async(&pool),
+        10,
+        "ReceiptActions were stored in database".to_string(),
+        &receipt_actions
+    );
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::action_receipt_actions::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::action_receipt_actions::table)
             .values(receipt_action_actions.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptActionActions were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &receipt_action_actions
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        };
-    }
+            .execute_async(&pool),
+        10,
+        "ReceiptActionActions were stored in database".to_string(),
+        &receipt_action_actions
+    );
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::action_receipt_output_data::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::action_receipt_output_data::table)
             .values(receipt_action_output_data.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptActionOutputData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &receipt_action_output_data
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        };
-    }
+            .execute_async(&pool),
+        10,
+        "ReceiptActionOutputData were stored in database".to_string(),
+        &receipt_action_output_data
+    );
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::action_receipt_input_data::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::action_receipt_input_data::table)
             .values(receipt_action_input_data.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptActionInputData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &receipt_action_input_data
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        };
-    }
+            .execute_async(&pool),
+        10,
+        "ReceiptActionInputData were stored in database".to_string(),
+        &receipt_action_input_data
+    );
 }
 
 async fn store_receipt_data(
@@ -528,28 +421,13 @@ async fn store_receipt_data(
         .filter_map(|receipt| models::DataReceipt::try_from(*receipt).ok())
         .collect();
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::data_receipts::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::data_receipts::table)
             .values(receipt_data_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ReceiptData were saving. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &receipt_data_models
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        };
-    }
+            .execute_async(&pool),
+        10,
+        "ReceiptData were stored in database".to_string(),
+        &receipt_data_models
+    );
 }

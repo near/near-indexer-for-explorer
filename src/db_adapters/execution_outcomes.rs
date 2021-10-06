@@ -1,6 +1,5 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
-use tracing::error;
 
 use crate::models;
 use crate::schema;
@@ -29,9 +28,8 @@ pub async fn store_execution_outcomes_for_chunk(
     shard_id: near_indexer::near_primitives::types::ShardId,
     block_timestamp: u64,
 ) {
-    let mut interval = crate::INTERVAL;
-    let known_receipt_ids: std::collections::HashSet<String> = loop {
-        match schema::receipts::table
+    let known_receipt_ids: std::collections::HashSet<String> = crate::await_retry_or_panic!(
+        schema::receipts::table
             .filter(
                 schema::receipts::dsl::receipt_id.eq(any(execution_outcomes
                     .iter()
@@ -39,26 +37,13 @@ pub async fn store_execution_outcomes_for_chunk(
                     .collect::<Vec<_>>())),
             )
             .select(schema::receipts::dsl::receipt_id)
-            .load_async(&pool)
-            .await
-        {
-            Ok(res) => {
-                break res.into_iter().collect();
-            }
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while fetching the parent receipt for ExecutionOutcome. Retrying in {} milliseconds... \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    };
+            .load_async::<String>(&pool),
+        10,
+        "Parent Receipt for ExecutionOutcome was fetched".to_string(),
+        &execution_outcomes
+    )
+    .into_iter()
+    .collect();
 
     let mut outcome_models: Vec<models::execution_outcomes::ExecutionOutcome> = vec![];
     let mut outcome_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> =
@@ -93,53 +78,23 @@ pub async fn store_execution_outcomes_for_chunk(
         );
     }
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::execution_outcomes::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::execution_outcomes::table)
             .values(outcome_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ExecutionOutcome were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &outcome_models,
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        10,
+        "ExecutionOutcomes were stored in database".to_string(),
+        &outcome_models
+    );
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::execution_outcome_receipts::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::execution_outcome_receipts::table)
             .values(outcome_receipt_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while ExecutionOutcomeReceipt were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &outcome_receipt_models
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        10,
+        "ExecutionOutcomeReceipts were stored in database".to_string(),
+        &outcome_receipt_models
+    );
 }
