@@ -6,7 +6,7 @@ use actix_diesel::Database;
 use anyhow::Context;
 use bigdecimal::BigDecimal;
 use diesel::{BoolExpressionMethods, ExpressionMethods, PgConnection, QueryDsl};
-use futures::join;
+use futures::try_join;
 
 use tracing::info;
 
@@ -20,9 +20,9 @@ pub(crate) async fn handle_accounts(
     pool: &actix_diesel::Database<PgConnection>,
     outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
-) {
+) -> anyhow::Result<()> {
     if outcomes.is_empty() {
-        return;
+        return Ok(());
     }
     let successful_receipts = outcomes
         .iter()
@@ -115,6 +115,7 @@ pub(crate) async fn handle_accounts(
                 &value.account_id
             );
         }
+        Ok(())
     };
 
     let create_or_update_accounts_future = async {
@@ -191,17 +192,19 @@ pub(crate) async fn handle_accounts(
                 &value.account_id
             );
         }
+        Ok(())
     };
 
     // Joining it unless we can't execute it in the correct order
     // see https://github.com/nearprotocol/nearcore/issues/3467
-    join!(delete_accounts_future, create_or_update_accounts_future);
+    try_join!(delete_accounts_future, create_or_update_accounts_future)?;
+    Ok(())
 }
 
 pub(crate) async fn store_accounts_from_genesis(
     pool: Database<PgConnection>,
     accounts_models: Vec<models::accounts::Account>,
-) {
+) -> anyhow::Result<()> {
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Adding/updating accounts from genesis..."
@@ -216,6 +219,8 @@ pub(crate) async fn store_accounts_from_genesis(
         "Accounts were stored from genesis".to_string(),
         &accounts_models
     );
+
+    Ok(())
 }
 
 pub(crate) async fn get_lockup_account_ids_at_block_height(

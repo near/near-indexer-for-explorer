@@ -5,7 +5,7 @@ use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::Database;
 use bigdecimal::BigDecimal;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
-use futures::join;
+use futures::try_join;
 use tracing::info;
 
 use near_indexer::near_primitives;
@@ -17,9 +17,9 @@ pub(crate) async fn handle_access_keys(
     pool: &actix_diesel::Database<PgConnection>,
     outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
-) {
+) -> anyhow::Result<()> {
     if outcomes.is_empty() {
-        return;
+        return Ok(());
     }
     let successful_receipts = outcomes
         .iter()
@@ -150,6 +150,7 @@ pub(crate) async fn handle_access_keys(
                 &deleted_by_receipt_id
             );
         }
+        Ok(())
     };
 
     let update_access_keys_future = async {
@@ -176,6 +177,7 @@ pub(crate) async fn handle_access_keys(
                 &value.public_key
             );
         }
+        Ok(())
     };
 
     let add_access_keys_future = async {
@@ -214,19 +216,22 @@ pub(crate) async fn handle_access_keys(
                 &value.public_key
             );
         }
+        Ok(())
     };
 
-    join!(
+    try_join!(
         delete_access_keys_for_deleted_accounts,
         update_access_keys_future,
         add_access_keys_future
-    );
+    )?;
+
+    Ok(())
 }
 
 pub(crate) async fn store_access_keys_from_genesis(
     pool: Database<PgConnection>,
     access_keys_models: Vec<models::access_keys::AccessKey>,
-) {
+) -> anyhow::Result<()> {
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Adding/updating access keys from genesis..."
@@ -241,4 +246,5 @@ pub(crate) async fn store_access_keys_from_genesis(
         "AccessKeys were stored from genesis".to_string(),
         &access_keys_models
     );
+    Ok(())
 }

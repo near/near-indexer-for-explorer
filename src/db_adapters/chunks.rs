@@ -9,9 +9,9 @@ pub(crate) async fn store_chunks(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_indexer::IndexerShard],
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
-) {
+) -> anyhow::Result<()> {
     if shards.is_empty() {
-        return;
+        return Ok(());
     }
     let chunk_models: Vec<models::chunks::Chunk> = shards
         .iter()
@@ -20,7 +20,7 @@ pub(crate) async fn store_chunks(
         .collect();
 
     if chunk_models.is_empty() {
-        return;
+        return Ok(());
     }
 
     crate::await_retry_or_panic!(
@@ -32,4 +32,5 @@ pub(crate) async fn store_chunks(
         "Chunks were stored to database".to_string(),
         &chunk_models
     );
+    Ok(())
 }

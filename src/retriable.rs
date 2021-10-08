@@ -7,9 +7,11 @@ macro_rules! await_retry_or_panic {
             loop {
                 retry_attempt += 1;
                 if retry_attempt == $number_of_retries {
-                    panic!(
-                        "Failed to perform query to database after {} attempts. Stop trying.",
-                        $number_of_retries
+                    return Err(
+                        anyhow::anyhow!(
+                            "Failed to perform query to database after {} attempts. Stop trying.",
+                            $number_of_retries
+                        )
                     );
                 }
                 match $query.await {

@@ -12,7 +12,7 @@ use crate::schema;
 pub(crate) async fn store_block(
     pool: &actix_diesel::Database<PgConnection>,
     block: &near_primitives::views::BlockView,
-) {
+) -> anyhow::Result<()> {
     let block_model = models::blocks::Block::from(block);
 
     crate::await_retry_or_panic!(
@@ -24,15 +24,14 @@ pub(crate) async fn store_block(
         "Block was stored to database".to_string(),
         &block_model
     );
+    Ok(())
 }
 
 /// Gets the latest block's height from database
 pub(crate) async fn latest_block_height(
     pool: &actix_diesel::Database<PgConnection>,
 ) -> Result<Option<u64>, String> {
-    tracing::debug!(target: crate::INDEXER_FOR_EXPLORER,
-        "fetching latest"
-    );
+    tracing::debug!(target: crate::INDEXER_FOR_EXPLORER, "fetching latest");
     Ok(schema::blocks::table
         .select((schema::blocks::dsl::block_height,))
         .order(schema::blocks::dsl::block_height.desc())

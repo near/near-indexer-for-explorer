@@ -41,7 +41,7 @@ async fn store_chunk_transactions(
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_hash: &str,
     block_timestamp: u64,
-) {
+) -> anyhow::Result<()> {
     let transaction_models: Vec<models::transactions::Transaction> = transactions
         .iter()
         .enumerate()
@@ -92,4 +92,6 @@ async fn store_chunk_transactions(
         "TransactionActions were stored in database".to_string(),
         &transaction_action_models
     );
+
+    Ok(())
 }

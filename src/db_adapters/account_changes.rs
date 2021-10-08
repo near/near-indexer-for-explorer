@@ -10,9 +10,9 @@ pub(crate) async fn store_account_changes(
     state_changes: &[near_indexer::near_primitives::views::StateChangeWithCauseView],
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
-) {
+) -> anyhow::Result<()> {
     if state_changes.is_empty() {
-        return;
+        return Ok(());
     }
 
     let account_changes_models: Vec<models::account_changes::AccountChange> = state_changes
@@ -37,4 +37,5 @@ pub(crate) async fn store_account_changes(
         "AccountChanges were stored in database".to_string(),
         &account_changes_models
     );
+    Ok(())
 }

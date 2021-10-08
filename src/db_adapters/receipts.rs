@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::pg::expression::array_comparison::any;
 use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
-use futures::join;
+use futures::try_join;
 use num_traits::cast::FromPrimitive;
 use tracing::{error, warn};
 
@@ -19,9 +19,9 @@ pub(crate) async fn store_receipts(
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
-) {
+) -> anyhow::Result<()> {
     if receipts.is_empty() {
-        return;
+        return Ok(());
     }
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
@@ -33,7 +33,7 @@ pub(crate) async fn store_receipts(
         block_hash,
         chunk_hash,
     )
-    .await;
+    .await?;
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
         .enumerate()
@@ -63,7 +63,7 @@ pub(crate) async fn store_receipts(
         })
         .collect();
 
-    save_receipts(&pool, receipt_models).await;
+    save_receipts(&pool, receipt_models).await?;
 
     let (action_receipts, data_receipts): (
         Vec<&near_indexer::near_primitives::views::ReceiptView>,
@@ -83,7 +83,9 @@ pub(crate) async fn store_receipts(
 
     let process_receipt_data_future = store_receipt_data(&pool, data_receipts);
 
-    join!(process_receipt_actions_future, process_receipt_data_future);
+    try_join!(process_receipt_actions_future, process_receipt_data_future)?;
+
+    Ok(())
 }
 
 /// Looks for already created parent transaction hash for given receipts
@@ -93,7 +95,7 @@ async fn find_tx_hashes_for_receipts(
     strict_mode: bool,
     block_hash: &str,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
-) -> HashMap<String, String> {
+) -> anyhow::Result<HashMap<String, String>> {
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
 
     let mut retries_left: u8 = 4; // retry at least times even in no-strict mode to avoid data loss
@@ -277,13 +279,13 @@ async fn find_tx_hashes_for_receipts(
         }
     }
 
-    tx_hashes_for_receipts
+    Ok(tx_hashes_for_receipts)
 }
 
 async fn save_receipts(
     pool: &actix_diesel::Database<PgConnection>,
     receipts: Vec<models::Receipt>,
-) {
+) -> anyhow::Result<()> {
     crate::await_retry_or_panic!(
         diesel::insert_into(schema::receipts::table)
             .values(receipts.clone())
@@ -293,13 +295,14 @@ async fn save_receipts(
         "Receipts were stored in database".to_string(),
         &receipts
     );
+    Ok(())
 }
 
 async fn store_receipt_actions(
     pool: &actix_diesel::Database<PgConnection>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
     block_timestamp: u64,
-) {
+) -> anyhow::Result<()> {
     let receipt_actions: Vec<models::ActionReceipt> = receipts
         .iter()
         .filter_map(|receipt| models::ActionReceipt::try_from(*receipt).ok())
@@ -410,12 +413,14 @@ async fn store_receipt_actions(
         "ReceiptActionInputData were stored in database".to_string(),
         &receipt_action_input_data
     );
+
+    Ok(())
 }
 
 async fn store_receipt_data(
     pool: &actix_diesel::Database<PgConnection>,
     receipts: Vec<&near_indexer::near_primitives::views::ReceiptView>,
-) {
+) -> anyhow::Result<()> {
     let receipt_data_models: Vec<models::DataReceipt> = receipts
         .iter()
         .filter_map(|receipt| models::DataReceipt::try_from(*receipt).ok())
@@ -430,4 +435,6 @@ async fn store_receipt_data(
         "ReceiptData were stored in database".to_string(),
         &receipt_data_models
     );
+
+    Ok(())
 }

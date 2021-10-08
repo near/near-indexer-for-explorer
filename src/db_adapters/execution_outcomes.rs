@@ -9,7 +9,7 @@ pub(crate) async fn store_execution_outcomes(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_indexer::IndexerShard],
     block_timestamp: u64,
-) {
+) -> anyhow::Result<()> {
     for shard in shards {
         store_execution_outcomes_for_chunk(
             &pool,
@@ -17,8 +17,9 @@ pub(crate) async fn store_execution_outcomes(
             shard.shard_id,
             block_timestamp,
         )
-        .await;
+        .await?;
     }
+    Ok(())
 }
 
 /// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
@@ -27,7 +28,7 @@ pub async fn store_execution_outcomes_for_chunk(
     execution_outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     shard_id: near_indexer::near_primitives::types::ShardId,
     block_timestamp: u64,
-) {
+) -> anyhow::Result<()> {
     let known_receipt_ids: std::collections::HashSet<String> = crate::await_retry_or_panic!(
         schema::receipts::table
             .filter(
@@ -97,4 +98,6 @@ pub async fn store_execution_outcomes_for_chunk(
         "ExecutionOutcomeReceipts were stored in database".to_string(),
         &outcome_receipt_models
     );
+
+    Ok(())
 }
