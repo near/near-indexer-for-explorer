@@ -109,6 +109,7 @@ pub enum StateChangeReasonKind {
     UpdatedDelayedReceipts,
     ValidatorAccountsUpdate,
     Migration,
+    Resharding,
 }
 
 impl From<&near_indexer::near_primitives::views::StateChangeCauseView> for StateChangeReasonKind {
@@ -124,8 +125,8 @@ impl From<&near_indexer::near_primitives::views::StateChangeCauseView> for State
             near_indexer::near_primitives::views::StateChangeCauseView::UpdatedDelayedReceipts { .. } => Self::UpdatedDelayedReceipts,
             near_indexer::near_primitives::views::StateChangeCauseView::ValidatorAccountsUpdate { .. } => Self::ValidatorAccountsUpdate,
             near_indexer::near_primitives::views::StateChangeCauseView::Migration { .. } => Self::Migration,
+            near_indexer::near_primitives::views::StateChangeCauseView::Resharding { .. } => Self::Resharding,
             near_indexer::near_primitives::views::StateChangeCauseView::NotWritableToDisk | near_indexer::near_primitives::views::StateChangeCauseView::InitialState => panic!("Unexpected variant {:?} received", state_change_cause_view),
-
         }
     }
 }

@@ -3,8 +3,8 @@ use bigdecimal::BigDecimal;
 use crate::schema;
 use schema::aggregated__circulating_supply;
 
-#[table_name = "aggregated__circulating_supply"]
 #[derive(Insertable, Queryable, Clone, Debug)]
+#[table_name = "aggregated__circulating_supply"]
 pub struct CirculatingSupply {
     pub computed_at_block_timestamp: BigDecimal,
     pub computed_at_block_hash: String,
