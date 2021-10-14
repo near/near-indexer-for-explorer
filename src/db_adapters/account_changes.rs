@@ -1,6 +1,5 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::PgConnection;
-use tracing::error;
 
 use crate::models;
 use crate::schema;
@@ -11,9 +10,9 @@ pub(crate) async fn store_account_changes(
     state_changes: &[near_indexer::near_primitives::views::StateChangeWithCauseView],
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
-) {
+) -> anyhow::Result<()> {
     if state_changes.is_empty() {
-        return;
+        return Ok(());
     }
 
     let account_changes_models: Vec<models::account_changes::AccountChange> = state_changes
@@ -29,28 +28,14 @@ pub(crate) async fn store_account_changes(
         })
         .collect();
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::account_changes::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::account_changes::table)
             .values(account_changes_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while AccountChanges were adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &account_changes_models
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        10,
+        "AccountChanges were stored in database".to_string(),
+        &account_changes_models
+    );
+    Ok(())
 }

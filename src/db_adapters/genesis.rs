@@ -42,7 +42,7 @@ where
 pub(crate) async fn store_genesis_records(
     pool: Database<PgConnection>,
     near_config: near_indexer::NearConfig,
-) {
+) -> anyhow::Result<()> {
     tracing::info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Storing genesis records to database...",
@@ -65,18 +65,22 @@ pub(crate) async fn store_genesis_records(
                 let mut accounts_to_store_chunk = vec![];
                 std::mem::swap(&mut accounts_to_store, &mut accounts_to_store_chunk);
                 let pool = pool.clone();
-                block_on(actix_arbiter, async move {
-                    store_accounts_from_genesis(pool, accounts_to_store_chunk).await;
-                })
+                block_on(
+                    actix_arbiter,
+                    store_accounts_from_genesis(pool, accounts_to_store_chunk),
+                )
+                .expect("storing accounts from genesis failed")
                 .expect("storing accounts from genesis failed");
             }
             if access_keys_to_store.len() == 5_000 {
                 let mut access_keys_to_store_chunk = vec![];
                 std::mem::swap(&mut access_keys_to_store, &mut access_keys_to_store_chunk);
                 let pool = pool.clone();
-                block_on(actix_arbiter, async move {
-                    store_access_keys_from_genesis(pool, access_keys_to_store_chunk).await;
-                })
+                block_on(
+                    actix_arbiter,
+                    store_access_keys_from_genesis(pool, access_keys_to_store_chunk),
+                )
+                .expect("storing access keys from genesis failed")
                 .expect("storing access keys from genesis failed");
             }
 
@@ -105,18 +109,21 @@ pub(crate) async fn store_genesis_records(
                 _ => {}
             };
         });
-        block_on(actix_arbiter, async move {
-            // Store leftovers vectors if their sizes are less than 5_000
-            store_accounts_from_genesis(pool.clone(), accounts_to_store).await;
-            store_access_keys_from_genesis(pool, access_keys_to_store).await;
-        })
-        .expect("storing leftover accounts and access keys from genesis failed");
+
+        let fut = || async move {
+            store_accounts_from_genesis(pool.clone(), accounts_to_store).await?;
+            store_access_keys_from_genesis(pool, access_keys_to_store).await?;
+            anyhow::Result::<()>::Ok(())
+        };
+        block_on(actix_arbiter, fut())
+            .expect("storing leftover accounts and access keys from genesis failed")
+            .expect("storing leftover accounts and access keys from genesis failed");
     })
-    .await
-    .expect("storing genesis records failed");
+    .await?;
 
     tracing::info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Genesis records has been stored.",
     );
+    Ok(())
 }

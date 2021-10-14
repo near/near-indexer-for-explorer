@@ -2,7 +2,6 @@ use actix_diesel::dsl::AsyncRunQueryDsl;
 use anyhow::Context;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
-use tracing::error;
 
 use near_indexer::near_primitives;
 
@@ -13,39 +12,26 @@ use crate::schema;
 pub(crate) async fn store_block(
     pool: &actix_diesel::Database<PgConnection>,
     block: &near_primitives::views::BlockView,
-) {
+) -> anyhow::Result<()> {
     let block_model = models::blocks::Block::from(block);
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::blocks::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::blocks::table)
             .values(block_model.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Block was adding to database. Retrying in {} milliseconds... \n {:#?} \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                    &block_model
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        10,
+        "Block was stored to database".to_string(),
+        &block_model
+    );
+    Ok(())
 }
 
 /// Gets the latest block's height from database
 pub(crate) async fn latest_block_height(
     pool: &actix_diesel::Database<PgConnection>,
 ) -> Result<Option<u64>, String> {
+    tracing::debug!(target: crate::INDEXER_FOR_EXPLORER, "fetching latest");
     Ok(schema::blocks::table
         .select((schema::blocks::dsl::block_height,))
         .order(schema::blocks::dsl::block_height.desc())

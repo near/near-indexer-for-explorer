@@ -6,9 +6,9 @@ use actix_diesel::Database;
 use anyhow::Context;
 use bigdecimal::BigDecimal;
 use diesel::{BoolExpressionMethods, ExpressionMethods, PgConnection, QueryDsl};
-use futures::join;
+use futures::try_join;
 
-use tracing::{error, info};
+use tracing::info;
 
 use near_indexer::near_primitives;
 
@@ -20,9 +20,9 @@ pub(crate) async fn handle_accounts(
     pool: &actix_diesel::Database<PgConnection>,
     outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
-) {
+) -> anyhow::Result<()> {
     if outcomes.is_empty() {
-        return;
+        return Ok(());
     }
     let successful_receipts = outcomes
         .iter()
@@ -95,66 +95,39 @@ pub(crate) async fn handle_accounts(
     let delete_accounts_future = async {
         for value in accounts_to_delete {
             let target = schema::accounts::table
-                .filter(schema::accounts::dsl::account_id.eq(value.account_id))
+                .filter(schema::accounts::dsl::account_id.eq(value.account_id.clone()))
                 .filter(
                     schema::accounts::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 );
 
-            let mut interval = crate::INTERVAL;
-            loop {
-                match diesel::update(target.clone())
+            crate::await_retry_or_panic!(
+                diesel::update(target.clone())
                     .set((
                         schema::accounts::dsl::deleted_by_receipt_id
                             .eq(value.deleted_by_receipt_id.clone()),
                         schema::accounts::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool)
-                    .await
-                {
-                    Ok(_) => break,
-                    Err(async_error) => {
-                        error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Error occurred while updating Account. Retry in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
-                        tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
-                            interval *= 2;
-                        }
-                    }
-                }
-            }
+                    .execute_async(&pool),
+                10,
+                "Accounts were deleted".to_string(),
+                &value.account_id
+            );
         }
+        Ok(())
     };
 
     let create_or_update_accounts_future = async {
-        let mut interval = crate::INTERVAL;
-        loop {
-            match diesel::insert_into(schema::accounts::table)
+        crate::await_retry_or_panic!(
+            diesel::insert_into(schema::accounts::table)
                 .values(accounts_to_create_or_update.clone())
                 .on_conflict_do_nothing()
-                .execute_async(&pool)
-                .await
-            {
-                Ok(_) => break,
-                Err(async_error) => {
-                    error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while Accounts were adding to database. Retrying in {} milliseconds... \n {:#?}",
-                        interval.as_millis(),
-                        async_error,
-                    );
-                    tokio::time::sleep(interval).await;
-                    if interval < crate::MAX_DELAY_TIME {
-                        interval *= 2;
-                    }
-                }
-            }
-        }
+                .execute_async(&pool),
+            10,
+            "Accounts were created/updated".to_string(),
+            &accounts_to_create_or_update
+        );
 
         // [Implicit accounts](https://docs.near.org/docs/roles/integrator/implicit-accounts)
         // pretend to be created on each transfer to these accounts and cause some confusion
@@ -171,15 +144,15 @@ pub(crate) async fn handle_accounts(
 
         for value in implicit_accounts_to_recreate {
             let target = schema::accounts::table
-                .filter(schema::accounts::dsl::account_id.eq(value.account_id))
+                .filter(schema::accounts::dsl::account_id.eq(value.account_id.clone()))
                 .filter(schema::accounts::dsl::deleted_by_receipt_id.is_not_null()) // this filter ensures we update only "deleted" accounts
                 .filter(
                     schema::accounts::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 );
 
-            loop {
-                match diesel::update(target.clone())
+            crate::await_retry_or_panic!(
+                diesel::update(target.clone())
                     .set((
                         schema::accounts::dsl::created_by_receipt_id
                             .eq(value.created_by_receipt_id.clone()),
@@ -188,37 +161,23 @@ pub(crate) async fn handle_accounts(
                         schema::accounts::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool)
-                    .await
-                {
-                    Ok(_) => break,
-                    Err(async_error) => {
-                        error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Error occurred while updating Account. Retry in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
-                        tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
-                            interval *= 2;
-                        }
-                    }
-                }
-            }
+                    .execute_async(&pool),
+                10,
+                "Implicit Account were updated".to_string(),
+                &value.account_id
+            );
         }
 
         for value in other_accounts_to_update {
             let target = schema::accounts::table
-                .filter(schema::accounts::dsl::account_id.eq(value.account_id))
+                .filter(schema::accounts::dsl::account_id.eq(value.account_id.clone()))
                 .filter(
                     schema::accounts::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 );
 
-            let mut interval = crate::INTERVAL;
-            loop {
-                match diesel::update(target.clone())
+            crate::await_retry_or_panic!(
+                diesel::update(target.clone())
                     .set((
                         schema::accounts::dsl::created_by_receipt_id
                             .eq(value.created_by_receipt_id.clone()),
@@ -227,64 +186,41 @@ pub(crate) async fn handle_accounts(
                         schema::accounts::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool)
-                    .await
-                {
-                    Ok(_) => break,
-                    Err(async_error) => {
-                        error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Error occurred while updating Account. Retry in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
-                        tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
-                            interval *= 2;
-                        }
-                    }
-                }
-            }
+                    .execute_async(&pool),
+                10,
+                "Account was updated".to_string(),
+                &value.account_id
+            );
         }
+        Ok(())
     };
 
     // Joining it unless we can't execute it in the correct order
     // see https://github.com/nearprotocol/nearcore/issues/3467
-    join!(delete_accounts_future, create_or_update_accounts_future);
+    try_join!(delete_accounts_future, create_or_update_accounts_future)?;
+    Ok(())
 }
 
 pub(crate) async fn store_accounts_from_genesis(
     pool: Database<PgConnection>,
     accounts_models: Vec<models::accounts::Account>,
-) {
+) -> anyhow::Result<()> {
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Adding/updating accounts from genesis..."
     );
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::accounts::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::accounts::table)
             .values(accounts_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while Accounts from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        10,
+        "Accounts were stored from genesis".to_string(),
+        &accounts_models
+    );
+
+    Ok(())
 }
 
 pub(crate) async fn get_lockup_account_ids_at_block_height(

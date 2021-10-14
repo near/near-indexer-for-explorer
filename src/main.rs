@@ -1,11 +1,11 @@
 use clap::Clap;
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 #[macro_use]
 extern crate diesel;
 
 use actix_diesel::Database;
 use diesel::PgConnection;
-use futures::{join, StreamExt};
+use futures::{try_join, StreamExt};
 use tokio::sync::mpsc;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
@@ -17,6 +17,8 @@ mod configs;
 mod db_adapters;
 mod models;
 mod schema;
+#[macro_use]
+mod retriable;
 
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
@@ -29,8 +31,8 @@ async fn handle_message(
     pool: &actix_diesel::Database<PgConnection>,
     streamer_message: near_indexer::StreamerMessage,
     strict_mode: bool,
-) {
-    db_adapters::blocks::store_block(&pool, &streamer_message.block).await;
+) -> anyhow::Result<()> {
+    db_adapters::blocks::store_block(&pool, &streamer_message.block).await?;
 
     // Chunks
     db_adapters::chunks::store_chunks(
@@ -38,7 +40,7 @@ async fn handle_message(
         &streamer_message.shards,
         &streamer_message.block.header.hash,
     )
-    .await;
+    .await?;
 
     // Transaction
     db_adapters::transactions::store_transactions(
@@ -60,7 +62,7 @@ async fn handle_message(
                 streamer_message.block.header.timestamp,
                 strict_mode,
             )
-            .await;
+            .await?;
         }
     }
 
@@ -79,8 +81,9 @@ async fn handle_message(
                 &shard.receipt_execution_outcomes,
                 streamer_message.block.header.height,
             )
-            .await;
+            .await?;
         }
+        Ok(())
     };
 
     if strict_mode {
@@ -92,8 +95,9 @@ async fn handle_message(
                     &shard.receipt_execution_outcomes,
                     streamer_message.block.header.height,
                 )
-                .await;
+                .await?;
             }
+            Ok(())
         };
 
         // StateChange related to Account
@@ -104,15 +108,16 @@ async fn handle_message(
             streamer_message.block.header.timestamp,
         );
 
-        join!(
+        try_join!(
             execution_outcomes_future,
             accounts_future,
             access_keys_future,
             account_changes_future,
-        );
+        )?;
     } else {
-        join!(execution_outcomes_future, accounts_future,);
+        try_join!(execution_outcomes_future, accounts_future,)?;
     }
+    Ok(())
 }
 
 async fn listen_blocks(
@@ -169,72 +174,54 @@ async fn construct_near_indexer_config(
     args: configs::RunArgs,
 ) -> near_indexer::IndexerConfig {
     // Extract await mode to avoid duplication
-    let await_for_node_synced = if args.stream_while_syncing {
-        near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-    } else {
-        near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-    };
-    // If sync_mode is SyncFromInterruption we need to check delta and find the latest known
-    // block, otherwise we build IndexerConfig as usual
-    if let configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) = args.sync_mode {
-        // If delta is 0 we just return IndexerConfig with sync_mode FromInterruption
-        // without any changes
-        if interruption_args.delta == 0 {
-            return near_indexer::IndexerConfig {
-                home_dir,
-                sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                await_for_node_synced,
-            };
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "construct_near_indexer_config"
+    );
+    let sync_mode: near_indexer::SyncModeEnum = match args.sync_mode {
+        configs::SyncModeSubCommand::SyncFromInterruption(interruption_args)
+            if interruption_args.delta == 1 =>
+        {
+            info!(target: crate::INDEXER_FOR_EXPLORER, "got from interruption");
+            // If delta is 0 we just return IndexerConfig with sync_mode FromInterruption
+            // without any changes
+            near_indexer::SyncModeEnum::FromInterruption
         }
+        configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) => {
+            info!(target: crate::INDEXER_FOR_EXPLORER, "got from interruption");
+            info!(
+                target: crate::INDEXER_FOR_EXPLORER,
+                "delta is non zero, calculating..."
+            );
 
-        let latest_block_height = match db_adapters::blocks::latest_block_height(&pool).await {
-            Ok(Some(height)) => height,
-            Ok(None) => {
-                // In case of None we fall down in simple FormInterruption config
-                tracing::warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "latest_block_height() returned None. Constructing IndexerConfig to sync from interruption without correction...",
-                );
-                return near_indexer::IndexerConfig {
-                    home_dir,
-                    sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                    await_for_node_synced,
-                };
-            }
-            Err(error_message) => {
-                // If we can't get latest block height we fall down in simple FromInterruption config
-                tracing::warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "latest_block_height() failed with {}. Constructing IndexerConfig to sync from interruption without correction...",
-                    error_message
-                );
-                return near_indexer::IndexerConfig {
-                    home_dir,
-                    sync_mode: near_indexer::SyncModeEnum::FromInterruption,
-                    await_for_node_synced,
-                };
-            }
-        };
+            db_adapters::blocks::latest_block_height(&pool)
+                .await
+                .ok()
+                .map(|latest_block_height| {
+                    if let Some(height) = latest_block_height {
+                        near_indexer::SyncModeEnum::BlockHeight(
+                            height.saturating_sub(interruption_args.delta),
+                        )
+                    } else {
+                        near_indexer::SyncModeEnum::FromInterruption
+                    }
+                })
+                .unwrap_or_else(|| near_indexer::SyncModeEnum::FromInterruption)
+        }
+        configs::SyncModeSubCommand::SyncFromBlock(block_args) => {
+            near_indexer::SyncModeEnum::BlockHeight(block_args.height)
+        }
+        configs::SyncModeSubCommand::SyncFromLatest => near_indexer::SyncModeEnum::LatestSynced,
+    };
 
-        let sync_from_block_height = latest_block_height - interruption_args.delta;
-
-        // When we have calculated the block to sync from we return IndexerConfig
-        // with actually different sync_mode
-        return near_indexer::IndexerConfig {
-            home_dir,
-            sync_mode: near_indexer::SyncModeEnum::BlockHeight(sync_from_block_height),
-            await_for_node_synced: if args.stream_while_syncing {
-                near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-            } else {
-                near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-            },
-        };
-    } else {
-        return near_indexer::IndexerConfig {
-            home_dir,
-            sync_mode: args.clone().try_into().expect("Error in run arguments"),
-            await_for_node_synced,
-        };
+    near_indexer::IndexerConfig {
+        home_dir,
+        sync_mode,
+        await_for_node_synced: if args.stream_while_syncing {
+            near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
+        } else {
+            near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
+        },
     }
 }
 
@@ -292,7 +279,8 @@ fn main() {
                 if args.store_genesis {
                     let near_config = indexer.near_config().clone();
                     db_adapters::genesis::store_genesis_records(pool.clone(), near_config.clone())
-                        .await;
+                        .await
+                        .expect("Failed to store the records from the genesis");
                 }
 
                 // Regular indexer process starts here

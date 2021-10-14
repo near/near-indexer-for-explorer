@@ -5,8 +5,8 @@ use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::Database;
 use bigdecimal::BigDecimal;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
-use futures::join;
-use tracing::{error, info};
+use futures::try_join;
+use tracing::info;
 
 use near_indexer::near_primitives;
 
@@ -17,9 +17,9 @@ pub(crate) async fn handle_access_keys(
     pool: &actix_diesel::Database<PgConnection>,
     outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
-) {
+) -> anyhow::Result<()> {
     if outcomes.is_empty() {
-        return;
+        return Ok(());
     }
     let successful_receipts = outcomes
         .iter()
@@ -136,113 +136,72 @@ pub(crate) async fn handle_access_keys(
                 )
                 .filter(schema::access_keys::dsl::account_id.eq(account_id));
 
-            let mut interval = crate::INTERVAL;
-            loop {
-                match diesel::update(target.clone())
+            crate::await_retry_or_panic!(
+                diesel::update(target.clone())
                     .set((
                         schema::access_keys::dsl::deleted_by_receipt_id
                             .eq(deleted_by_receipt_id.clone()),
                         schema::access_keys::dsl::last_update_block_height
                             .eq(last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool)
-                    .await
-                {
-                    Ok(_) => break,
-                    Err(async_error) => {
-                        error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Error occurred while updating AccessKey. Retrying in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
-                        tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
-                            interval *= 2;
-                        }
-                    }
-                }
-            }
+                    .execute_async(&pool),
+                10,
+                "AccessKeys were deleting".to_string(),
+                &deleted_by_receipt_id
+            );
         }
+        Ok(())
     };
 
     let update_access_keys_future = async {
         for value in access_keys_to_update {
             let target = schema::access_keys::table
-                .filter(schema::access_keys::dsl::public_key.eq(value.public_key))
+                .filter(schema::access_keys::dsl::public_key.eq(value.public_key.clone()))
                 .filter(
                     schema::access_keys::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 )
                 .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
 
-            let mut interval = crate::INTERVAL;
-            loop {
-                match diesel::update(target.clone())
+            crate::await_retry_or_panic!(
+                diesel::update(target.clone())
                     .set((
                         schema::access_keys::dsl::deleted_by_receipt_id
                             .eq(value.deleted_by_receipt_id.clone()),
                         schema::access_keys::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool)
-                    .await
-                {
-                    Ok(_) => break,
-                    Err(async_error) => {
-                        error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Error occurred while updating AccessKey. Retrying in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
-                        tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
-                            interval *= 2;
-                        }
-                    }
-                }
-            }
+                    .execute_async(&pool),
+                10,
+                "AccessKeys were updating".to_string(),
+                &value.public_key
+            );
         }
+        Ok(())
     };
 
     let add_access_keys_future = async {
-        let mut interval = crate::INTERVAL;
-        loop {
-            match diesel::insert_into(schema::access_keys::table)
+        crate::await_retry_or_panic!(
+            diesel::insert_into(schema::access_keys::table)
                 .values(access_keys_to_insert.clone())
                 .on_conflict_do_nothing()
-                .execute_async(&pool)
-                .await
-            {
-                Ok(_) => break,
-                Err(async_error) => {
-                    error!(
-                        target: crate::INDEXER_FOR_EXPLORER,
-                        "Error occurred while AccessKeys were adding to database. Retrying in {} milliseconds... \n {:#?}",
-                        interval.as_millis(),
-                        async_error,
-                    );
-                    tokio::time::sleep(interval).await;
-                    if interval < crate::MAX_DELAY_TIME {
-                        interval *= 2;
-                    }
-                }
-            }
-        }
+                .execute_async(&pool),
+            10,
+            "AccessKeys were stored in database".to_string(),
+            &access_keys_to_insert
+        );
 
         for value in access_keys_to_insert {
             let target = schema::access_keys::table
-                .filter(schema::access_keys::dsl::public_key.eq(value.public_key))
+                .filter(schema::access_keys::dsl::public_key.eq(value.public_key.clone()))
                 .filter(
                     schema::access_keys::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 )
                 .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
 
-            let mut interval = crate::INTERVAL;
-            loop {
-                match diesel::update(target.clone())
+            crate::await_retry_or_panic!(
+                diesel::update(target.clone())
                     .set((
                         schema::access_keys::dsl::created_by_receipt_id
                             .eq(value.created_by_receipt_id.clone()),
@@ -251,64 +210,41 @@ pub(crate) async fn handle_access_keys(
                         schema::access_keys::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool)
-                    .await
-                {
-                    Ok(_) => break,
-                    Err(async_error) => {
-                        error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Error occurred while updating AccessKey. Retrying in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
-                        tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
-                            interval *= 2;
-                        }
-                    }
-                }
-            }
+                    .execute_async(&pool),
+                10,
+                "AccessKeys were created".to_string(),
+                &value.public_key
+            );
         }
+        Ok(())
     };
 
-    join!(
+    try_join!(
         delete_access_keys_for_deleted_accounts,
         update_access_keys_future,
         add_access_keys_future
-    );
+    )?;
+
+    Ok(())
 }
 
 pub(crate) async fn store_access_keys_from_genesis(
     pool: Database<PgConnection>,
     access_keys_models: Vec<models::access_keys::AccessKey>,
-) {
+) -> anyhow::Result<()> {
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Adding/updating access keys from genesis..."
     );
 
-    let mut interval = crate::INTERVAL;
-    loop {
-        match diesel::insert_into(schema::access_keys::table)
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::access_keys::table)
             .values(access_keys_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
-            .await
-        {
-            Ok(_) => break,
-            Err(async_error) => {
-                error!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Error occurred while AccessKeys from genesis were being added to database. Retrying in {} milliseconds... \n {:#?}",
-                    interval.as_millis(),
-                    async_error,
-                );
-                tokio::time::sleep(interval).await;
-                if interval < crate::MAX_DELAY_TIME {
-                    interval *= 2;
-                }
-            }
-        }
-    }
+            .execute_async(&pool),
+        10,
+        "AccessKeys were stored from genesis".to_string(),
+        &access_keys_models
+    );
+    Ok(())
 }
