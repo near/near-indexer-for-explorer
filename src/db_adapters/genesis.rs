@@ -65,17 +65,23 @@ pub(crate) async fn store_genesis_records(
                 let mut accounts_to_store_chunk = vec![];
                 std::mem::swap(&mut accounts_to_store, &mut accounts_to_store_chunk);
                 let pool = pool.clone();
-                block_on(actix_arbiter, store_accounts_from_genesis(pool, accounts_to_store_chunk))
-                    .expect("storing accounts from genesis failed")
-                    .expect("storing accounts from genesis failed");
+                block_on(
+                    actix_arbiter,
+                    store_accounts_from_genesis(pool, accounts_to_store_chunk),
+                )
+                .expect("storing accounts from genesis failed")
+                .expect("storing accounts from genesis failed");
             }
             if access_keys_to_store.len() == 5_000 {
                 let mut access_keys_to_store_chunk = vec![];
                 std::mem::swap(&mut access_keys_to_store, &mut access_keys_to_store_chunk);
                 let pool = pool.clone();
-                block_on(actix_arbiter, store_access_keys_from_genesis(pool, access_keys_to_store_chunk))
-                    .expect("storing access keys from genesis failed")
-                    .expect("storing access keys from genesis failed");
+                block_on(
+                    actix_arbiter,
+                    store_access_keys_from_genesis(pool, access_keys_to_store_chunk),
+                )
+                .expect("storing access keys from genesis failed")
+                .expect("storing access keys from genesis failed");
             }
 
             match record {
