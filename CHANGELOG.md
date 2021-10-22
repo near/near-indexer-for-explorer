@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.3
+
+* Upgrade `nearcore` to 1.22.0 + patches (yet unclear if it'll be 1.22.1 or 1.22.0.rc3)
+
 ## 0.10.2
 
 - Change the retry logic. Make indexer fail with error if is has retried for 5 min
