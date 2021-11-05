@@ -1,5 +1,5 @@
 diff --git a/src/schema.rs b/src/schema.rs
-index cdc02c5..101807c 100644
+index 5c9b056..b19ace1 100644
 --- a/src/schema.rs
 +++ b/src/schema.rs
 @@ -1,6 +1,20 @@
@@ -100,15 +100,15 @@ index cdc02c5..101807c 100644
          emitted_in_shard_id -> Numeric,
          emitted_index_of_event_entry_in_shard -> Int4,
          emitted_by_contract_account_id -> Text,
-@@ -126,13 +137,23 @@ table! {
+@@ -124,15 +135,24 @@ table! {
+         token_new_owner_account_id -> Text,
+         token_authorized_account_id -> Text,
          event_memo -> Text,
      }
  }
  
- table! {
-     use diesel::sql_types::*;
--    use crate::models::enums::*;
-+
++table! {
++     use diesel::sql_types::*;
 +    #[allow(non_snake_case)]
 +    aggregated__lockups(account_id) {
 +        account_id -> Text,
@@ -117,15 +117,16 @@ index cdc02c5..101807c 100644
 +    }
 +}
 +
-+table! {
-+    use diesel::sql_types::*;
+ table! {
+     use diesel::sql_types::*;
+-    use crate::models::enums::*;
  
      blocks (block_hash) {
          block_height -> Numeric,
          block_hash -> Text,
          prev_block_hash -> Text,
          block_timestamp -> Numeric,
-@@ -141,13 +162,12 @@ table! {
+@@ -141,13 +161,12 @@ table! {
          author_account_id -> Text,
      }
  }
@@ -139,7 +140,7 @@ index cdc02c5..101807c 100644
          chunk_hash -> Text,
          shard_id -> Numeric,
          signature -> Text,
-@@ -156,24 +176,22 @@ table! {
+@@ -156,24 +175,22 @@ table! {
          author_account_id -> Text,
      }
  }
