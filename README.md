@@ -104,6 +104,11 @@ By default NEAR Indexer for Explorer processes only a single block at a time. Yo
 So final command to run NEAR Indexer for Explorer can look like:
 
 ```bash
+$ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --allow-missing-relations-in-first-blocks 1000 --concurrency 1 sync-from-latest
+```
+
+Now there is a problem with multi-threading, and there will be problems when there are more block transactions in the later stage. Single-threaded operation is recommended.
+```bash
 $ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --allow-missing-relations-in-first-blocks 1000 --concurrency 100 sync-from-latest
 ```
 
