@@ -133,7 +133,7 @@ impl ActionReceiptAction {
         block_timestamp: u64,
     ) -> Self {
         let (action_kind, args) =
-            crate::models::extract_action_type_and_value_from_action_view(&action_view);
+            crate::models::extract_action_type_and_value_from_action_view(action_view);
 
         Self {
             receipt_id,

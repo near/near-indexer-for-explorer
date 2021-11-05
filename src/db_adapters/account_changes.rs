@@ -21,7 +21,7 @@ pub(crate) async fn store_account_changes(
         .filter_map(|(index_in_block, state_change)| {
             models::account_changes::AccountChange::from_state_change_with_cause(
                 state_change,
-                &block_hash,
+                block_hash,
                 block_timestamp,
                 index_in_block as i32,
             )
@@ -32,7 +32,7 @@ pub(crate) async fn store_account_changes(
         diesel::insert_into(schema::account_changes::table)
             .values(account_changes_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "AccountChanges were stored in database".to_string(),
         &account_changes_models

@@ -16,7 +16,7 @@ pub(crate) async fn store_chunks(
     let chunk_models: Vec<models::chunks::Chunk> = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
-        .map(|chunk| models::chunks::Chunk::from_chunk_view(&chunk, block_hash))
+        .map(|chunk| models::chunks::Chunk::from_chunk_view(chunk, block_hash))
         .collect();
 
     if chunk_models.is_empty() {
@@ -27,7 +27,7 @@ pub(crate) async fn store_chunks(
         diesel::insert_into(schema::chunks::table)
             .values(chunk_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "Chunks were stored to database".to_string(),
         &chunk_models

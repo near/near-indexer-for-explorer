@@ -81,7 +81,7 @@ impl TransactionAction {
         action_view: &near_indexer::near_primitives::views::ActionView,
     ) -> Self {
         let (action_kind, args) =
-            crate::models::extract_action_type_and_value_from_action_view(&action_view);
+            crate::models::extract_action_type_and_value_from_action_view(action_view);
         Self {
             transaction_hash,
             index_in_transaction: index,

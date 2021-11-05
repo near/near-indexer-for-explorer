@@ -90,7 +90,7 @@ pub(crate) async fn store_genesis_records(
                     ..
                 } => {
                     accounts_to_store.push(crate::models::accounts::Account::new_from_genesis(
-                        &account_id,
+                        account_id,
                         genesis_height,
                     ));
                 }
@@ -100,9 +100,9 @@ pub(crate) async fn store_genesis_records(
                     access_key,
                 } => {
                     access_keys_to_store.push(crate::models::access_keys::AccessKey::from_genesis(
-                        &public_key,
-                        &account_id,
-                        &access_key,
+                        public_key,
+                        account_id,
+                        access_key,
                         genesis_height,
                     ));
                 }

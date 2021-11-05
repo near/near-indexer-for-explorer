@@ -32,11 +32,11 @@ async fn handle_message(
     streamer_message: near_indexer::StreamerMessage,
     strict_mode: bool,
 ) -> anyhow::Result<()> {
-    db_adapters::blocks::store_block(&pool, &streamer_message.block).await?;
+    db_adapters::blocks::store_block(pool, &streamer_message.block).await?;
 
     // Chunks
     db_adapters::chunks::store_chunks(
-        &pool,
+        pool,
         &streamer_message.shards,
         &streamer_message.block.header.hash,
     )
@@ -44,7 +44,7 @@ async fn handle_message(
 
     // Transaction
     db_adapters::transactions::store_transactions(
-        &pool,
+        pool,
         &streamer_message.shards,
         &streamer_message.block.header.hash.to_string(),
         streamer_message.block.header.timestamp,
@@ -55,7 +55,7 @@ async fn handle_message(
     for shard in &streamer_message.shards {
         if let Some(chunk) = &shard.chunk {
             db_adapters::receipts::store_receipts(
-                &pool,
+                pool,
                 &chunk.receipts,
                 &streamer_message.block.header.hash.to_string(),
                 &chunk.header.chunk_hash,
@@ -68,7 +68,7 @@ async fn handle_message(
 
     // ExecutionOutcomes
     let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
-        &pool,
+        pool,
         &streamer_message.shards,
         streamer_message.block.header.timestamp,
     );
@@ -77,7 +77,7 @@ async fn handle_message(
     let accounts_future = async {
         for shard in &streamer_message.shards {
             db_adapters::accounts::handle_accounts(
-                &pool,
+                pool,
                 &shard.receipt_execution_outcomes,
                 streamer_message.block.header.height,
             )
@@ -88,14 +88,14 @@ async fn handle_message(
 
     // Assets (NFT)
     let nft_events_future =
-        db_adapters::assets::non_fungible_token_events::store_nft(&pool, &streamer_message);
+        db_adapters::assets::non_fungible_token_events::store_nft(pool, &streamer_message);
 
     if strict_mode {
         // AccessKeys
         let access_keys_future = async {
             for shard in &streamer_message.shards {
                 db_adapters::access_keys::handle_access_keys(
-                    &pool,
+                    pool,
                     &shard.receipt_execution_outcomes,
                     streamer_message.block.header.height,
                 )
@@ -106,7 +106,7 @@ async fn handle_message(
 
         // StateChange related to Account
         let account_changes_future = db_adapters::account_changes::store_account_changes(
-            &pool,
+            pool,
             &streamer_message.state_changes,
             &streamer_message.block.header.hash,
             streamer_message.block.header.timestamp,
@@ -203,7 +203,7 @@ async fn construct_near_indexer_config(
                 "delta is non zero, calculating..."
             );
 
-            db_adapters::blocks::latest_block_height(&pool)
+            db_adapters::blocks::latest_block_height(pool)
                 .await
                 .ok()
                 .map(|latest_block_height| {
@@ -268,9 +268,7 @@ fn main() {
 
     let opts: Opts = Opts::parse();
 
-    let home_dir = opts
-        .home_dir
-        .unwrap_or_else(|| std::path::PathBuf::from(near_indexer::get_default_home()));
+    let home_dir = opts.home_dir.unwrap_or_else(near_indexer::get_default_home);
 
     match opts.subcmd {
         SubCommand::Run(args) => {

@@ -19,7 +19,7 @@ pub(crate) async fn store_block(
         diesel::insert_into(schema::blocks::table)
             .values(block_model.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "Block was stored to database".to_string(),
         &block_model
@@ -35,7 +35,7 @@ pub(crate) async fn latest_block_height(
     Ok(schema::blocks::table
         .select((schema::blocks::dsl::block_height,))
         .order(schema::blocks::dsl::block_height.desc())
-        .get_optional_result_async::<(bigdecimal::BigDecimal,)>(&pool)
+        .get_optional_result_async::<(bigdecimal::BigDecimal,)>(pool)
         .await
         .map_err(|err| format!("DB Error: {}", err))?
         .and_then(|(block_height,)| block_height.to_u64()))
@@ -48,7 +48,7 @@ pub(crate) async fn get_latest_block_before_timestamp(
     Ok(schema::blocks::table
         .filter(schema::blocks::dsl::block_timestamp.le(BigDecimal::from(timestamp)))
         .order(schema::blocks::dsl::block_timestamp.desc())
-        .first_async::<models::Block>(&pool)
+        .first_async::<models::Block>(pool)
         .await
         .context("DB Error")?)
 }

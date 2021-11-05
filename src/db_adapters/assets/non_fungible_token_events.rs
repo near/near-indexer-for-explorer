@@ -13,8 +13,7 @@ pub(crate) async fn store_nft(
     streamer_message: &near_indexer::StreamerMessage,
 ) -> anyhow::Result<()> {
     for shard in &streamer_message.shards {
-        collect_and_store_nft_events(&pool, &shard, &streamer_message.block.header.timestamp)
-            .await?;
+        collect_and_store_nft_events(pool, shard, &streamer_message.block.header.timestamp).await?;
     }
     Ok(())
 }
@@ -36,7 +35,7 @@ async fn collect_and_store_nft_events(
         crate::await_retry_or_panic!(
             diesel::insert_into(schema::assets__non_fungible_token_events::table)
                 .values(nft_events.clone())
-                .execute_async(&pool),
+                .execute_async(pool),
             10,
             "NonFungibleTokenEvent were adding to database".to_string(),
             &nft_events,
@@ -65,8 +64,7 @@ async fn is_error_handled(async_error: &AsyncError<diesel::result::Error>) -> bo
             );
         }
     }
-
-    return false;
+    false
 }
 
 fn collect_nft_events(

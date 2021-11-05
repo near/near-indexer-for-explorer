@@ -109,7 +109,7 @@ pub(crate) async fn handle_accounts(
                         schema::accounts::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool),
+                    .execute_async(pool),
                 10,
                 "Accounts were deleted".to_string(),
                 &value.account_id
@@ -123,7 +123,7 @@ pub(crate) async fn handle_accounts(
             diesel::insert_into(schema::accounts::table)
                 .values(accounts_to_create_or_update.clone())
                 .on_conflict_do_nothing()
-                .execute_async(&pool),
+                .execute_async(pool),
             10,
             "Accounts were created/updated".to_string(),
             &accounts_to_create_or_update
@@ -161,7 +161,7 @@ pub(crate) async fn handle_accounts(
                         schema::accounts::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool),
+                    .execute_async(pool),
                 10,
                 "Implicit Account were updated".to_string(),
                 &value.account_id
@@ -186,7 +186,7 @@ pub(crate) async fn handle_accounts(
                         schema::accounts::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool),
+                    .execute_async(pool),
                 10,
                 "Account was updated".to_string(),
                 &value.account_id
@@ -258,7 +258,7 @@ pub(crate) async fn get_lockup_account_ids_at_block_height(
                 .or(schema::aggregated__lockups::dsl::deletion_block_height
                     .ge(BigDecimal::from(*block_height))),
         )
-        .get_results_async::<String>(&pool)
+        .get_results_async::<String>(pool)
         .await
         .with_context(|| format!(
                 "DB error while collecting lockup account ids for block_height {}",

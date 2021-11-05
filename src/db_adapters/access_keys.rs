@@ -144,7 +144,7 @@ pub(crate) async fn handle_access_keys(
                         schema::access_keys::dsl::last_update_block_height
                             .eq(last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool),
+                    .execute_async(pool),
                 10,
                 "AccessKeys were deleting".to_string(),
                 &deleted_by_receipt_id
@@ -171,7 +171,7 @@ pub(crate) async fn handle_access_keys(
                         schema::access_keys::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool),
+                    .execute_async(pool),
                 10,
                 "AccessKeys were updating".to_string(),
                 &value.public_key
@@ -185,7 +185,7 @@ pub(crate) async fn handle_access_keys(
             diesel::insert_into(schema::access_keys::table)
                 .values(access_keys_to_insert.clone())
                 .on_conflict_do_nothing()
-                .execute_async(&pool),
+                .execute_async(pool),
             10,
             "AccessKeys were stored in database".to_string(),
             &access_keys_to_insert
@@ -210,7 +210,7 @@ pub(crate) async fn handle_access_keys(
                         schema::access_keys::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
-                    .execute_async(&pool),
+                    .execute_async(pool),
                 10,
                 "AccessKeys were created".to_string(),
                 &value.public_key

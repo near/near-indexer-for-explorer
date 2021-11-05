@@ -15,7 +15,7 @@ pub(crate) async fn add_circulating_supply(
         match diesel::insert_into(schema::aggregated__circulating_supply::table)
             .values(stats.to_owned())
             .on_conflict_do_nothing()
-            .execute_async(&pool)
+            .execute_async(pool)
             .await
         {
             Ok(_) => {
@@ -47,11 +47,11 @@ pub(crate) async fn get_precomputed_circulating_supply_for_timestamp(
             schema::aggregated__circulating_supply::dsl::computed_at_block_timestamp
                 .eq(BigDecimal::from(timestamp)),
         )
-        .get_optional_result_async::<bigdecimal::BigDecimal>(&pool)
+        .get_optional_result_async::<bigdecimal::BigDecimal>(pool)
         .await;
 
     match supply {
-        Ok(Some(value)) => match u128::from_str_radix(&value.to_string(), 10) {
+        Ok(Some(value)) => match value.to_string().parse::<u128>() {
             Ok(res) => Ok(Some(res)),
             Err(_) => anyhow::bail!("`circulating_tokens_supply` expected to be u128"),
         },
