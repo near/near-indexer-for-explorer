@@ -25,7 +25,7 @@ If it does not print anything or prints some debug structures instead of normal 
 
 ## Common issues
 
-In case of any of the following issues, the first thing to do is to stop the indexer `systemd` service.
+In case of any of the following issues, we stop the indexer `systemd` service to take manual control over indexer with the commands listed in the relevant sections below.
 
 ```bash
 $ sudo service indexer stop
