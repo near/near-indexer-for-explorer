@@ -104,7 +104,7 @@ By default NEAR Indexer for Explorer processes only a single block at a time. Yo
 So final command to run NEAR Indexer for Explorer can look like:
 
 ```bash
-$ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --allow-missing-relations-in-first-blocks 1000 --concurrency 100 sync-from-latest
+$ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --allow-missing-relations-in-first-blocks 1000 --concurrency 1 sync-from-latest
 ```
 
 After the network is synced, you should see logs of every block height currently received by NEAR Indexer for Explorer.
