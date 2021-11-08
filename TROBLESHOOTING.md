@@ -2,13 +2,37 @@
 
 This document tries to describe how to handle known issues that may occur during the work process of NEAR Indexer for Explorer instance.
 
-**Note** The information provided here is more relevant to our way of running the indexer and might be not relevant to you.
-
 *It is assumed that the indexer instance is running with the `systemd` and the service is called `indexer`*
+
+We use this `systemd` config:
+
+```bash
+[Unit]
+Description=Indexer Service
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+User=ubuntu
+Group=ubuntu
+ExecStart=/home/ubuntu/indexer run --stream-while-syncing sync-from-interruption --delta 500
+MemoryMax=90%
+Restart=always
+RestartSec=5s
+EnvironmentFile=/home/ubuntu/.env
+LimitAS=infinity
+LimitRSS=infinity
+LimitCORE=infinity
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+After=google-startup-scripts.service
+```
 
 ---
 
-In case of any issues, you need to check the node logs. Indexer is running as a systemd service, so you can check the logs with the command:
+In case of any issues, you need to check the node logs. Indexer is running as a `systemd` service, so you can check the logs with the command:
 
 ```bash
 $ journalctl --follow --unit indexer
@@ -104,3 +128,20 @@ $ env RUST_LOG=”near=info” ./indexer run --stream-while-syncing --non-strict
 This will force the indexer to sync with the network ignoring some of the data completely. It’ll ignore `account_state_changes`, `access_keys` and might ignore some receipts.
 
 On the other node, you need to perform actions from the “If it stuck” section
+
+
+## Enabling verbose logs
+
+NEAR Indexer for Explorer is configured to respect `RUST_LOG` environment variable. In order to enable or change the log level of any of the underlying module you can use it.
+
+For example, to enable `info` level logs for the underlying `near` you can run the indexer like:
+
+```bash
+$ env RUST_LOG="near=info" ./indexer run ...
+```
+
+### `--verbose` equivalent from the nearcore
+
+```bash
+env RUST_LOG="cranelift_codegen=warn,cranelift_codegen=warn,h2=warn,trust_dns_resolver=warn,trust_dns_proto=warn,near=debug,indexer=debug,near_indexer_for_explorer=debug" ./indexer run ...
+```
