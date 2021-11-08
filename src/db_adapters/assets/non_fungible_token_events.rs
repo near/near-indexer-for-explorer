@@ -73,16 +73,15 @@ fn collect_nft_events(
     shard_id: &near_indexer::near_primitives::types::ShardId,
     index_in_shard: &mut i32,
 ) -> Vec<models::assets::non_fungible_token_events::NonFungibleTokenEvent> {
-    let mut event_logs: Vec<nft_types::Nep171Event> = Vec::new();
     let prefix = "EVENT_JSON:";
-    for untrimmed_log in &outcome.execution_outcome.outcome.logs {
+    let event_logs: Vec<nft_types::Nep171Event> = outcome.execution_outcome.outcome.logs.iter().filter_map(|untrimmed_log| {
         // Now we have only nep171 events, we both parse the logs and handle nep171 here.
         // When other event types will be added, we need to rewrite the logic
         // so that we parse the logs only once for all,
         // and then handle them for each event type separately.
         let log = untrimmed_log.trim();
         if !log.starts_with(prefix) {
-            continue;
+            return None;
         }
 
         let event: nft_types::NearEvent = match serde_json::from_str::<'_, nft_types::NearEvent>(
@@ -96,13 +95,13 @@ fn collect_nft_events(
                     err,
                     untrimmed_log,
                 );
-                continue;
+                return None;
             }
         };
 
         let nft_types::NearEvent::Nep171(nep171_event) = event;
-        event_logs.push(nep171_event);
-    }
+        Some(nep171_event)
+    }).collect();
 
     let mut nft_events = Vec::new();
     let contract_id = &outcome.receipt.predecessor_id;
@@ -119,12 +118,15 @@ fn collect_nft_events(
                                 emitted_in_shard_id: BigDecimal::from(*shard_id),
                                 emitted_index_of_event_entry_in_shard: *index_in_shard,
                                 emitted_by_contract_account_id: contract_id.to_string(),
-                                token_id,
+                                token_id: token_id.escape_default().to_string(),
                                 event_kind: models::enums::NftEventKind::Mint,
                                 token_old_owner_account_id: "".to_string(),
-                                token_new_owner_account_id: mint_event.owner_id.clone(),
+                                token_new_owner_account_id: mint_event
+                                    .owner_id
+                                    .escape_default()
+                                    .to_string(),
                                 token_authorized_account_id: "".to_string(),
-                                event_memo: memo.clone(),
+                                event_memo: memo.escape_default().to_string(),
                             },
                         );
                         *index_in_shard += 1;
@@ -145,12 +147,20 @@ fn collect_nft_events(
                                 emitted_in_shard_id: BigDecimal::from(*shard_id),
                                 emitted_index_of_event_entry_in_shard: *index_in_shard,
                                 emitted_by_contract_account_id: contract_id.to_string(),
-                                token_id,
+                                token_id: token_id.escape_default().to_string(),
                                 event_kind: models::enums::NftEventKind::Transfer,
-                                token_old_owner_account_id: transfer_event.old_owner_id.clone(),
-                                token_new_owner_account_id: transfer_event.new_owner_id.clone(),
-                                token_authorized_account_id: authorized_id.clone(),
-                                event_memo: memo.clone(),
+                                token_old_owner_account_id: transfer_event
+                                    .old_owner_id
+                                    .escape_default()
+                                    .to_string(),
+                                token_new_owner_account_id: transfer_event
+                                    .new_owner_id
+                                    .escape_default()
+                                    .to_string(),
+                                token_authorized_account_id: authorized_id
+                                    .escape_default()
+                                    .to_string(),
+                                event_memo: memo.escape_default().to_string(),
                             },
                         );
                         *index_in_shard += 1;
@@ -169,12 +179,17 @@ fn collect_nft_events(
                                 emitted_in_shard_id: BigDecimal::from(*shard_id),
                                 emitted_index_of_event_entry_in_shard: *index_in_shard,
                                 emitted_by_contract_account_id: contract_id.to_string(),
-                                token_id,
+                                token_id: token_id.escape_default().to_string(),
                                 event_kind: models::enums::NftEventKind::Burn,
-                                token_old_owner_account_id: burn_event.owner_id.clone(),
+                                token_old_owner_account_id: burn_event
+                                    .owner_id
+                                    .escape_default()
+                                    .to_string(),
                                 token_new_owner_account_id: "".to_string(),
-                                token_authorized_account_id: authorized_id.clone(),
-                                event_memo: memo.clone(),
+                                token_authorized_account_id: authorized_id
+                                    .escape_default()
+                                    .to_string(),
+                                event_memo: memo.escape_default().to_string(),
                             },
                         );
                         *index_in_shard += 1;
