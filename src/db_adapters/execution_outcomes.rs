@@ -12,7 +12,7 @@ pub(crate) async fn store_execution_outcomes(
 ) -> anyhow::Result<()> {
     for shard in shards {
         store_execution_outcomes_for_chunk(
-            &pool,
+            pool,
             &shard.receipt_execution_outcomes,
             shard.shard_id,
             block_timestamp,
@@ -38,11 +38,12 @@ pub async fn store_execution_outcomes_for_chunk(
                     .collect::<Vec<_>>())),
             )
             .select(schema::receipts::dsl::receipt_id)
-            .load_async::<String>(&pool),
+            .load_async::<String>(pool),
         10,
         "Parent Receipt for ExecutionOutcome was fetched".to_string(),
         &execution_outcomes
     )
+    .unwrap_or_default()
     .into_iter()
     .collect();
 
@@ -83,7 +84,7 @@ pub async fn store_execution_outcomes_for_chunk(
         diesel::insert_into(schema::execution_outcomes::table)
             .values(outcome_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "ExecutionOutcomes were stored in database".to_string(),
         &outcome_models
@@ -93,7 +94,7 @@ pub async fn store_execution_outcomes_for_chunk(
         diesel::insert_into(schema::execution_outcome_receipts::table)
             .values(outcome_receipt_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "ExecutionOutcomeReceipts were stored in database".to_string(),
         &outcome_receipt_models

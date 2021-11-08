@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.4
+
+* Add [NFT events](https://nomicon.io/Standards/NonFungibleToken/Event.html) support: `assets__non_fungible_token_events` table stores the information about NFT `mint`, `transfer`, `burn` events
+
 ## 0.10.3
 
 * Upgrade `nearcore` to 1.22.0 + patches (yet unclear if it'll be 1.22.1 or 1.22.0.rc3)

@@ -26,14 +26,9 @@ pub(crate) async fn store_receipts(
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
-    let tx_hashes_for_receipts = find_tx_hashes_for_receipts(
-        &pool,
-        receipts.to_vec(),
-        strict_mode,
-        block_hash,
-        chunk_hash,
-    )
-    .await?;
+    let tx_hashes_for_receipts =
+        find_tx_hashes_for_receipts(pool, receipts.to_vec(), strict_mode, block_hash, chunk_hash)
+            .await?;
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
         .enumerate()
@@ -63,7 +58,7 @@ pub(crate) async fn store_receipts(
         })
         .collect();
 
-    save_receipts(&pool, receipt_models).await?;
+    save_receipts(pool, receipt_models).await?;
 
     let (action_receipts, data_receipts): (
         Vec<&near_indexer::near_primitives::views::ReceiptView>,
@@ -79,9 +74,9 @@ pub(crate) async fn store_receipts(
         });
 
     let process_receipt_actions_future =
-        store_receipt_actions(&pool, action_receipts, block_timestamp);
+        store_receipt_actions(pool, action_receipts, block_timestamp);
 
-    let process_receipt_data_future = store_receipt_data(&pool, data_receipts);
+    let process_receipt_data_future = store_receipt_data(pool, data_receipts);
 
     try_join!(process_receipt_actions_future, process_receipt_data_future)?;
 
@@ -128,7 +123,7 @@ async fn find_tx_hashes_for_receipts(
                         schema::action_receipt_output_data::dsl::output_data_id,
                         schema::receipts::dsl::originated_from_transaction_hash,
                     ))
-                    .load_async(&pool)
+                    .load_async(pool)
                     .await
                 {
                     Ok(res) => {
@@ -158,15 +153,9 @@ async fn find_tx_hashes_for_receipts(
                 .filter_map(|r| match r.receipt {
                     near_indexer::near_primitives::views::ReceiptEnumView::Data {
                         data_id, ..
-                    } => {
-                        if let Some(tx_hash) = tx_hashes_for_data_id_via_data_output_hashmap
-                            .get(data_id.to_string().as_str())
-                        {
-                            Some((r.receipt_id.to_string(), tx_hash.to_string()))
-                        } else {
-                            None
-                        }
-                    }
+                    } => tx_hashes_for_data_id_via_data_output_hashmap
+                        .get(data_id.to_string().as_str())
+                        .map(|tx_hash| (r.receipt_id.to_string(), tx_hash.to_string())),
                     _ => None,
                 })
                 .collect();
@@ -183,35 +172,39 @@ async fn find_tx_hashes_for_receipts(
             });
         }
 
-        let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> = crate::await_retry_or_panic!(
-            schema::execution_outcome_receipts::table
-                .inner_join(
-                    schema::receipts::table
-                        .on(schema::execution_outcome_receipts::dsl::executed_receipt_id
-                            .eq(schema::receipts::dsl::receipt_id)),
-                )
-                .filter(
-                    schema::execution_outcome_receipts::dsl::produced_receipt_id.eq(any(receipts
-                        .clone()
-                        .iter()
-                        .filter(|r| {
-                            matches!(
+        let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> =
+            crate::await_retry_or_panic!(
+                schema::execution_outcome_receipts::table
+                    .inner_join(
+                        schema::receipts::table
+                            .on(schema::execution_outcome_receipts::dsl::executed_receipt_id
+                                .eq(schema::receipts::dsl::receipt_id)),
+                    )
+                    .filter(
+                        schema::execution_outcome_receipts::dsl::produced_receipt_id.eq(any(
+                            receipts
+                                .clone()
+                                .iter()
+                                .filter(|r| {
+                                    matches!(
                                 r.receipt,
                                 near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }
                             )
-                        })
-                        .map(|r| r.receipt_id.to_string())
-                        .collect::<Vec<String>>())),
-                )
-                .select((
-                    schema::execution_outcome_receipts::dsl::produced_receipt_id,
-                    schema::receipts::dsl::originated_from_transaction_hash,
-                ))
-                .load_async::<(String, String)>(&pool),
-            10,
-            "Parent Transaction for Receipts were fetched".to_string(),
-            &receipts
-        );
+                                })
+                                .map(|r| r.receipt_id.to_string())
+                                .collect::<Vec<String>>()
+                        )),
+                    )
+                    .select((
+                        schema::execution_outcome_receipts::dsl::produced_receipt_id,
+                        schema::receipts::dsl::originated_from_transaction_hash,
+                    ))
+                    .load_async::<(String, String)>(pool),
+                10,
+                "Parent Transaction for Receipts were fetched".to_string(),
+                &receipts
+            )
+            .unwrap_or_default();
 
         let found_hashes_len = tx_hashes_for_receipts_via_outcomes.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
@@ -223,30 +216,34 @@ async fn find_tx_hashes_for_receipts(
         receipts
             .retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
 
-        let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> = crate::await_retry_or_panic!(
-            schema::transactions::table
-                .filter(
-                    schema::transactions::dsl::converted_into_receipt_id.eq(any(receipts
-                        .clone()
-                        .iter()
-                        .filter(|r| {
-                            matches!(
+        let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> =
+            crate::await_retry_or_panic!(
+                schema::transactions::table
+                    .filter(
+                        schema::transactions::dsl::converted_into_receipt_id.eq(any(
+                            receipts
+                                .clone()
+                                .iter()
+                                .filter(|r| {
+                                    matches!(
                                 r.receipt,
                                 near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }
                             )
-                        })
-                        .map(|r| r.receipt_id.to_string())
-                        .collect::<Vec<String>>())),
-                )
-                .select((
-                    schema::transactions::dsl::converted_into_receipt_id,
-                    schema::transactions::dsl::transaction_hash,
-                ))
-                .load_async::<(String, String)>(&pool),
-            10,
-            "Parent Transaction for ExecutionOutcome were fetched".to_string(),
-            &receipts
-        );
+                                })
+                                .map(|r| r.receipt_id.to_string())
+                                .collect::<Vec<String>>()
+                        )),
+                    )
+                    .select((
+                        schema::transactions::dsl::converted_into_receipt_id,
+                        schema::transactions::dsl::transaction_hash,
+                    ))
+                    .load_async::<(String, String)>(pool),
+                10,
+                "Parent Transaction for ExecutionOutcome were fetched".to_string(),
+                &receipts
+            )
+            .unwrap_or_default();
 
         let found_hashes_len = tx_hashes_for_receipt_via_transactions.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_transactions);
@@ -290,7 +287,7 @@ async fn save_receipts(
         diesel::insert_into(schema::receipts::table)
             .values(receipts.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "Receipts were stored in database".to_string(),
         &receipts
@@ -378,7 +375,7 @@ async fn store_receipt_actions(
         diesel::insert_into(schema::action_receipts::table)
             .values(receipt_actions.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "ReceiptActions were stored in database".to_string(),
         &receipt_actions
@@ -388,7 +385,7 @@ async fn store_receipt_actions(
         diesel::insert_into(schema::action_receipt_actions::table)
             .values(receipt_action_actions.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "ReceiptActionActions were stored in database".to_string(),
         &receipt_action_actions
@@ -398,7 +395,7 @@ async fn store_receipt_actions(
         diesel::insert_into(schema::action_receipt_output_data::table)
             .values(receipt_action_output_data.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "ReceiptActionOutputData were stored in database".to_string(),
         &receipt_action_output_data
@@ -408,7 +405,7 @@ async fn store_receipt_actions(
         diesel::insert_into(schema::action_receipt_input_data::table)
             .values(receipt_action_input_data.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "ReceiptActionInputData were stored in database".to_string(),
         &receipt_action_input_data
@@ -430,7 +427,7 @@ async fn store_receipt_data(
         diesel::insert_into(schema::data_receipts::table)
             .values(receipt_data_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "ReceiptData were stored in database".to_string(),
         &receipt_data_models

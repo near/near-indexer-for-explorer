@@ -21,7 +21,7 @@ pub(crate) async fn store_transactions(
         .filter_map(|shard| shard.chunk.as_ref())
         .map(|chunk| {
             store_chunk_transactions(
-                &pool,
+                pool,
                 chunk
                     .transactions
                     .iter()
@@ -60,7 +60,7 @@ async fn store_chunk_transactions(
         diesel::insert_into(schema::transactions::table)
             .values(transaction_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "Transactions were stored in database".to_string(),
         &transaction_models
@@ -87,7 +87,7 @@ async fn store_chunk_transactions(
         diesel::insert_into(schema::transaction_actions::table)
             .values(transaction_action_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(&pool),
+            .execute_async(pool),
         10,
         "TransactionActions were stored in database".to_string(),
         &transaction_action_models

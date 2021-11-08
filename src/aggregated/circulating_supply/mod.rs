@@ -82,13 +82,13 @@ async fn check_and_collect_daily_circulating_supply(
     let start_of_day = request_datetime.as_nanos()
         - request_datetime.as_nanos() % circulating_supply::DAY.as_nanos();
     let printable_date = NaiveDateTime::from_timestamp(request_datetime.as_secs() as i64, 0).date();
-    let block = blocks::get_latest_block_before_timestamp(&pool, start_of_day as u64).await?;
+    let block = blocks::get_latest_block_before_timestamp(pool, start_of_day as u64).await?;
     let block_timestamp = block
         .block_timestamp
         .to_u64()
         .context("`block_timestamp` expected to be u64")?;
 
-    match get_precomputed_circulating_supply_for_timestamp(&pool, block_timestamp).await {
+    match get_precomputed_circulating_supply_for_timestamp(pool, block_timestamp).await {
         Ok(None) => {
             info!(
                 target: crate::AGGREGATED,
@@ -96,8 +96,8 @@ async fn check_and_collect_daily_circulating_supply(
                 printable_date,
                 block_timestamp
             );
-            let supply = compute_circulating_supply_for_block(&pool, view_client, &block).await?;
-            add_circulating_supply(&pool, &supply).await;
+            let supply = compute_circulating_supply_for_block(pool, view_client, &block).await?;
+            add_circulating_supply(pool, &supply).await;
             info!(
                 target: crate::AGGREGATED,
                 "Circulating supply for {} (timestamp {}) is {}",
@@ -134,18 +134,21 @@ async fn compute_circulating_supply_for_block(
         .block_height
         .to_u64()
         .context("`block_height` expected to be u64")?;
-    let total_supply = u128::from_str_radix(&block.total_supply.to_string(), 10)
+    let total_supply = block
+        .total_supply
+        .to_string()
+        .parse::<u128>()
         .context("`total_supply` expected to be u128")?;
 
     let lockup_account_ids =
-        accounts::get_lockup_account_ids_at_block_height(&pool, &block_height).await?;
+        accounts::get_lockup_account_ids_at_block_height(pool, &block_height).await?;
 
     let mut lockups_locked_tokens: u128 = 0;
     let mut unfinished_lockup_contracts_count: i32 = 0;
 
     for lockup_account_id in &lockup_account_ids {
         let state =
-            lockup::get_lockup_contract_state(&view_client, lockup_account_id, &block_height)
+            lockup::get_lockup_contract_state(view_client, lockup_account_id, &block_height)
                 .await
                 .with_context(|| {
                     format!(
@@ -154,7 +157,7 @@ async fn compute_circulating_supply_for_block(
                     )
                 })?;
         let code_hash =
-            account_details::get_contract_code_hash(&view_client, lockup_account_id, &block_height)
+            account_details::get_contract_code_hash(view_client, lockup_account_id, &block_height)
                 .await?;
         let is_lockup_with_bug = lockup::is_bug_inside_contract(&code_hash, lockup_account_id)?;
         let locked_amount = state
@@ -176,7 +179,7 @@ async fn compute_circulating_supply_for_block(
     let mut foundation_locked_tokens: u128 = 0;
     for account_id in &foundation_locked_account_ids {
         foundation_locked_tokens +=
-            account_details::get_account_balance(&view_client, &account_id, &block_height).await?;
+            account_details::get_account_balance(view_client, account_id, &block_height).await?;
     }
 
     let circulating_supply: u128 = total_supply - foundation_locked_tokens - lockups_locked_tokens;
@@ -202,7 +205,7 @@ async fn wait_for_loading_needed_blocks(
     day_to_compute: &Duration,
 ) {
     loop {
-        match get_final_block_timestamp(&view_client).await {
+        match get_final_block_timestamp(view_client).await {
             Ok(timestamp) => {
                 if timestamp > *day_to_compute {
                     return;
