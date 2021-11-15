@@ -104,7 +104,7 @@ fn collect_nft_events(
     }).collect();
 
     let mut nft_events = Vec::new();
-    let contract_id = &outcome.receipt.predecessor_id;
+    let contract_id = &outcome.receipt.receiver_id;
     for log in event_logs {
         match log.event_kind {
             nft_types::Nep171EventKind::NftMint(mint_events) => {
