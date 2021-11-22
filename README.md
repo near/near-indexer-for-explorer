@@ -123,6 +123,7 @@ We use `public` schema for all tables. By default, new users have the possibilit
 ```sql
 REVOKE CREATE ON SCHEMA PUBLIC FROM PUBLIC;
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA PUBLIC FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO PUBLIC;
 ```
 
 After that, you could create read-only user in PostgreSQL:
