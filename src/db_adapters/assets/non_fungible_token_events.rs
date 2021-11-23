@@ -74,7 +74,7 @@ fn collect_nft_events(
     index_in_shard: &mut i32,
 ) -> Vec<models::assets::non_fungible_token_events::NonFungibleTokenEvent> {
     let prefix = "EVENT_JSON:";
-    let event_logs: Vec<nft_types::Nep171Event> = outcome.execution_outcome.outcome.logs.iter().filter_map(|untrimmed_log| {
+    let event_logs = outcome.execution_outcome.outcome.logs.iter().filter_map(|untrimmed_log| {
         // Now we have only nep171 events, we both parse the logs and handle nep171 here.
         // When other event types will be added, we need to rewrite the logic
         // so that we parse the logs only once for all,
@@ -101,7 +101,7 @@ fn collect_nft_events(
 
         let nft_types::NearEvent::Nep171(nep171_event) = event;
         Some(nep171_event)
-    }).collect();
+    });
 
     let mut nft_events = Vec::new();
     let contract_id = &outcome.receipt.receiver_id;
