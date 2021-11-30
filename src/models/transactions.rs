@@ -31,9 +31,12 @@ impl Transaction {
         chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
         block_timestamp: u64,
         index_in_chunk: i32,
+        // hack for supporting duplicated transaction hashes
+        tx_hash: Option<String>,
     ) -> Self {
+        let transaction_hash = tx_hash.unwrap_or_else(|| tx.transaction.hash.to_string());
         Self {
-            transaction_hash: tx.transaction.hash.to_string(),
+            transaction_hash,
             included_in_block_hash: block_hash.to_string(),
             block_timestamp: block_timestamp.into(),
             index_in_chunk,

@@ -4,6 +4,7 @@ use std::convert::TryFrom;
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::pg::expression::array_comparison::any;
 use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
+use futures::future::try_join_all;
 use futures::try_join;
 use num_traits::cast::FromPrimitive;
 use tracing::{error, warn};
@@ -35,14 +36,12 @@ pub(crate) async fn store_receipts(
             )
         });
 
-    // TODO learn how to rewrite it so that everyone could think I know Rust
-    for future in futures {
-        let result = future.await;
-        if result.is_err() {
-            return result;
+    match try_join_all(futures).await {
+        Ok(_) => Ok(()),
+        Err(err) => {
+            anyhow::bail!(err)
         }
     }
-    Ok(())
 }
 
 async fn store_chunk_receipts(
