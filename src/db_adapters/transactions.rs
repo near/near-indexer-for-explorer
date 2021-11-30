@@ -9,9 +9,10 @@ use crate::schema;
 pub(crate) async fn store_transactions(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_indexer::IndexerShard],
-    block_hash: &str,
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
-) {
+) -> anyhow::Result<()> {
+    let block_hash_str = block_hash.to_string();
     let futures = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
@@ -23,12 +24,13 @@ pub(crate) async fn store_transactions(
                     .iter()
                     .collect::<Vec<&near_indexer::IndexerTransactionWithOutcome>>(),
                 &chunk.header.chunk_hash,
-                block_hash,
+                &block_hash_str,
                 block_timestamp,
             )
         });
 
     join_all(futures).await;
+    Ok(())
 }
 
 async fn store_chunk_transactions(

@@ -43,23 +43,28 @@ async fn handle_message(
     .await?;
 
     // Transactions
-    db_adapters::transactions::store_transactions(
+    let transactions_fut = db_adapters::transactions::store_transactions(
         pool,
         &streamer_message.shards,
-        &streamer_message.block.header.hash.to_string(),
+        &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
-    )
-    .await;
+    );
 
     // Receipts
-    db_adapters::receipts::store_receipts(
+    let receipts_fut = db_adapters::receipts::store_receipts(
         pool,
         &streamer_message.shards,
-        &streamer_message.block.header.hash.to_string(),
+        &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         strict_mode,
-    )
-    .await?;
+    );
+
+    // We can process transactions and receipts in parallel
+    // because most of receipts depend on transactions from previous blocks,
+    // so we can save up some time here.
+    // In case of local receipts (they are stored in the same block with corresponding transaction),
+    // we hope retry logic will cover it fine
+    try_join!(transactions_fut, receipts_fut)?;
 
     // ExecutionOutcomes
     let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(

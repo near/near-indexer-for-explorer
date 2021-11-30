@@ -15,10 +15,11 @@ use crate::schema;
 pub(crate) async fn store_receipts(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_indexer::IndexerShard],
-    block_hash: &str,
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
 ) -> anyhow::Result<()> {
+    let block_hash_str = block_hash.to_string();
     let futures = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
@@ -27,7 +28,7 @@ pub(crate) async fn store_receipts(
             store_chunk_receipts(
                 pool,
                 &chunk.receipts,
-                block_hash,
+                &block_hash_str,
                 &chunk.header.chunk_hash,
                 block_timestamp,
                 strict_mode,
