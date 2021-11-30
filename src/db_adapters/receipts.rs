@@ -14,15 +14,44 @@ use crate::schema;
 /// Saves receipts to database
 pub(crate) async fn store_receipts(
     pool: &actix_diesel::Database<PgConnection>,
+    shards: &[near_indexer::IndexerShard],
+    block_hash: &str,
+    block_timestamp: u64,
+    strict_mode: bool,
+) -> anyhow::Result<()> {
+    let futures = shards
+        .iter()
+        .filter_map(|shard| shard.chunk.as_ref())
+        .filter(|chunk| !chunk.receipts.is_empty())
+        .map(|chunk| {
+            store_chunk_receipts(
+                pool,
+                &chunk.receipts,
+                block_hash,
+                &chunk.header.chunk_hash,
+                block_timestamp,
+                strict_mode,
+            )
+        });
+
+    // TODO learn how to rewrite it so that everyone could think I know Rust
+    for future in futures {
+        let result = future.await;
+        if result.is_err() {
+            return result;
+        }
+    }
+    Ok(())
+}
+
+async fn store_chunk_receipts(
+    pool: &actix_diesel::Database<PgConnection>,
     receipts: &[near_indexer::near_primitives::views::ReceiptView],
     block_hash: &str,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
 ) -> anyhow::Result<()> {
-    if receipts.is_empty() {
-        return Ok(());
-    }
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
@@ -34,7 +63,7 @@ pub(crate) async fn store_receipts(
         .enumerate()
         .filter_map(|(index, r)| {
             if let Some(transaction_hash) =
-                tx_hashes_for_receipts.get(r.receipt_id.to_string().as_str())
+            tx_hashes_for_receipts.get(r.receipt_id.to_string().as_str())
             {
                 Some(models::Receipt::from_receipt_view(
                     r,
@@ -79,7 +108,6 @@ pub(crate) async fn store_receipts(
     let process_receipt_data_future = store_receipt_data(pool, data_receipts);
 
     try_join!(process_receipt_actions_future, process_receipt_data_future)?;
-
     Ok(())
 }
 

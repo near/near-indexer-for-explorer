@@ -5,17 +5,13 @@ use futures::future::join_all;
 use crate::models;
 use crate::schema;
 
-/// Saves Transaction to database
+/// Saves Transactions to database
 pub(crate) async fn store_transactions(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_indexer::IndexerShard],
     block_hash: &str,
     block_timestamp: u64,
 ) {
-    if shards.is_empty() {
-        return;
-    }
-
     let futures = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())

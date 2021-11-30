@@ -42,7 +42,7 @@ async fn handle_message(
     )
     .await?;
 
-    // Transaction
+    // Transactions
     db_adapters::transactions::store_transactions(
         pool,
         &streamer_message.shards,
@@ -52,19 +52,14 @@ async fn handle_message(
     .await;
 
     // Receipts
-    for shard in &streamer_message.shards {
-        if let Some(chunk) = &shard.chunk {
-            db_adapters::receipts::store_receipts(
-                pool,
-                &chunk.receipts,
-                &streamer_message.block.header.hash.to_string(),
-                &chunk.header.chunk_hash,
-                streamer_message.block.header.timestamp,
-                strict_mode,
-            )
-            .await?;
-        }
-    }
+    db_adapters::receipts::store_receipts(
+        pool,
+        &streamer_message.shards,
+        &streamer_message.block.header.hash.to_string(),
+        streamer_message.block.header.timestamp,
+        strict_mode,
+    )
+    .await?;
 
     // ExecutionOutcomes
     let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
