@@ -35,6 +35,7 @@ pub(crate) async fn latest_block_height(
     Ok(schema::blocks::table
         .select((schema::blocks::dsl::block_height,))
         .order(schema::blocks::dsl::block_height.desc())
+        .limit(1)
         .get_optional_result_async::<(bigdecimal::BigDecimal,)>(pool)
         .await
         .map_err(|err| format!("DB Error: {}", err))?
