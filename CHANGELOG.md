@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.4
+
+* Upgrade `nearcore` to 1.23.0
+
 ## 0.10.3
 
 * Upgrade `nearcore` to 1.22.0
