@@ -36,12 +36,7 @@ pub(crate) async fn store_receipts(
             )
         });
 
-    match try_join_all(futures).await {
-        Ok(_) => Ok(()),
-        Err(err) => {
-            anyhow::bail!(err)
-        }
-    }
+    try_join_all(futures).await.map(|_| ())
 }
 
 async fn store_chunk_receipts(

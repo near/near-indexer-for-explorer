@@ -1,6 +1,5 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use anyhow::Context;
-use bigdecimal::BigDecimal;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::future::try_join_all;
 
@@ -17,6 +16,7 @@ pub(crate) async fn store_transactions(
     block_timestamp: u64,
     block_height: near_primitives::types::BlockHeight,
 ) -> anyhow::Result<()> {
+    // TODO not sure it was a great idea
     let block_hash_str = block_hash.to_string();
     let futures = shards
         .iter()
@@ -46,7 +46,7 @@ pub(crate) async fn store_transactions(
         }
     }
 
-    let inserted_receipt_ids = collect_converted_to_receipt_ids(pool, block_timestamp).await?;
+    let inserted_receipt_ids = collect_converted_to_receipt_ids(pool, block_hash).await?;
     // If the number is the same, I see no chance if there's something wrong, so we can return here
     if inserted_receipt_ids.len() == tried_to_insert_transactions_count {
         return Ok(());
@@ -92,15 +92,13 @@ pub(crate) async fn store_transactions(
     }
 }
 
-// TODO it looks safer to take block hash, but Rust grumbles about passing strings
-// will look at it later
 async fn collect_converted_to_receipt_ids(
     pool: &actix_diesel::Database<PgConnection>,
-    timestamp: u64,
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
 ) -> anyhow::Result<Vec<String>> {
     Ok(schema::transactions::table
         .select(schema::transactions::dsl::converted_into_receipt_id)
-        .filter(schema::transactions::dsl::block_timestamp.eq(BigDecimal::from(timestamp)))
+        .filter(schema::transactions::dsl::included_in_block_hash.eq(block_hash.to_string()))
         .get_results_async::<String>(pool)
         .await
         .context("DB Error")?)
