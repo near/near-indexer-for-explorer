@@ -16,10 +16,8 @@ pub(crate) async fn store_transactions(
     block_timestamp: u64,
     block_height: near_primitives::types::BlockHeight,
 ) -> anyhow::Result<()> {
-    // TODO not sure it was a great idea
-    let block_hash_str = block_hash.to_string();
     let mut tried_to_insert_transactions_count = 0;
-    let futures = shards
+    let tx_futures = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
         .map(|chunk| {
@@ -29,14 +27,16 @@ pub(crate) async fn store_transactions(
                 chunk
                     .transactions
                     .iter()
-                    .collect::<Vec<&near_indexer::IndexerTransactionWithOutcome>>(),
+                    .enumerate()
+                    .collect::<Vec<(usize, &near_indexer::IndexerTransactionWithOutcome)>>(),
                 &chunk.header.chunk_hash,
-                &block_hash_str,
+                block_hash,
                 block_timestamp,
+                "",
             )
         });
 
-    try_join_all(futures).await?;
+    try_join_all(tx_futures).await?;
 
     let inserted_receipt_ids = collect_converted_to_receipt_ids(pool, block_hash).await?;
     // If the number is the same, I see no chance if there's something wrong, so we can return here
@@ -44,44 +44,42 @@ pub(crate) async fn store_transactions(
         return Ok(());
     }
 
+    // https://github.com/near/near-indexer-for-explorer/issues/84
+    // TLDR: it's the hack to store transactions with collided hashes
+    // It should not happen, but unfortunately it did,
+    // we have ~10 such transactions in Mainnet for now
+    let transaction_hash_suffix = "_issue84_".to_owned() + &block_height.to_string();
+
     let collided_tx_futures = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
-        .flat_map(|chunk| {
-            chunk
-                .transactions
-                .iter()
-                .enumerate()
-                .filter(|(_, transaction)| {
-                    let converted_into_receipt_id = &transaction
-                        .outcome
-                        .execution_outcome
-                        .outcome
-                        .receipt_ids
-                        .first()
-                        .expect("`receipt_ids` must contain one Receipt Id")
-                        .to_string();
-                    !inserted_receipt_ids.contains(converted_into_receipt_id)
-                })
-                .map(|(index, transaction)| {
-                    store_collided_transaction(
-                        pool,
-                        transaction,
-                        index,
-                        &chunk.header.chunk_hash,
-                        &block_hash_str,
-                        block_timestamp,
-                        block_height,
-                    )
-                })
+        .map(|chunk| {
+            store_chunk_transactions(
+                pool,
+                chunk
+                    .transactions
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, transaction)| {
+                        let converted_into_receipt_id = &transaction
+                            .outcome
+                            .execution_outcome
+                            .outcome
+                            .receipt_ids
+                            .first()
+                            .expect("`receipt_ids` must contain one Receipt Id")
+                            .to_string();
+                        !inserted_receipt_ids.contains(converted_into_receipt_id)
+                    })
+                    .collect::<Vec<(usize, &near_indexer::IndexerTransactionWithOutcome)>>(),
+                &chunk.header.chunk_hash,
+                block_hash,
+                block_timestamp,
+                &transaction_hash_suffix,
+            )
         });
 
-    match try_join_all(collided_tx_futures).await {
-        Ok(_) => Ok(()),
-        Err(err) => {
-            anyhow::bail!(err)
-        }
-    }
+    try_join_all(collided_tx_futures).await.map(|_| ())
 }
 
 async fn collect_converted_to_receipt_ids(
@@ -96,26 +94,26 @@ async fn collect_converted_to_receipt_ids(
         .context("DB Error")?)
 }
 
-// TODO try to reuse
-// tx hash suffix
 async fn store_chunk_transactions(
     pool: &actix_diesel::Database<PgConnection>,
-    transactions: Vec<&near_indexer::IndexerTransactionWithOutcome>,
+    transactions: Vec<(usize, &near_indexer::IndexerTransactionWithOutcome)>,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
-    block_hash: &str,
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
+    // hack for supporting duplicated transaction hashes. Empty for most of transactions
+    transaction_hash_suffix: &str,
 ) -> anyhow::Result<()> {
     let transaction_models: Vec<models::transactions::Transaction> = transactions
         .iter()
-        .enumerate()
         .map(|(index, tx)| {
+            let transaction_hash = tx.transaction.hash.to_string() + transaction_hash_suffix;
             models::transactions::Transaction::from_indexer_transaction(
                 tx,
+                &transaction_hash,
                 block_hash,
                 chunk_hash,
                 block_timestamp,
-                index as i32,
-                None,
+                *index as i32,
             )
         })
         .collect();
@@ -132,7 +130,7 @@ async fn store_chunk_transactions(
 
     let transaction_action_models: Vec<models::TransactionAction> = transactions
         .into_iter()
-        .flat_map(|tx| {
+        .flat_map(|(_, tx)| {
             tx.transaction
                 .actions
                 .iter()
@@ -155,68 +153,6 @@ async fn store_chunk_transactions(
         10,
         "TransactionActions were stored in database".to_string(),
         &transaction_action_models
-    );
-
-    Ok(())
-}
-
-async fn store_collided_transaction(
-    pool: &actix_diesel::Database<PgConnection>,
-    transaction: &near_indexer::IndexerTransactionWithOutcome,
-    index: usize,
-    chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
-    block_hash: &str,
-    block_timestamp: u64,
-    block_height: near_primitives::types::BlockHeight,
-) -> anyhow::Result<()> {
-    // https://github.com/near/near-indexer-for-explorer/issues/84
-    // TLDR: it's the hack to store transactions with collided hashes
-    // It should not happen, but unfortunately it did,
-    // we have ~10 such transactions in Mainnet for now
-    let new_transaction_hash =
-        transaction.transaction.hash.to_string() + "_issue84_" + &block_height.to_string();
-
-    let transaction_model = models::transactions::Transaction::from_indexer_transaction(
-        transaction,
-        block_hash,
-        chunk_hash,
-        block_timestamp,
-        index as i32,
-        Some(new_transaction_hash.clone()),
-    );
-
-    crate::await_retry_or_panic!(
-        diesel::insert_into(schema::transactions::table)
-            .values(transaction_model.clone())
-            .on_conflict_do_nothing()
-            .execute_async(pool),
-        10,
-        "Transactions were stored in database".to_string(),
-        &transaction_model
-    );
-
-    let transaction_action_model: Vec<models::TransactionAction> = transaction
-        .transaction
-        .actions
-        .iter()
-        .enumerate()
-        .map(move |(index, action)| {
-            models::transactions::TransactionAction::from_action_view(
-                new_transaction_hash.to_string(),
-                index as i32,
-                action,
-            )
-        })
-        .collect();
-
-    crate::await_retry_or_panic!(
-        diesel::insert_into(schema::transaction_actions::table)
-            .values(transaction_action_model.clone())
-            .on_conflict_do_nothing()
-            .execute_async(pool),
-        10,
-        "TransactionActions were stored in database".to_string(),
-        &transaction_action_model
     );
 
     Ok(())

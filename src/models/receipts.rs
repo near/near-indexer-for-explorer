@@ -28,7 +28,7 @@ pub struct Receipt {
 impl Receipt {
     pub fn from_receipt_view(
         receipt: &near_indexer::near_primitives::views::ReceiptView,
-        block_hash: &str,
+        block_hash: &near_indexer::near_primitives::hash::CryptoHash,
         transaction_hash: &str,
         chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
         index_in_chunk: i32,

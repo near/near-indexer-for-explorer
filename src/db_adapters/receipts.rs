@@ -20,7 +20,6 @@ pub(crate) async fn store_receipts(
     block_timestamp: u64,
     strict_mode: bool,
 ) -> anyhow::Result<()> {
-    let block_hash_str = block_hash.to_string();
     let futures = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
@@ -29,7 +28,7 @@ pub(crate) async fn store_receipts(
             store_chunk_receipts(
                 pool,
                 &chunk.receipts,
-                &block_hash_str,
+                block_hash,
                 &chunk.header.chunk_hash,
                 block_timestamp,
                 strict_mode,
@@ -42,7 +41,7 @@ pub(crate) async fn store_receipts(
 async fn store_chunk_receipts(
     pool: &actix_diesel::Database<PgConnection>,
     receipts: &[near_indexer::near_primitives::views::ReceiptView],
-    block_hash: &str,
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
@@ -111,7 +110,7 @@ async fn find_tx_hashes_for_receipts(
     pool: &actix_diesel::Database<PgConnection>,
     mut receipts: Vec<near_indexer::near_primitives::views::ReceiptView>,
     strict_mode: bool,
-    block_hash: &str,
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
 ) -> anyhow::Result<HashMap<String, String>> {
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
