@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use std::convert::TryFrom;
 #[macro_use]
 extern crate diesel;
