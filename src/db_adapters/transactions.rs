@@ -18,10 +18,12 @@ pub(crate) async fn store_transactions(
 ) -> anyhow::Result<()> {
     // TODO not sure it was a great idea
     let block_hash_str = block_hash.to_string();
+    let mut tried_to_insert_transactions_count = 0;
     let futures = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
         .map(|chunk| {
+            tried_to_insert_transactions_count += chunk.transactions.len();
             store_chunk_transactions(
                 pool,
                 chunk
@@ -34,17 +36,7 @@ pub(crate) async fn store_transactions(
             )
         });
 
-    let mut tried_to_insert_transactions_count = 0;
-    for future in futures {
-        match future.await {
-            Ok(count) => {
-                tried_to_insert_transactions_count += count;
-            }
-            Err(err) => {
-                anyhow::bail!(err);
-            }
-        }
-    }
+    try_join_all(futures).await?;
 
     let inserted_receipt_ids = collect_converted_to_receipt_ids(pool, block_hash).await?;
     // If the number is the same, I see no chance if there's something wrong, so we can return here
@@ -112,9 +104,7 @@ async fn store_chunk_transactions(
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_hash: &str,
     block_timestamp: u64,
-    // TODO comment about usize or it's even better just to redesign this
-) -> anyhow::Result<usize> {
-    let transactions_count = transactions.len();
+) -> anyhow::Result<()> {
     let transaction_models: Vec<models::transactions::Transaction> = transactions
         .iter()
         .enumerate()
@@ -167,7 +157,7 @@ async fn store_chunk_transactions(
         &transaction_action_models
     );
 
-    Ok(transactions_count)
+    Ok(())
 }
 
 async fn store_collided_transaction(
