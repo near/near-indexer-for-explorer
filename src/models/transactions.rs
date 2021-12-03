@@ -27,13 +27,15 @@ pub struct Transaction {
 impl Transaction {
     pub fn from_indexer_transaction(
         tx: &near_indexer::IndexerTransactionWithOutcome,
-        block_hash: &str,
+        // hack for supporting duplicated transaction hashes
+        transaction_hash: &str,
+        block_hash: &near_indexer::near_primitives::hash::CryptoHash,
         chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
         block_timestamp: u64,
         index_in_chunk: i32,
     ) -> Self {
         Self {
-            transaction_hash: tx.transaction.hash.to_string(),
+            transaction_hash: transaction_hash.to_string(),
             included_in_block_hash: block_hash.to_string(),
             block_timestamp: block_timestamp.into(),
             index_in_chunk,

@@ -4,6 +4,7 @@ use std::convert::TryFrom;
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::pg::expression::array_comparison::any;
 use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
+use futures::future::try_join_all;
 use futures::try_join;
 use num_traits::cast::FromPrimitive;
 use tracing::{error, warn};
@@ -14,15 +15,37 @@ use crate::schema;
 /// Saves receipts to database
 pub(crate) async fn store_receipts(
     pool: &actix_diesel::Database<PgConnection>,
+    shards: &[near_indexer::IndexerShard],
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
+    block_timestamp: u64,
+    strict_mode: bool,
+) -> anyhow::Result<()> {
+    let futures = shards
+        .iter()
+        .filter_map(|shard| shard.chunk.as_ref())
+        .filter(|chunk| !chunk.receipts.is_empty())
+        .map(|chunk| {
+            store_chunk_receipts(
+                pool,
+                &chunk.receipts,
+                block_hash,
+                &chunk.header.chunk_hash,
+                block_timestamp,
+                strict_mode,
+            )
+        });
+
+    try_join_all(futures).await.map(|_| ())
+}
+
+async fn store_chunk_receipts(
+    pool: &actix_diesel::Database<PgConnection>,
     receipts: &[near_indexer::near_primitives::views::ReceiptView],
-    block_hash: &str,
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
 ) -> anyhow::Result<()> {
-    if receipts.is_empty() {
-        return Ok(());
-    }
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
@@ -34,7 +57,7 @@ pub(crate) async fn store_receipts(
         .enumerate()
         .filter_map(|(index, r)| {
             if let Some(transaction_hash) =
-                tx_hashes_for_receipts.get(r.receipt_id.to_string().as_str())
+            tx_hashes_for_receipts.get(r.receipt_id.to_string().as_str())
             {
                 Some(models::Receipt::from_receipt_view(
                     r,
@@ -79,7 +102,6 @@ pub(crate) async fn store_receipts(
     let process_receipt_data_future = store_receipt_data(pool, data_receipts);
 
     try_join!(process_receipt_actions_future, process_receipt_data_future)?;
-
     Ok(())
 }
 
@@ -88,7 +110,7 @@ async fn find_tx_hashes_for_receipts(
     pool: &actix_diesel::Database<PgConnection>,
     mut receipts: Vec<near_indexer::near_primitives::views::ReceiptView>,
     strict_mode: bool,
-    block_hash: &str,
+    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
 ) -> anyhow::Result<HashMap<String, String>> {
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
