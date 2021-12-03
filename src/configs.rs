@@ -1,17 +1,16 @@
 use std::convert::TryFrom;
 
-use clap::Clap;
+use clap::Parser;
 
 /// NEAR Indexer for Explorer
 /// Watches for stream of blocks from the chain
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(
     version,
     author,
     about,
-    setting(clap::AppSettings::ColoredHelp),
     setting(clap::AppSettings::DisableHelpSubcommand),
-    setting(clap::AppSettings::VersionlessSubcommands),
+    setting(clap::AppSettings::PropagateVersion),
     setting(clap::AppSettings::NextLineHelp)
 )]
 pub(crate) struct Opts {
@@ -22,7 +21,7 @@ pub(crate) struct Opts {
     pub subcmd: SubCommand,
 }
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub(crate) enum SubCommand {
     /// Run NEAR Indexer Example. Start observe the network
     Run(RunArgs),
@@ -30,7 +29,7 @@ pub(crate) enum SubCommand {
     Init(InitConfigArgs),
 }
 
-#[derive(Clap, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 pub(crate) struct RunArgs {
     /// Store initial data from genesis like Accounts, AccessKeys
     #[clap(long)]
@@ -52,7 +51,7 @@ pub(crate) struct RunArgs {
 }
 
 #[allow(clippy::enum_variant_names)] // we want commands to be more explicit
-#[derive(Clap, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 pub(crate) enum SyncModeSubCommand {
     /// continue from the block Indexer was interrupted
     SyncFromInterruption(InterruptionArgs),
@@ -62,14 +61,14 @@ pub(crate) enum SyncModeSubCommand {
     SyncFromBlock(BlockArgs),
 }
 
-#[derive(Clap, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 pub(crate) struct InterruptionArgs {
     /// start indexing this number of blocks earlier than the actual interruption happened
     #[clap(long, default_value = "0")]
     pub delta: u64,
 }
 
-#[derive(Clap, Debug, Clone)]
+#[derive(Parser, Debug, Clone)]
 pub(crate) struct BlockArgs {
     /// block height for block sync mode
     #[clap(long)]
@@ -88,7 +87,7 @@ impl TryFrom<SyncModeSubCommand> for near_indexer::SyncModeEnum {
     }
 }
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub(crate) struct InitConfigArgs {
     /// chain/network id (localnet, testnet, devnet, betanet)
     #[clap(short, long)]
