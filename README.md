@@ -53,7 +53,7 @@ $ diesel migration run
 To connect NEAR Indexer for Explorer to the specific chain you need to have necessary configs, you can generate it as follows:
 
 ```bash
-$ cargo run --release -- --home-dir ~/.near/testnet init --chain-id testnet --download
+$ cargo run --release -- --home-dir ~/.near/testnet init --chain-id testnet --download-config --download-genesis
 ```
 
 The above code will download the official genesis config and generate necessary configs. You can replace `testnet` in the command above to different network ID (`betanet`, `mainnet`).
@@ -94,7 +94,7 @@ relation data area and you're running Indexer where it is impossible to loose an
 To disable strict mode you need to provide:
 
 ```
---allow-missing-relations-in-first-blocks <amount of blocks>
+--non-strict-mode
 ```
 
 Sometimes you may want to index block while sync process is happening, by default an indexer node is waiting for full sync to complete but you can enable indexing while the node is syncing by passing `--stream-while-syncing`
@@ -104,7 +104,7 @@ By default NEAR Indexer for Explorer processes only a single block at a time. Yo
 So final command to run NEAR Indexer for Explorer can look like:
 
 ```bash
-$ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --allow-missing-relations-in-first-blocks 1000 --concurrency 1 sync-from-latest
+$ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --non-strict-mode --concurrency 1 sync-from-latest
 ```
 
 After the network is synced, you should see logs of every block height currently received by NEAR Indexer for Explorer.
