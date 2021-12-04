@@ -6,8 +6,8 @@ NEAR Indexer for Explorer is built on top of [NEAR Indexer microframework](https
 
 NEAR runs the indexer and maintains it for [NEAR Explorer](https://github.com/near/near-explorer), [NEAR Wallet](https://github.com/near/near-wallet), and some other internal services. It proved to be a great source of data for various analysis and services, so we decided to give a shared read-only public access to the data:
 
-* testnet credentials: `postgres://public_readonly:nearprotocol@35.184.214.98/testnet_explorer`
-* mainnet credentials: `postgres://public_readonly:nearprotocol@104.199.89.51/mainnet_explorer`
+* testnet credentials: `postgres://public_readonly:nearprotocol@testnet.db.explorer.indexer.near.dev/testnet_explorer`
+* mainnet credentials: `postgres://public_readonly:nearprotocol@mainnet.db.explorer.indexer.near.dev/mainnet_explorer`
 
 WARNING: We may evolve the data schemas, so make sure you follow the release notes of this repository.
 
