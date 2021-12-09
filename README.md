@@ -15,14 +15,26 @@ NOTE: Please, keep in mind that the access to the database is shared across ever
 
 ## Self-hosting
 
+The final setup consists of the following components:
+* PostgreSQL database (you can run it locally or in the cloud), which can hold the whole history of the blockchain (as of Decemeber 2021, mainnet takes 900GB of data in PostgreSQL storage, and testnet takes 375GB)
+* NEAR Indexer for Explorer binary that operates as a regular NEAR Protocol peer-to-peer node, so you will operate it as any other [Archival Node in NEAR](https://docs.near.org/docs/develop/node/archival/hardware-archival)
+
+### Prepare Development Environment
+
 Before you proceed, make sure you have the following software installed:
-* [rustup](https://rustup.rs/) or Rust version that is mentioned in `rust-toolchain` file in the root of [nearcore](https://github.com/nearprotocol/nearcore) project.
+* [Rust compiler](https://rustup.rs/) of the version that is mentioned in `rust-toolchain` file in the root of [nearcore](https://github.com/nearprotocol/nearcore) project.
+* `libpq-dev` dependency
 
-Install `libpq-dev` dependency
+    On Debian/Ubuntu:
+    
+    ```bash
+    $ sudo apt install libpq-dev
+    ```
 
-```bash
-$ sudo apt install libpq-dev
-```
+
+### Prepare Database
+
+Setup PostgreSQL database, create a database with the regular tools, and note the connection string (database host, credentials, and the database name).
 
 Clone this repository and open the project folder
 
@@ -50,10 +62,18 @@ And apply migrations
 $ diesel migration run
 ```
 
+### Compile NEAR Indexer for Explorer
+
+```bash
+$ cargo build --release
+```
+
+### Configure NEAR Indexer for Explorer
+
 To connect NEAR Indexer for Explorer to the specific chain you need to have necessary configs, you can generate it as follows:
 
 ```bash
-$ cargo run --release -- --home-dir ~/.near/testnet init --chain-id testnet --download-config --download-genesis
+$ ./target/release/near-indexer --home-dir ~/.near/testnet init --chain-id testnet --download-config --download-genesis
 ```
 
 The above code will download the official genesis config and generate necessary configs. You can replace `testnet` in the command above to different network ID (`betanet`, `mainnet`).
@@ -74,7 +94,7 @@ For example, with a single shared network, you just add the shard #0 to the list
 ...
 ```
 
-## Running NEAR Indexer for Explorer:
+### Run NEAR Indexer for Explorer
 
 Command to run NEAR Indexer for Explorer have to contain sync mode.
 
@@ -108,6 +128,10 @@ $ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream
 ```
 
 After the network is synced, you should see logs of every block height currently received by NEAR Indexer for Explorer.
+
+### Troubleshoot NEAR Indexer for Explorer
+
+Refer to a separate [TROBLESHOOTING.md](./TROBLESHOOTING.md) document.
 
 ## Database structure
 
