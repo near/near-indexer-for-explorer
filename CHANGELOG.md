@@ -3,6 +3,7 @@
 ## 0.10.4
 
 * Upgrade `nearcore` to 1.23.0
+* Handle transaction hash collisions (issue #84)
 
 ## 0.10.3
 
