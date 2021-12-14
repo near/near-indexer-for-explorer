@@ -42,10 +42,10 @@ Before you proceed, make sure you have the following software installed:
 
 Setup PostgreSQL database
 
-    ```bash
-     sudo apt-get install postgresql postgresql-contrib
-    ```
-    
+ ```bash
+ sudo apt-get install postgresql postgresql-contrib
+```   
+
 Create a database with the regular tools (Change user and db_name with yours)
     ```bash
      sudo su postgres
