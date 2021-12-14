@@ -28,44 +28,62 @@ Before you proceed, make sure you have the following software installed:
     On Debian/Ubuntu:
     
     ```bash
-    $ sudo apt install libpq-dev
+     sudo apt install libpq-dev
     ```
-
-
+ * Cargo dependency
+ * 
+   On Debian/Ubuntu:
+    
+    ```bash
+     sudo apt install cargo
+    ```
+    
 ### Prepare Database
 
-Setup PostgreSQL database, create a database with the regular tools, and note the connection string (database host, credentials, and the database name).
+Setup PostgreSQL database
+
+    ```bash
+     sudo apt-get install postgresql postgresql-contrib
+    ```
+    
+Create a database with the regular tools (Change user and db_name with yours)
+    ```bash
+     sudo su postgres
+     psql
+     create database db_name with owner=user;
+    ```
+Note the connection string (database host, credentials, and the database name).
 
 Clone this repository and open the project folder
 
 ```bash
-$ git clone git@github.com:near/near-indexer-for-explorer.git
-$ cd near-indexer-for-explorer
+ git clone https://github.com/near/near-indexer-for-explorer.git
+ cd near-indexer-for-explorer
 ```
 
 You need to provide database credentials in `.env` file like below (replace `user`, `password`, `host` and `db_name` with yours):
 
 ```bash
-$ echo "DATABASE_URL=postgres://user:password@host/db_name" > .env
+ echo "DATABASE_URL=postgres://user:password@host/db_name" > .env
 ```
 
 Then you need to apply migrations to create necessary database structure. For this you'll need `diesel-cli`, you can install it like so:
 
 
 ```bash
-$ cargo install diesel_cli --no-default-features --features "postgres"
+ cargo install diesel_cli --no-default-features --features "postgres"
 ```
 
 And apply migrations
 
 ```bash
-$ diesel migration run
+ diesel migration run
 ```
 
 ### Compile NEAR Indexer for Explorer
 
 ```bash
-$ cargo build --release
+ cargo build --release
 ```
 
 ### Configure NEAR Indexer for Explorer
@@ -73,7 +91,7 @@ $ cargo build --release
 To connect NEAR Indexer for Explorer to the specific chain you need to have necessary configs, you can generate it as follows:
 
 ```bash
-$ ./target/release/near-indexer --home-dir ~/.near/testnet init --chain-id testnet --download-config --download-genesis
+ ./target/release/near-indexer --home-dir ~/.near/testnet init --chain-id testnet --download-config --download-genesis
 ```
 
 The above code will download the official genesis config and generate necessary configs. You can replace `testnet` in the command above to different network ID (`betanet`, `mainnet`).
@@ -124,7 +142,7 @@ By default NEAR Indexer for Explorer processes only a single block at a time. Yo
 So final command to run NEAR Indexer for Explorer can look like:
 
 ```bash
-$ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --non-strict-mode --concurrency 1 sync-from-latest
+ cargo run --release -- --home-dir ~/.near/testnet run --store-genesis --stream-while-syncing --non-strict-mode --concurrency 1 sync-from-latest
 ```
 
 After the network is synced, you should see logs of every block height currently received by NEAR Indexer for Explorer.
@@ -158,7 +176,7 @@ GRANT readonly TO explorer;
 ```
 
 ```bash
-$ PGPASSWORD="password" psql -h 127.0.0.1 -U explorer databasename
+ PGPASSWORD="password" psql -h 127.0.0.1 -U explorer databasename
 ```
 
 ## Syncing
@@ -207,13 +225,13 @@ Go through steps [above](https://github.com/near/near-indexer-for-explorer#self-
 Then,
 
 ```bash
-$ cargo run --release -- --home-dir ~/.near/localnet init --chain-id localnet
+ cargo run --release -- --home-dir ~/.near/localnet init --chain-id localnet
 ```
 
 Edit `~/.near/localnet/config.json` by adding tracking shards and archiving option (see [example above](https://github.com/near/near-indexer-for-explorer#running-near-indexer-for-explorer-as-archival-node)).
 
 ```bash
-$ cargo run -- --home-dir ~/.near/localnet run --store-genesis sync-from-latest
+ cargo run -- --home-dir ~/.near/localnet run --store-genesis sync-from-latest
 ```
 
 Congrats, the blocks are being produced right now!
@@ -221,9 +239,9 @@ There should be some lines in the DB.
 Now, we need to generate some activity to add new examples.
 
 ```bash
-$ npm i -g near-cli
-$ NEAR_ENV=local near create-account awesome.test.near --initialBalance 30 --masterAccount test.near --keyPath=~/.near/localnet/validator_key.json
-$ NEAR_ENV=local near send test.near awesome.test.near 5
+ npm i -g near-cli
+ NEAR_ENV=local near create-account awesome.test.near --initialBalance 30 --masterAccount test.near --keyPath=~/.near/localnet/validator_key.json
+ NEAR_ENV=local near send test.near awesome.test.near 5
 ```
 
 All available commands are [here](https://github.com/near/near-cli#near-cli-command-line-interface).
