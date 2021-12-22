@@ -153,6 +153,10 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA PUBLIC GRANT SELECT ON TABLES TO PUBLIC;
 After that, you could create read-only user in PostgreSQL:
 
 ```sql
+CREATE ROLE readonly;
+GRANT USAGE ON SCHEMA public TO readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly;
+
 CREATE USER explorer with password 'password';
 GRANT readonly TO explorer;
 ```
