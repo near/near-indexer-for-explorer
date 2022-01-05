@@ -245,7 +245,7 @@ fn main() {
     let pool = models::establish_connection();
 
     let mut env_filter = EnvFilter::new(
-        "tokio_reactor=info,near=info,near=error,stats=info,telemetry=info,indexer=info,indexer_for_explorer=info,aggregated=info",
+        "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,indexer_for_explorer=info,aggregated=info",
     );
 
     if let Ok(rust_log) = std::env::var("RUST_LOG") {
