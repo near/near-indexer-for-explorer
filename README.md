@@ -156,6 +156,7 @@ After that, you could create read-only user in PostgreSQL:
 CREATE ROLE readonly;
 GRANT USAGE ON SCHEMA public TO readonly;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly;
+ALTER ROLE public_readonly SET statement_timeout = '30s';
 
 CREATE USER explorer with password 'password';
 GRANT readonly TO explorer;
