@@ -4,13 +4,13 @@ use actix_diesel::{AsyncError, Database};
 use bigdecimal::BigDecimal;
 use diesel::PgConnection;
 use tracing::warn;
-use crate::db_adapters::assets::events::is_error_handled;
+use crate::db_adapters::assets::events::detect_db_error;
 
 use super::event_types;
 use crate::models;
 use crate::schema;
 
-pub(crate) async fn handle_ft_events(
+pub(crate) async fn handle_ft_event(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
     outcome: &near_indexer::IndexerExecutionOutcomeWithReceipt,
@@ -18,7 +18,7 @@ pub(crate) async fn handle_ft_events(
     event: &Nep141Event,
     index_in_shard: &mut i32,
 ) -> anyhow::Result<()> {
-    let ft_events = compose_ft_events(
+    let ft_events = compose_ft_db_events(
         event,
         outcome,
         block_timestamp,
@@ -33,17 +33,17 @@ pub(crate) async fn handle_ft_events(
         10,
         "FungibleTokenEvent were adding to database".to_string(),
         &ft_events,
-        &abc123
+        &detect_ft_db_error
     );
 
     Ok(())
 }
 
-async fn abc123(async_error: &AsyncError<diesel::result::Error>) -> bool {
-    is_error_handled(async_error, "assets__fungible_token_events_pkey", "assets__fungible_token_events_unique").await
+async fn detect_ft_db_error(async_error: &AsyncError<diesel::result::Error>) -> bool {
+    detect_db_error(async_error, "assets__fungible_token_events_pkey", "assets__fungible_token_events_unique").await
 }
 
-fn compose_ft_events(
+fn compose_ft_db_events(
     event: &event_types::Nep141Event,
     outcome: &near_indexer::IndexerExecutionOutcomeWithReceipt,
     block_timestamp: &u64,

@@ -19,7 +19,7 @@ pub(crate) async fn store_events(
     Ok(())
 }
 
-pub(crate) async fn is_error_handled(async_error: &AsyncError<diesel::result::Error>, duplicate_constraint_name: &str, broken_data_constraint_name: &str) -> bool {
+pub(crate) async fn detect_db_error(async_error: &AsyncError<diesel::result::Error>, duplicate_constraint_name: &str, broken_data_constraint_name: &str) -> bool {
     if let actix_diesel::AsyncError::Execute(diesel::result::Error::DatabaseError(
                                                  diesel::result::DatabaseErrorKind::UniqueViolation,
                                                  ref error_info,
@@ -44,16 +44,17 @@ async fn collect_and_store_events(
     shard: &near_indexer::IndexerShard,
     block_timestamp: &u64,
 ) -> anyhow::Result<()> {
-    let mut index_in_shard: i32 = 0;
+    let mut ft_index_in_shard: i32 = 0;
+    let mut nft_index_in_shard: i32 = 0;
     for outcome in &shard.receipt_execution_outcomes {
         let events = extract_events(outcome);
         for event in events {
             match event {
                 assets::event_types::NearEvent::Nep141(ft_event) => {
-                    assets::fungible_token_events::handle_ft_events(pool, shard, outcome, block_timestamp, &ft_event, &mut index_in_shard).await?;
+                    assets::fungible_token_events::handle_ft_event(pool, shard, outcome, block_timestamp, &ft_event, &mut ft_index_in_shard).await?;
                 }
                 assets::event_types::NearEvent::Nep171(nft_event) => {
-                    assets::non_fungible_token_events::handle_nft_events(pool, shard, outcome, block_timestamp, &nft_event, &mut index_in_shard).await?;
+                    assets::non_fungible_token_events::handle_nft_event(pool, shard, outcome, block_timestamp, &nft_event, &mut nft_index_in_shard).await?;
                 }
             }
         }

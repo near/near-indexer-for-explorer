@@ -4,13 +4,13 @@ use actix_diesel::{AsyncError, Database};
 use bigdecimal::BigDecimal;
 use diesel::PgConnection;
 use tracing::warn;
-use crate::db_adapters::assets::events::is_error_handled;
+use crate::db_adapters::assets::events::detect_db_error;
 
 use super::event_types;
 use crate::models;
 use crate::schema;
 
-pub(crate) async fn handle_nft_events(
+pub(crate) async fn handle_nft_event(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
     outcome: &near_indexer::IndexerExecutionOutcomeWithReceipt,
@@ -18,7 +18,7 @@ pub(crate) async fn handle_nft_events(
     event: &Nep171Event,
     index_in_shard: &mut i32,
 ) -> anyhow::Result<()> {
-    let nft_events = compose_nft_events(
+    let nft_events = compose_nft_db_events(
         event,
         outcome,
         block_timestamp,
@@ -33,17 +33,17 @@ pub(crate) async fn handle_nft_events(
         10,
         "NonFungibleTokenEvent were adding to database".to_string(),
         &nft_events,
-        &abc123
+        &detect_nft_db_error
     );
 
     Ok(())
 }
 
-async fn abc123(async_error: &AsyncError<diesel::result::Error>) -> bool {
-    is_error_handled(async_error, "assets__non_fungible_token_events_pkey", "assets__non_fungible_token_events_unique").await
+async fn detect_nft_db_error(async_error: &AsyncError<diesel::result::Error>) -> bool {
+    detect_db_error(async_error, "assets__non_fungible_token_events_pkey", "assets__non_fungible_token_events_unique").await
 }
 
-fn compose_nft_events(
+fn compose_nft_db_events(
     event: &event_types::Nep171Event,
     outcome: &near_indexer::IndexerExecutionOutcomeWithReceipt,
     block_timestamp: &u64,
