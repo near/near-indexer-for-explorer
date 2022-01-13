@@ -4,8 +4,8 @@ use crate::models::enums::FtEventKind;
 use crate::schema;
 use schema::assets__fungible_token_events;
 
-#[table_name = "assets__fungible_token_events"]
 #[derive(Insertable, Queryable, Clone, Debug)]
+#[table_name = "assets__fungible_token_events"]
 pub struct FungibleTokenEvent {
     pub emitted_for_receipt_id: String,
     pub emitted_at_block_timestamp: BigDecimal,

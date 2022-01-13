@@ -1,13 +1,9 @@
 use crate::db_adapters::assets;
-use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::{AsyncError, Database};
-use bigdecimal::BigDecimal;
 use diesel::PgConnection;
 use tracing::warn;
 
 use super::event_types;
-use crate::models;
-use crate::schema;
 
 pub(crate) async fn store_events(
     pool: &Database<PgConnection>,
@@ -19,11 +15,15 @@ pub(crate) async fn store_events(
     Ok(())
 }
 
-pub(crate) async fn detect_db_error(async_error: &AsyncError<diesel::result::Error>, duplicate_constraint_name: &str, broken_data_constraint_name: &str) -> bool {
+pub(crate) async fn detect_db_error(
+    async_error: &AsyncError<diesel::result::Error>,
+    duplicate_constraint_name: &str,
+    broken_data_constraint_name: &str,
+) -> bool {
     if let actix_diesel::AsyncError::Execute(diesel::result::Error::DatabaseError(
-                                                 diesel::result::DatabaseErrorKind::UniqueViolation,
-                                                 ref error_info,
-                                             )) = *async_error
+        diesel::result::DatabaseErrorKind::UniqueViolation,
+        ref error_info,
+    )) = *async_error
     {
         let constraint_name = error_info.constraint_name().unwrap_or("");
         if constraint_name == duplicate_constraint_name {
@@ -51,10 +51,26 @@ async fn collect_and_store_events(
         for event in events {
             match event {
                 assets::event_types::NearEvent::Nep141(ft_event) => {
-                    assets::fungible_token_events::handle_ft_event(pool, shard, outcome, block_timestamp, &ft_event, &mut ft_index_in_shard).await?;
+                    assets::fungible_token_events::handle_ft_event(
+                        pool,
+                        shard,
+                        outcome,
+                        block_timestamp,
+                        &ft_event,
+                        &mut ft_index_in_shard,
+                    )
+                    .await?;
                 }
                 assets::event_types::NearEvent::Nep171(nft_event) => {
-                    assets::non_fungible_token_events::handle_nft_event(pool, shard, outcome, block_timestamp, &nft_event, &mut nft_index_in_shard).await?;
+                    assets::non_fungible_token_events::handle_nft_event(
+                        pool,
+                        shard,
+                        outcome,
+                        block_timestamp,
+                        &nft_event,
+                        &mut nft_index_in_shard,
+                    )
+                    .await?;
                 }
             }
         }

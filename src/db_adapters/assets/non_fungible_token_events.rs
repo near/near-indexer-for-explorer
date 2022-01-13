@@ -1,10 +1,9 @@
 use crate::db_adapters::assets::event_types::Nep171Event;
+use crate::db_adapters::assets::events::detect_db_error;
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::{AsyncError, Database};
 use bigdecimal::BigDecimal;
 use diesel::PgConnection;
-use tracing::warn;
-use crate::db_adapters::assets::events::detect_db_error;
 
 use super::event_types;
 use crate::models;
@@ -40,7 +39,12 @@ pub(crate) async fn handle_nft_event(
 }
 
 async fn detect_nft_db_error(async_error: &AsyncError<diesel::result::Error>) -> bool {
-    detect_db_error(async_error, "assets__non_fungible_token_events_pkey", "assets__non_fungible_token_events_unique").await
+    detect_db_error(
+        async_error,
+        "assets__non_fungible_token_events_pkey",
+        "assets__non_fungible_token_events_unique",
+    )
+    .await
 }
 
 fn compose_nft_db_events(
@@ -82,9 +86,13 @@ fn compose_nft_db_events(
         event_types::Nep171EventKind::NftTransfer(transfer_events) => {
             for transfer_event in transfer_events {
                 let authorized_id = transfer_event
-                    .authorized_id.clone()
+                    .authorized_id
+                    .clone()
                     .unwrap_or_else(|| "".to_string());
-                let memo = transfer_event.memo.clone().unwrap_or_else(|| "".to_string());
+                let memo = transfer_event
+                    .memo
+                    .clone()
+                    .unwrap_or_else(|| "".to_string());
                 for token_id in &transfer_event.token_ids {
                     nft_events.push(
                         models::assets::non_fungible_token_events::NonFungibleTokenEvent {
@@ -113,7 +121,10 @@ fn compose_nft_db_events(
         }
         event_types::Nep171EventKind::NftBurn(burn_events) => {
             for burn_event in burn_events {
-                let authorized_id = &burn_event.authorized_id.clone().unwrap_or_else(|| "".to_string());
+                let authorized_id = &burn_event
+                    .authorized_id
+                    .clone()
+                    .unwrap_or_else(|| "".to_string());
                 let memo = burn_event.memo.clone().unwrap_or_else(|| "".to_string());
                 for token_id in &burn_event.token_ids {
                     nft_events.push(
