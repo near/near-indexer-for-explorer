@@ -39,5 +39,7 @@ pub(crate) fn get_database_credentials() -> String {
 
 pub(crate) fn establish_connection() -> actix_diesel::Database<PgConnection> {
     let database_url = get_database_credentials();
-    actix_diesel::Database::builder().open(&database_url)
+    actix_diesel::Database::builder()
+        .pool_max_size(30)
+        .open(&database_url)
 }
