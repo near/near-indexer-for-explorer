@@ -1,8 +1,13 @@
 # Changelog
 
+## 0.10.8
+
+* Upgrade nearcore to `1.24.0-rc.1`
+
 ## 0.10.7
 
 * Upgrade `nearcore` to 1.23.1
+* Optimized the latency of putting the data into database
 
 ## 0.10.6
 
