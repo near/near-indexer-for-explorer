@@ -2,6 +2,7 @@ use crate::db_adapters::assets;
 use actix_diesel::{AsyncError, Database};
 use diesel::PgConnection;
 use futures::future::try_join_all;
+use futures::try_join;
 use tracing::warn;
 
 use super::event_types;
@@ -46,37 +47,36 @@ async fn collect_and_store_events(
     shard: &near_indexer::IndexerShard,
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
-    let mut ft_index_in_shard: i32 = 0;
-    let mut nft_index_in_shard: i32 = 0;
+    let mut ft_events_with_outcomes = Vec::new();
+    let mut nft_events_with_outcomes = Vec::new();
+
     for outcome in &shard.receipt_execution_outcomes {
         let events = extract_events(outcome);
         for event in events {
             match event {
                 assets::event_types::NearEvent::Nep141(ft_event) => {
-                    assets::fungible_token_events::handle_ft_event(
-                        pool,
-                        shard,
-                        outcome,
-                        block_timestamp,
-                        &ft_event,
-                        &mut ft_index_in_shard,
-                    )
-                    .await?;
+                    ft_events_with_outcomes.push((ft_event, outcome));
                 }
                 assets::event_types::NearEvent::Nep171(nft_event) => {
-                    assets::non_fungible_token_events::handle_nft_event(
-                        pool,
-                        shard,
-                        outcome,
-                        block_timestamp,
-                        &nft_event,
-                        &mut nft_index_in_shard,
-                    )
-                    .await?;
+                    nft_events_with_outcomes.push((nft_event, outcome));
                 }
             }
         }
     }
+
+    let ft_future = assets::fungible_token_events::handle_ft_event(
+        pool,
+        shard,
+        block_timestamp,
+        &ft_events_with_outcomes,
+    );
+    let nft_future = assets::non_fungible_token_events::handle_nft_event(
+        pool,
+        shard,
+        block_timestamp,
+        &nft_events_with_outcomes,
+    );
+    try_join!(ft_future, nft_future)?;
     Ok(())
 }
 
