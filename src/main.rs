@@ -5,6 +5,7 @@ extern crate diesel;
 
 use actix_diesel::Database;
 use diesel::PgConnection;
+use futures::future::try_join_all;
 use futures::{try_join, StreamExt};
 use tokio::sync::mpsc;
 use tracing::{info, warn};
@@ -76,15 +77,15 @@ async fn handle_message(
 
     // Accounts
     let accounts_future = async {
-        for shard in &streamer_message.shards {
+        let futures = streamer_message.shards.iter().map(|shard| {
             db_adapters::accounts::handle_accounts(
                 pool,
                 &shard.receipt_execution_outcomes,
                 streamer_message.block.header.height,
             )
-            .await?;
-        }
-        Ok(())
+        });
+
+        try_join_all(futures).await.map(|_| ())
     };
 
     // Assets (NFT)
@@ -94,15 +95,15 @@ async fn handle_message(
     if strict_mode {
         // AccessKeys
         let access_keys_future = async {
-            for shard in &streamer_message.shards {
+            let futures = streamer_message.shards.iter().map(|shard| {
                 db_adapters::access_keys::handle_access_keys(
                     pool,
                     &shard.receipt_execution_outcomes,
                     streamer_message.block.header.height,
                 )
-                .await?;
-            }
-            Ok(())
+            });
+
+            try_join_all(futures).await.map(|_| ())
         };
 
         // StateChange related to Account

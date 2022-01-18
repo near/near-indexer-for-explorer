@@ -2,6 +2,7 @@ use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::{AsyncError, Database};
 use bigdecimal::BigDecimal;
 use diesel::PgConnection;
+use futures::future::try_join_all;
 use tracing::warn;
 
 use super::nft_types;
@@ -12,16 +13,17 @@ pub(crate) async fn store_nft(
     pool: &Database<PgConnection>,
     streamer_message: &near_indexer::StreamerMessage,
 ) -> anyhow::Result<()> {
-    for shard in &streamer_message.shards {
-        collect_and_store_nft_events(pool, shard, &streamer_message.block.header.timestamp).await?;
-    }
-    Ok(())
+    let futures = streamer_message.shards.iter().map(|shard| {
+        collect_and_store_nft_events(pool, shard, streamer_message.block.header.timestamp)
+    });
+
+    try_join_all(futures).await.map(|_| ())
 }
 
 async fn collect_and_store_nft_events(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
-    block_timestamp: &u64,
+    block_timestamp: u64,
 ) -> anyhow::Result<()> {
     let mut index_in_shard: i32 = 0;
     for outcome in &shard.receipt_execution_outcomes {
@@ -69,7 +71,7 @@ async fn is_error_handled(async_error: &AsyncError<diesel::result::Error>) -> bo
 
 fn collect_nft_events(
     outcome: &near_indexer::IndexerExecutionOutcomeWithReceipt,
-    block_timestamp: &u64,
+    block_timestamp: u64,
     shard_id: &near_indexer::near_primitives::types::ShardId,
     index_in_shard: &mut i32,
 ) -> Vec<models::assets::non_fungible_token_events::NonFungibleTokenEvent> {
@@ -114,7 +116,7 @@ fn collect_nft_events(
                         nft_events.push(
                             models::assets::non_fungible_token_events::NonFungibleTokenEvent {
                                 emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
-                                emitted_at_block_timestamp: BigDecimal::from(*block_timestamp),
+                                emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                                 emitted_in_shard_id: BigDecimal::from(*shard_id),
                                 emitted_index_of_event_entry_in_shard: *index_in_shard,
                                 emitted_by_contract_account_id: contract_id.to_string(),
@@ -143,7 +145,7 @@ fn collect_nft_events(
                         nft_events.push(
                             models::assets::non_fungible_token_events::NonFungibleTokenEvent {
                                 emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
-                                emitted_at_block_timestamp: BigDecimal::from(*block_timestamp),
+                                emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                                 emitted_in_shard_id: BigDecimal::from(*shard_id),
                                 emitted_index_of_event_entry_in_shard: *index_in_shard,
                                 emitted_by_contract_account_id: contract_id.to_string(),
@@ -175,7 +177,7 @@ fn collect_nft_events(
                         nft_events.push(
                             models::assets::non_fungible_token_events::NonFungibleTokenEvent {
                                 emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
-                                emitted_at_block_timestamp: BigDecimal::from(*block_timestamp),
+                                emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                                 emitted_in_shard_id: BigDecimal::from(*shard_id),
                                 emitted_index_of_event_entry_in_shard: *index_in_shard,
                                 emitted_by_contract_account_id: contract_id.to_string(),
