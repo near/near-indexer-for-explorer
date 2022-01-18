@@ -1,26 +1,26 @@
-use crate::db_adapters::assets::event_types::Nep171Event;
-use crate::db_adapters::assets::events::detect_db_error;
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::{AsyncError, Database};
 use bigdecimal::BigDecimal;
 use diesel::PgConnection;
 
-use super::event_types;
+use crate::db_adapters::{assets, CHUNK_SIZE_FOR_BATCH_INSERT};
 use crate::models;
 use crate::schema;
+
+use super::event_types;
 
 pub(crate) async fn handle_nft_event(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
     block_timestamp: u64,
     events_with_outcomes: &[(
-        Nep171Event,
+        assets::event_types::Nep171Event,
         &near_indexer::IndexerExecutionOutcomeWithReceipt,
     )],
 ) -> anyhow::Result<()> {
     let nft_events = compose_nft_db_events(events_with_outcomes, block_timestamp, &shard.shard_id);
 
-    for chunk in nft_events.chunks(500) {
+    for chunk in nft_events.chunks(CHUNK_SIZE_FOR_BATCH_INSERT) {
         let nft_events_chunk = chunk.to_owned();
         crate::await_retry_or_panic!(
             diesel::insert_into(schema::assets__non_fungible_token_events::table)
@@ -37,7 +37,7 @@ pub(crate) async fn handle_nft_event(
 }
 
 async fn detect_nft_db_error(async_error: &AsyncError<diesel::result::Error>) -> bool {
-    detect_db_error(
+    assets::events::detect_db_error(
         async_error,
         "assets__non_fungible_token_events_pkey",
         "assets__non_fungible_token_events_unique",
@@ -47,7 +47,7 @@ async fn detect_nft_db_error(async_error: &AsyncError<diesel::result::Error>) ->
 
 fn compose_nft_db_events(
     events_with_outcomes: &[(
-        Nep171Event,
+        assets::event_types::Nep171Event,
         &near_indexer::IndexerExecutionOutcomeWithReceipt,
     )],
     block_timestamp: u64,

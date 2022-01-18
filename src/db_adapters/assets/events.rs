@@ -1,9 +1,8 @@
-use crate::db_adapters::assets;
 use actix_diesel::{AsyncError, Database};
 use diesel::PgConnection;
-use futures::future::try_join_all;
-use futures::try_join;
 use tracing::warn;
+
+use crate::db_adapters::assets;
 
 use super::event_types;
 
@@ -15,7 +14,7 @@ pub(crate) async fn store_events(
         collect_and_store_events(pool, shard, streamer_message.block.header.timestamp)
     });
 
-    try_join_all(futures).await.map(|_| ())
+    futures::future::try_join_all(futures).await.map(|_| ())
 }
 
 pub(crate) async fn detect_db_error(
@@ -76,7 +75,7 @@ async fn collect_and_store_events(
         block_timestamp,
         &nft_events_with_outcomes,
     );
-    try_join!(ft_future, nft_future)?;
+    futures::try_join!(ft_future, nft_future)?;
     Ok(())
 }
 
