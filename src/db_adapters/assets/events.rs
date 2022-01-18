@@ -1,6 +1,7 @@
 use crate::db_adapters::assets;
 use actix_diesel::{AsyncError, Database};
 use diesel::PgConnection;
+use futures::future::try_join_all;
 use tracing::warn;
 
 use super::event_types;
@@ -9,10 +10,11 @@ pub(crate) async fn store_events(
     pool: &Database<PgConnection>,
     streamer_message: &near_indexer::StreamerMessage,
 ) -> anyhow::Result<()> {
-    for shard in &streamer_message.shards {
-        collect_and_store_events(pool, shard, &streamer_message.block.header.timestamp).await?;
-    }
-    Ok(())
+    let futures = streamer_message.shards.iter().map(|shard| {
+        collect_and_store_events(pool, shard, streamer_message.block.header.timestamp)
+    });
+
+    try_join_all(futures).await.map(|_| ())
 }
 
 pub(crate) async fn detect_db_error(
@@ -42,7 +44,7 @@ pub(crate) async fn detect_db_error(
 async fn collect_and_store_events(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
-    block_timestamp: &u64,
+    block_timestamp: u64,
 ) -> anyhow::Result<()> {
     let mut ft_index_in_shard: i32 = 0;
     let mut nft_index_in_shard: i32 = 0;

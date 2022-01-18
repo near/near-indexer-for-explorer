@@ -13,7 +13,7 @@ pub(crate) async fn handle_ft_event(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
     outcome: &near_indexer::IndexerExecutionOutcomeWithReceipt,
-    block_timestamp: &u64,
+    block_timestamp: u64,
     event: &Nep141Event,
     index_in_shard: &mut i32,
 ) -> anyhow::Result<()> {
@@ -50,7 +50,7 @@ async fn detect_ft_db_error(async_error: &AsyncError<diesel::result::Error>) -> 
 fn compose_ft_db_events(
     event: &event_types::Nep141Event,
     outcome: &near_indexer::IndexerExecutionOutcomeWithReceipt,
-    block_timestamp: &u64,
+    block_timestamp: u64,
     shard_id: &near_indexer::near_primitives::types::ShardId,
     index_in_shard: &mut i32,
 ) -> Vec<models::assets::fungible_token_events::FungibleTokenEvent> {
@@ -61,7 +61,7 @@ fn compose_ft_db_events(
             for mint_event in mint_events {
                 ft_events.push(models::assets::fungible_token_events::FungibleTokenEvent {
                     emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
-                    emitted_at_block_timestamp: BigDecimal::from(*block_timestamp),
+                    emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                     emitted_in_shard_id: BigDecimal::from(*shard_id),
                     emitted_index_of_event_entry_in_shard: *index_in_shard,
                     emitted_by_contract_account_id: contract_id.to_string(),
@@ -83,7 +83,7 @@ fn compose_ft_db_events(
             for transfer_event in transfer_events {
                 ft_events.push(models::assets::fungible_token_events::FungibleTokenEvent {
                     emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
-                    emitted_at_block_timestamp: BigDecimal::from(*block_timestamp),
+                    emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                     emitted_in_shard_id: BigDecimal::from(*shard_id),
                     emitted_index_of_event_entry_in_shard: *index_in_shard,
                     emitted_by_contract_account_id: contract_id.to_string(),
@@ -111,7 +111,7 @@ fn compose_ft_db_events(
             for burn_event in burn_events {
                 ft_events.push(models::assets::fungible_token_events::FungibleTokenEvent {
                     emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
-                    emitted_at_block_timestamp: BigDecimal::from(*block_timestamp),
+                    emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                     emitted_in_shard_id: BigDecimal::from(*shard_id),
                     emitted_index_of_event_entry_in_shard: *index_in_shard,
                     emitted_by_contract_account_id: contract_id.to_string(),
