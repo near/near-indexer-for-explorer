@@ -13,23 +13,25 @@ pub(crate) async fn handle_nft_event(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
     block_timestamp: u64,
-    events_with_outcomes: &Vec<(Nep171Event, &near_indexer::IndexerExecutionOutcomeWithReceipt)>,
+    events_with_outcomes: &[(
+        Nep171Event,
+        &near_indexer::IndexerExecutionOutcomeWithReceipt,
+    )],
 ) -> anyhow::Result<()> {
-    let nft_events = compose_nft_db_events(
-        events_with_outcomes,
-        block_timestamp,
-        &shard.shard_id,
-    );
+    let nft_events = compose_nft_db_events(events_with_outcomes, block_timestamp, &shard.shard_id);
 
-    crate::await_retry_or_panic!(
-        diesel::insert_into(schema::assets__non_fungible_token_events::table)
-            .values(nft_events.clone())
-            .execute_async(pool),
-        10,
-        "NonFungibleTokenEvent were adding to database".to_string(),
-        &nft_events,
-        &detect_nft_db_error
-    );
+    for chunk in nft_events.chunks(500) {
+        let nft_events_chunk = chunk.to_owned();
+        crate::await_retry_or_panic!(
+            diesel::insert_into(schema::assets__non_fungible_token_events::table)
+                .values(nft_events_chunk.clone())
+                .execute_async(pool),
+            10,
+            "NonFungibleTokenEvent were adding to database".to_string(),
+            &nft_events_chunk,
+            &detect_nft_db_error
+        );
+    }
 
     Ok(())
 }
@@ -44,7 +46,10 @@ async fn detect_nft_db_error(async_error: &AsyncError<diesel::result::Error>) ->
 }
 
 fn compose_nft_db_events(
-    events_with_outcomes: &Vec<(Nep171Event, &near_indexer::IndexerExecutionOutcomeWithReceipt)>,
+    events_with_outcomes: &[(
+        Nep171Event,
+        &near_indexer::IndexerExecutionOutcomeWithReceipt,
+    )],
     block_timestamp: u64,
     shard_id: &near_indexer::near_primitives::types::ShardId,
 ) -> Vec<models::assets::non_fungible_token_events::NonFungibleTokenEvent> {
@@ -107,7 +112,9 @@ fn compose_nft_db_events(
                                     .new_owner_id
                                     .escape_default()
                                     .to_string(),
-                                token_authorized_account_id: authorized_id.escape_default().to_string(),
+                                token_authorized_account_id: authorized_id
+                                    .escape_default()
+                                    .to_string(),
                                 event_memo: memo.escape_default().to_string(),
                             },
                         );
@@ -137,7 +144,9 @@ fn compose_nft_db_events(
                                     .escape_default()
                                     .to_string(),
                                 token_new_owner_account_id: "".to_string(),
-                                token_authorized_account_id: authorized_id.escape_default().to_string(),
+                                token_authorized_account_id: authorized_id
+                                    .escape_default()
+                                    .to_string(),
                                 event_memo: memo.escape_default().to_string(),
                             },
                         );

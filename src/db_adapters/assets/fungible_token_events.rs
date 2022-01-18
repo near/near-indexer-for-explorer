@@ -13,23 +13,25 @@ pub(crate) async fn handle_ft_event(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
     block_timestamp: u64,
-    events_with_outcomes: &Vec<(Nep141Event, &near_indexer::IndexerExecutionOutcomeWithReceipt)>,
+    events_with_outcomes: &[(
+        Nep141Event,
+        &near_indexer::IndexerExecutionOutcomeWithReceipt,
+    )],
 ) -> anyhow::Result<()> {
-    let ft_events = compose_ft_db_events(
-        events_with_outcomes,
-        block_timestamp,
-        &shard.shard_id,
-    );
+    let ft_events = compose_ft_db_events(events_with_outcomes, block_timestamp, &shard.shard_id);
 
-    crate::await_retry_or_panic!(
-        diesel::insert_into(schema::assets__fungible_token_events::table)
-            .values(ft_events.clone())
-            .execute_async(pool),
-        10,
-        "FungibleTokenEvent were adding to database".to_string(),
-        &ft_events,
-        &detect_ft_db_error
-    );
+    for chunk in ft_events.chunks(500) {
+        let ft_events_chunk = chunk.to_owned();
+        crate::await_retry_or_panic!(
+            diesel::insert_into(schema::assets__fungible_token_events::table)
+                .values(ft_events_chunk.clone())
+                .execute_async(pool),
+            10,
+            "FungibleTokenEvent were adding to database".to_string(),
+            &ft_events_chunk,
+            &detect_ft_db_error
+        );
+    }
 
     Ok(())
 }
@@ -44,7 +46,10 @@ async fn detect_ft_db_error(async_error: &AsyncError<diesel::result::Error>) -> 
 }
 
 fn compose_ft_db_events(
-    events_with_outcomes: &Vec<(Nep141Event, &near_indexer::IndexerExecutionOutcomeWithReceipt)>,
+    events_with_outcomes: &[(
+        Nep141Event,
+        &near_indexer::IndexerExecutionOutcomeWithReceipt,
+    )],
     block_timestamp: u64,
     shard_id: &near_indexer::near_primitives::types::ShardId,
 ) -> Vec<models::assets::fungible_token_events::FungibleTokenEvent> {
@@ -64,7 +69,10 @@ fn compose_ft_db_events(
                         amount: mint_event.amount.to_string(),
                         event_kind: models::enums::FtEventKind::Mint,
                         token_old_owner_account_id: "".to_string(),
-                        token_new_owner_account_id: mint_event.owner_id.escape_default().to_string(),
+                        token_new_owner_account_id: mint_event
+                            .owner_id
+                            .escape_default()
+                            .to_string(),
                         event_memo: mint_event
                             .memo
                             .clone()
@@ -113,7 +121,10 @@ fn compose_ft_db_events(
                         emitted_by_contract_account_id: contract_id.to_string(),
                         amount: burn_event.amount.to_string(),
                         event_kind: models::enums::FtEventKind::Burn,
-                        token_old_owner_account_id: burn_event.owner_id.escape_default().to_string(),
+                        token_old_owner_account_id: burn_event
+                            .owner_id
+                            .escape_default()
+                            .to_string(),
                         token_new_owner_account_id: "".to_string(),
                         event_memo: burn_event
                             .memo
