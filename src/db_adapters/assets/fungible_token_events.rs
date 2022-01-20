@@ -9,7 +9,7 @@ use crate::schema;
 
 use super::event_types;
 
-pub(crate) async fn handle_ft_event(
+pub(crate) async fn store_ft_events(
     pool: &Database<PgConnection>,
     shard: &near_indexer::IndexerShard,
     block_timestamp: u64,

@@ -63,13 +63,13 @@ async fn collect_and_store_events(
         }
     }
 
-    let ft_future = assets::fungible_token_events::handle_ft_event(
+    let ft_future = assets::fungible_token_events::store_ft_events(
         pool,
         shard,
         block_timestamp,
         &ft_events_with_outcomes,
     );
-    let nft_future = assets::non_fungible_token_events::handle_nft_event(
+    let nft_future = assets::non_fungible_token_events::store_nft_events(
         pool,
         shard,
         block_timestamp,
