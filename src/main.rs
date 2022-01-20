@@ -88,9 +88,8 @@ async fn handle_message(
         try_join_all(futures).await.map(|_| ())
     };
 
-    // Assets (NFT)
-    let nft_events_future =
-        db_adapters::assets::non_fungible_token_events::store_nft(pool, &streamer_message);
+    // Event-based entities (FT, NFT)
+    let assets_events_future = db_adapters::assets::events::store_events(pool, &streamer_message);
 
     if strict_mode {
         // AccessKeys
@@ -118,14 +117,14 @@ async fn handle_message(
             execution_outcomes_future,
             accounts_future,
             access_keys_future,
-            nft_events_future,
+            assets_events_future,
             account_changes_future,
         )?;
     } else {
         try_join!(
             execution_outcomes_future,
             accounts_future,
-            nft_events_future
+            assets_events_future
         )?;
     }
     Ok(())

@@ -4,6 +4,7 @@
 //
 // Steps to create proper schema.patch file:
 // - Add new migration file
+// - Add new tables to diesel.toml if applicable
 // - Comment patch line in diesel.toml
 // - `diesel migration run`
 // - (new tables/items appeared in DB, schema.rs is updated)
@@ -115,6 +116,25 @@ table! {
         unfinished_lockup_contracts_count -> Int4,
         foundation_locked_tokens -> Numeric,
         lockups_locked_tokens -> Numeric,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+    use crate::models::enums::*;
+
+    #[allow(non_snake_case)]
+    assets__fungible_token_events (emitted_for_receipt_id, emitted_at_block_timestamp, emitted_in_shard_id, emitted_index_of_event_entry_in_shard, emitted_by_contract_account_id, amount, event_kind, token_old_owner_account_id, token_new_owner_account_id, event_memo) {
+        emitted_for_receipt_id -> Text,
+        emitted_at_block_timestamp -> Numeric,
+        emitted_in_shard_id -> Numeric,
+        emitted_index_of_event_entry_in_shard -> Int4,
+        emitted_by_contract_account_id -> Text,
+        amount -> Text,
+        event_kind -> Ft_event_kind,
+        token_old_owner_account_id -> Text,
+        token_new_owner_account_id -> Text,
+        event_memo -> Text,
     }
 }
 
@@ -269,6 +289,7 @@ joinable!(account_changes -> receipts (caused_by_receipt_id));
 joinable!(account_changes -> transactions (caused_by_transaction_hash));
 joinable!(action_receipt_actions -> receipts (receipt_id));
 joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
+joinable!(assets__fungible_token_events -> receipts (emitted_for_receipt_id));
 joinable!(assets__non_fungible_token_events -> receipts (emitted_for_receipt_id));
 joinable!(chunks -> blocks (included_in_block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
@@ -291,6 +312,7 @@ allow_tables_to_appear_in_same_query!(
     action_receipt_output_data,
     action_receipts,
     aggregated__circulating_supply,
+    assets__fungible_token_events,
     assets__non_fungible_token_events,
     blocks,
     chunks,

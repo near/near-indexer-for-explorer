@@ -1,0 +1,1 @@
+DROP TABLE assets__fungible_token_events;
