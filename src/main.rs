@@ -1,6 +1,6 @@
 use clap::Parser;
-use std::convert::TryFrom;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 #[macro_use]
 extern crate diesel;
 
@@ -9,7 +9,7 @@ use diesel::PgConnection;
 use futures::future::try_join_all;
 use futures::{try_join, StreamExt};
 use tokio::sync::{mpsc, Mutex};
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
 
 use crate::configs::{Opts, SubCommand};
@@ -39,7 +39,10 @@ async fn handle_message(
     strict_mode: bool,
     receipts_cache: ReceiptsCache,
 ) -> anyhow::Result<()> {
-    debug!(target: INDEXER_FOR_EXPLORER, "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache);
+    debug!(
+        target: INDEXER_FOR_EXPLORER,
+        "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
+    );
     db_adapters::blocks::store_block(pool, &streamer_message.block).await?;
 
     // Chunks
@@ -175,7 +178,12 @@ async fn listen_blocks(
                 target: crate::INDEXER_FOR_EXPLORER,
                 "Block height {}", &streamer_message.block.header.height
             );
-            handle_message(&pool, streamer_message, strict_mode, std::sync::Arc::clone(&receipts_cache))
+            handle_message(
+                &pool,
+                streamer_message,
+                strict_mode,
+                std::sync::Arc::clone(&receipts_cache),
+            )
         });
     let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
         handle_messages
@@ -266,13 +274,21 @@ fn main() {
     let opts: Opts = Opts::parse();
 
     let mut env_filter = EnvFilter::new(
-        "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,aggregated=info"
+        "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,aggregated=info",
     );
 
     if opts.debug {
-        env_filter = env_filter.add_directive("indexer_for_explorer=debug".parse().expect("Failed to parse directive"));
+        env_filter = env_filter.add_directive(
+            "indexer_for_explorer=debug"
+                .parse()
+                .expect("Failed to parse directive"),
+        );
     } else {
-        env_filter = env_filter.add_directive("indexer_for_explorer=info".parse().expect("Failed to parse directive"));
+        env_filter = env_filter.add_directive(
+            "indexer_for_explorer=info"
+                .parse()
+                .expect("Failed to parse directive"),
+        );
     };
 
     if let Ok(rust_log) = std::env::var("RUST_LOG") {

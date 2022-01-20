@@ -127,10 +127,7 @@ async fn store_chunk_transactions(
             // and the Transaction hash as a value.
             // Later, while Receipt will be looking for a parent Transaction hash
             // it will be able to find it in the ReceiptsCache
-            receipts_cache_lock.insert(
-                converted_into_receipt_id.clone(),
-                transaction_hash.clone(),
-            );
+            receipts_cache_lock.insert(converted_into_receipt_id.clone(), transaction_hash.clone());
 
             models::transactions::Transaction::from_indexer_transaction(
                 tx,
