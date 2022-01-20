@@ -17,6 +17,9 @@ pub(crate) struct Opts {
     /// Sets a custom config dir. Defaults to ~/.near/
     #[clap(short, long)]
     pub home_dir: Option<std::path::PathBuf>,
+    /// Enabled Indexer for Explorer debug level of logs
+    #[clap(long)]
+    pub debug: bool,
     #[clap(subcommand)]
     pub subcmd: SubCommand,
 }

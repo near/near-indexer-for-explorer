@@ -19,6 +19,7 @@ pub(crate) async fn store_receipts(
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
+    receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let futures = shards
         .iter()
@@ -32,6 +33,7 @@ pub(crate) async fn store_receipts(
                 &chunk.header.chunk_hash,
                 block_timestamp,
                 strict_mode,
+                receipts_cache.clone()
             )
         });
 
@@ -45,13 +47,15 @@ async fn store_chunk_receipts(
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
+    receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
     let tx_hashes_for_receipts =
-        find_tx_hashes_for_receipts(pool, receipts.to_vec(), strict_mode, block_hash, chunk_hash)
+        find_tx_hashes_for_receipts(pool, receipts.to_vec(), strict_mode, block_hash, chunk_hash, std::sync::Arc::clone(&receipts_cache))
             .await?;
+
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
         .enumerate()
@@ -112,8 +116,20 @@ async fn find_tx_hashes_for_receipts(
     strict_mode: bool,
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
+    receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<HashMap<String, String>> {
+    let receipts_cache_lock = receipts_cache.lock().await;
+
     let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
+    //
+    tx_hashes_for_receipts.extend(receipts_cache_lock.iter().map(|(k, v)| (k.clone(), v.clone())));
+
+    // discard the Receipts already in cache from the attempts to search
+    receipts.retain(|r| !receipts_cache_lock.contains_key(r.receipt_id.to_string().as_str()));
+    if receipts.is_empty() {
+        return Ok(tx_hashes_for_receipts);
+    }
+    warn!(target: crate::INDEXER_FOR_EXPLORER, "Looking for parent transaction hash in database for {} receipts", &receipts.len());
 
     let mut retries_left: u8 = 4; // retry at least times even in no-strict mode to avoid data loss
     let mut find_tx_retry_interval = crate::INTERVAL;
