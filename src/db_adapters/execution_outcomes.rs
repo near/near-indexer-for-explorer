@@ -32,12 +32,14 @@ pub async fn store_execution_outcomes_for_chunk(
     block_timestamp: u64,
     receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
-    let mut receipts_cache_lock = receipts_cache.lock().await;
     let mut outcome_models: Vec<models::execution_outcomes::ExecutionOutcome> = vec![];
     let mut outcome_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> =
         vec![];
+    let mut receipts_cache_lock = receipts_cache.lock().await;
     for (index_in_chunk, outcome) in execution_outcomes.iter().enumerate() {
         // Trying to take the parent Transaction hash for the Receipt from ReceiptsCache
+        // remove it from cache once found as it is not expected to observe the Receipt for
+        // second time
         let parent_transaction_hash =
             receipts_cache_lock.remove(outcome.execution_outcome.id.to_string().as_str());
 
@@ -72,6 +74,9 @@ pub async fn store_execution_outcomes_for_chunk(
                 }),
         );
     }
+
+    // releasing the lock
+    drop(receipts_cache_lock);
 
     crate::await_retry_or_panic!(
         diesel::insert_into(schema::execution_outcomes::table)

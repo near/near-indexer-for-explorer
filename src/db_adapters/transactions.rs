@@ -141,6 +141,9 @@ async fn store_chunk_transactions(
         })
         .collect();
 
+    // releasing the lock
+    drop(receipts_cache_lock);
+
     crate::await_retry_or_panic!(
         diesel::insert_into(schema::transactions::table)
             .values(transaction_models.clone())
