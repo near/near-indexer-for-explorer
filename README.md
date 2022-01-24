@@ -174,8 +174,8 @@ Running your NEAR Indexer for Explorer node on top of a backup data will reduce 
 
 All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots:
 
-* [Recent 5-epoch Mainnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/rpc/data.tar)
-* [Recent 5-epoch Testnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/rpc/data.tar)
+* [Recent 5-epoch Mainnet data folder](https://near-protocol-public.s3-accelerate.amazonaws.com/backups/mainnet/rpc/data.tar)
+* [Recent 5-epoch Testnet data folder](https://near-protocol-public.s3-accelerate.amazonaws.com/backups/testnet/rpc/data.tar)
 
 
 ## Running NEAR Indexer for Explorer as archival node
@@ -199,8 +199,8 @@ The syncing process in archival mode can take a lot of time, so it's better to d
 
 All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots:
 
-* [Archival Mainnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/archive/data.tar)
-* [Archival Testnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/archive/data.tar)
+* [Archival Mainnet data folder](https://near-protocol-public.s3-accelerate.amazonaws.com/backups/mainnet/archive/data.tar)
+* [Archival Testnet data folder](https://near-protocol-public.s3-accelerate.amazonaws.com/backups/testnet/archive/data.tar)
 
 See https://docs.near.org/docs/roles/integrator/exchange-integration#running-an-archival-node for reference
 
