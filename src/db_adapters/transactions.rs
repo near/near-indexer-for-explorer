@@ -89,11 +89,11 @@ pub(crate) async fn store_transactions(
 async fn collect_converted_to_receipt_ids(
     pool: &actix_diesel::Database<PgConnection>,
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
-) -> anyhow::Result<Vec<String>> {
+) -> anyhow::Result<Vec<crate::ReceiptIdString>> {
     Ok(schema::transactions::table
         .select(schema::transactions::dsl::converted_into_receipt_id)
         .filter(schema::transactions::dsl::included_in_block_hash.eq(block_hash.to_string()))
-        .get_results_async::<String>(pool)
+        .get_results_async::<crate::ReceiptIdString>(pool)
         .await
         .context("DB Error")?)
 }
