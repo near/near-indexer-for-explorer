@@ -1,5 +1,6 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use anyhow::Context;
+use cached::Cached;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::future::try_join_all;
 
@@ -15,6 +16,7 @@ pub(crate) async fn store_transactions(
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     block_height: near_primitives::types::BlockHeight,
+    receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let mut tried_to_insert_transactions_count = 0;
     let tx_futures = shards
@@ -33,6 +35,7 @@ pub(crate) async fn store_transactions(
                 block_hash,
                 block_timestamp,
                 "",
+                receipts_cache.clone(),
             )
         });
 
@@ -76,6 +79,7 @@ pub(crate) async fn store_transactions(
                 block_hash,
                 block_timestamp,
                 &transaction_hash_suffix,
+                receipts_cache.clone(),
             )
         });
 
@@ -85,11 +89,11 @@ pub(crate) async fn store_transactions(
 async fn collect_converted_to_receipt_ids(
     pool: &actix_diesel::Database<PgConnection>,
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
-) -> anyhow::Result<Vec<String>> {
+) -> anyhow::Result<Vec<crate::ReceiptIdString>> {
     Ok(schema::transactions::table
         .select(schema::transactions::dsl::converted_into_receipt_id)
         .filter(schema::transactions::dsl::included_in_block_hash.eq(block_hash.to_string()))
-        .get_results_async::<String>(pool)
+        .get_results_async::<crate::ReceiptIdString>(pool)
         .await
         .context("DB Error")?)
 }
@@ -102,14 +106,35 @@ async fn store_chunk_transactions(
     block_timestamp: u64,
     // hack for supporting duplicated transaction hashes. Empty for most of transactions
     transaction_hash_suffix: &str,
+    receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
+    let mut receipts_cache_lock = receipts_cache.lock().await;
+
     let transaction_models: Vec<models::transactions::Transaction> = transactions
         .iter()
         .map(|(index, tx)| {
             let transaction_hash = tx.transaction.hash.to_string() + transaction_hash_suffix;
+            let converted_into_receipt_id = tx
+                .outcome
+                .execution_outcome
+                .outcome
+                .receipt_ids
+                .first()
+                .expect("`receipt_ids` must contain one Receipt Id")
+                .to_string();
+
+            // Save this Transaction hash to ReceiptsCache
+            // we use the Receipt ID to which this transaction was converted
+            // and the Transaction hash as a value.
+            // Later, while Receipt will be looking for a parent Transaction hash
+            // it will be able to find it in the ReceiptsCache
+            receipts_cache_lock
+                .cache_set(converted_into_receipt_id.clone(), transaction_hash.clone());
+
             models::transactions::Transaction::from_indexer_transaction(
                 tx,
                 &transaction_hash,
+                &converted_into_receipt_id,
                 block_hash,
                 chunk_hash,
                 block_timestamp,
@@ -117,6 +142,9 @@ async fn store_chunk_transactions(
             )
         })
         .collect();
+
+    // releasing the lock
+    drop(receipts_cache_lock);
 
     crate::await_retry_or_panic!(
         diesel::insert_into(schema::transactions::table)

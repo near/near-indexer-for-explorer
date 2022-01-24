@@ -29,6 +29,7 @@ impl Transaction {
         tx: &near_indexer::IndexerTransactionWithOutcome,
         // hack for supporting duplicated transaction hashes
         transaction_hash: &str,
+        converted_into_receipt_id: &str,
         block_hash: &near_indexer::near_primitives::hash::CryptoHash,
         chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
         block_timestamp: u64,
@@ -44,14 +45,7 @@ impl Transaction {
             signer_public_key: tx.transaction.public_key.to_string(),
             signature: tx.transaction.signature.to_string(),
             receiver_account_id: tx.transaction.receiver_id.to_string(),
-            converted_into_receipt_id: tx
-                .outcome
-                .execution_outcome
-                .outcome
-                .receipt_ids
-                .first()
-                .expect("`receipt_ids` must contain one Receipt Id")
-                .to_string(),
+            converted_into_receipt_id: converted_into_receipt_id.to_string(),
             included_in_chunk_hash: chunk_hash.to_string(),
             status: tx.outcome.execution_outcome.outcome.status.clone().into(),
             receipt_conversion_gas_burnt: tx.outcome.execution_outcome.outcome.gas_burnt.into(),

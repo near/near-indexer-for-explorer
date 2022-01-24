@@ -4,11 +4,12 @@ use std::convert::TryFrom;
 extern crate diesel;
 
 use actix_diesel::Database;
+pub use cached::SizedCache;
 use diesel::PgConnection;
 use futures::future::try_join_all;
 use futures::{try_join, StreamExt};
-use tokio::sync::mpsc;
-use tracing::{info, warn};
+use tokio::sync::{mpsc, Mutex};
+use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
 
 use crate::configs::{Opts, SubCommand};
@@ -28,11 +29,26 @@ const AGGREGATED: &str = "aggregated";
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
+// Creating type aliases to make HashMap types for cache more explicit
+pub type ReceiptIdString = String;
+pub type ParentTransactionHashString = String;
+// Introducing a simple cache for Receipts to find their parent Transactions without
+// touching the database
+// The key is ReceiptID
+// The value is TransactionHash (the very parent of the Receipt)
+pub type ReceiptsCache =
+    std::sync::Arc<Mutex<SizedCache<ReceiptIdString, ParentTransactionHashString>>>;
+
 async fn handle_message(
     pool: &actix_diesel::Database<PgConnection>,
     streamer_message: near_indexer::StreamerMessage,
     strict_mode: bool,
+    receipts_cache: ReceiptsCache,
 ) -> anyhow::Result<()> {
+    debug!(
+        target: INDEXER_FOR_EXPLORER,
+        "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
+    );
     db_adapters::blocks::store_block(pool, &streamer_message.block).await?;
 
     // Chunks
@@ -50,6 +66,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         streamer_message.block.header.height,
+        std::sync::Arc::clone(&receipts_cache),
     );
 
     // Receipts
@@ -59,6 +76,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         strict_mode,
+        std::sync::Arc::clone(&receipts_cache),
     );
 
     // We can process transactions and receipts in parallel
@@ -73,6 +91,7 @@ async fn handle_message(
         pool,
         &streamer_message.shards,
         streamer_message.block.header.timestamp,
+        std::sync::Arc::clone(&receipts_cache),
     );
 
     // Accounts
@@ -150,13 +169,27 @@ async fn listen_blocks(
         );
     }
     info!(target: crate::INDEXER_FOR_EXPLORER, "Stream has started");
+
+    // We want to prevent unnecessary SELECT queries to the database to find
+    // the Transaction hash for the Receipt.
+    // Later we need to find the Receipt which is a parent to underlying Receipts.
+    // Receipt ID will of the child will be stored as key and parent Transaction hash/Receipt ID
+    // will be stored as a value
+    let receipts_cache: ReceiptsCache =
+        std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
+
     let handle_messages =
         tokio_stream::wrappers::ReceiverStream::new(stream).map(|streamer_message| {
             info!(
                 target: crate::INDEXER_FOR_EXPLORER,
                 "Block height {}", &streamer_message.block.header.height
             );
-            handle_message(&pool, streamer_message, strict_mode)
+            handle_message(
+                &pool,
+                streamer_message,
+                strict_mode,
+                std::sync::Arc::clone(&receipts_cache),
+            )
         });
     let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
         handle_messages
@@ -244,9 +277,25 @@ fn main() {
     // Indexer should fail if .env file with credentials is missing/wrong
     let pool = models::establish_connection();
 
+    let opts: Opts = Opts::parse();
+
     let mut env_filter = EnvFilter::new(
-        "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,indexer_for_explorer=info,aggregated=info",
+        "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,aggregated=info",
     );
+
+    if opts.debug {
+        env_filter = env_filter.add_directive(
+            "indexer_for_explorer=debug"
+                .parse()
+                .expect("Failed to parse directive"),
+        );
+    } else {
+        env_filter = env_filter.add_directive(
+            "indexer_for_explorer=info"
+                .parse()
+                .expect("Failed to parse directive"),
+        );
+    };
 
     if let Ok(rust_log) = std::env::var("RUST_LOG") {
         if !rust_log.is_empty() {
@@ -266,8 +315,6 @@ fn main() {
         .with_env_filter(env_filter)
         .with_writer(std::io::stderr)
         .init();
-
-    let opts: Opts = Opts::parse();
 
     let home_dir = opts.home_dir.unwrap_or_else(near_indexer::get_default_home);
 

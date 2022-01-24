@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
+use cached::Cached;
 use diesel::pg::expression::array_comparison::any;
 use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
 use futures::future::try_join_all;
@@ -12,6 +13,8 @@ use tracing::{error, warn};
 use crate::models;
 use crate::schema;
 
+type ReceiptDataIdString = String;
+
 /// Saves receipts to database
 pub(crate) async fn store_receipts(
     pool: &actix_diesel::Database<PgConnection>,
@@ -19,6 +22,7 @@ pub(crate) async fn store_receipts(
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
+    receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let futures = shards
         .iter()
@@ -32,6 +36,7 @@ pub(crate) async fn store_receipts(
                 &chunk.header.chunk_hash,
                 block_timestamp,
                 strict_mode,
+                receipts_cache.clone(),
             )
         });
 
@@ -45,13 +50,21 @@ async fn store_chunk_receipts(
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
+    receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer::near_primitives::hash::CryptoHash>::new();
 
-    let tx_hashes_for_receipts =
-        find_tx_hashes_for_receipts(pool, receipts.to_vec(), strict_mode, block_hash, chunk_hash)
-            .await?;
+    let tx_hashes_for_receipts = find_tx_hashes_for_receipts(
+        pool,
+        receipts.to_vec(),
+        strict_mode,
+        block_hash,
+        chunk_hash,
+        std::sync::Arc::clone(&receipts_cache),
+    )
+    .await?;
+
     let receipt_models: Vec<models::receipts::Receipt> = receipts
         .iter()
         .enumerate()
@@ -112,13 +125,46 @@ async fn find_tx_hashes_for_receipts(
     strict_mode: bool,
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
-) -> anyhow::Result<HashMap<String, String>> {
-    let mut tx_hashes_for_receipts: HashMap<String, String> = HashMap::new();
+    receipts_cache: crate::ReceiptsCache,
+) -> anyhow::Result<HashMap<crate::ReceiptIdString, crate::ParentTransactionHashString>> {
+    let mut tx_hashes_for_receipts: HashMap<
+        crate::ReceiptIdString,
+        crate::ParentTransactionHashString,
+    > = HashMap::new();
+
+    let mut receipts_cache_lock = receipts_cache.lock().await;
+    // add receipt-transaction pairs from the cache to the response
+    tx_hashes_for_receipts.extend(receipts.iter().filter_map(|receipt| {
+        if let Some(parent_transaction_hash) =
+            receipts_cache_lock.cache_get(&receipt.receipt_id.to_string())
+        {
+            Some((
+                receipt.receipt_id.to_string(),
+                parent_transaction_hash.clone(),
+            ))
+        } else {
+            None
+        }
+    }));
+    // releasing the lock
+    drop(receipts_cache_lock);
+
+    // discard the Receipts already in cache from the attempts to search
+    receipts.retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
+    if receipts.is_empty() {
+        return Ok(tx_hashes_for_receipts);
+    }
+
+    warn!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Looking for parent transaction hash in database for {} receipts",
+        &receipts.len()
+    );
 
     let mut retries_left: u8 = 4; // retry at least times even in no-strict mode to avoid data loss
     let mut find_tx_retry_interval = crate::INTERVAL;
     loop {
-        let data_ids: Vec<String> = receipts
+        let data_ids: Vec<ReceiptDataIdString> = receipts
             .iter()
             .filter_map(|r| match r.receipt {
                 near_indexer::near_primitives::views::ReceiptEnumView::Data { data_id, .. } => {
@@ -129,7 +175,10 @@ async fn find_tx_hashes_for_receipts(
             .collect();
         if !data_ids.is_empty() {
             let mut interval = crate::INTERVAL;
-            let tx_hashes_for_data_id_via_data_output: Vec<(String, String)> = loop {
+            let tx_hashes_for_data_id_via_data_output: Vec<(
+                ReceiptDataIdString,
+                crate::ParentTransactionHashString,
+            )> = loop {
                 match schema::action_receipt_output_data::table
                     .inner_join(
                         schema::receipts::table.on(
@@ -167,10 +216,13 @@ async fn find_tx_hashes_for_receipts(
             };
 
             let mut tx_hashes_for_data_id_via_data_output_hashmap =
-                HashMap::<String, String>::new();
+                HashMap::<crate::ReceiptIdString, crate::ParentTransactionHashString>::new();
             tx_hashes_for_data_id_via_data_output_hashmap
                 .extend(tx_hashes_for_data_id_via_data_output);
-            let tx_hashes_for_receipts_via_data_output: Vec<(String, String)> = receipts
+            let tx_hashes_for_receipts_via_data_output: Vec<(
+                crate::ReceiptIdString,
+                crate::ParentTransactionHashString,
+            )> = receipts
                 .iter()
                 .filter_map(|r| match r.receipt {
                     near_indexer::near_primitives::views::ReceiptEnumView::Data {
@@ -194,39 +246,39 @@ async fn find_tx_hashes_for_receipts(
             });
         }
 
-        let tx_hashes_for_receipts_via_outcomes: Vec<(String, String)> =
-            crate::await_retry_or_panic!(
-                schema::execution_outcome_receipts::table
-                    .inner_join(
-                        schema::receipts::table
-                            .on(schema::execution_outcome_receipts::dsl::executed_receipt_id
-                                .eq(schema::receipts::dsl::receipt_id)),
-                    )
-                    .filter(
-                        schema::execution_outcome_receipts::dsl::produced_receipt_id.eq(any(
-                            receipts
-                                .clone()
-                                .iter()
-                                .filter(|r| {
-                                    matches!(
+        let tx_hashes_for_receipts_via_outcomes: Vec<(
+            crate::ReceiptIdString,
+            crate::ParentTransactionHashString,
+        )> = crate::await_retry_or_panic!(
+            schema::execution_outcome_receipts::table
+                .inner_join(
+                    schema::receipts::table
+                        .on(schema::execution_outcome_receipts::dsl::executed_receipt_id
+                            .eq(schema::receipts::dsl::receipt_id)),
+                )
+                .filter(
+                    schema::execution_outcome_receipts::dsl::produced_receipt_id.eq(any(receipts
+                        .clone()
+                        .iter()
+                        .filter(|r| {
+                            matches!(
                                 r.receipt,
                                 near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }
                             )
-                                })
-                                .map(|r| r.receipt_id.to_string())
-                                .collect::<Vec<String>>()
-                        )),
-                    )
-                    .select((
-                        schema::execution_outcome_receipts::dsl::produced_receipt_id,
-                        schema::receipts::dsl::originated_from_transaction_hash,
-                    ))
-                    .load_async::<(String, String)>(pool),
-                10,
-                "Parent Transaction for Receipts were fetched".to_string(),
-                &receipts
-            )
-            .unwrap_or_default();
+                        })
+                        .map(|r| r.receipt_id.to_string())
+                        .collect::<Vec<crate::ReceiptIdString>>())),
+                )
+                .select((
+                    schema::execution_outcome_receipts::dsl::produced_receipt_id,
+                    schema::receipts::dsl::originated_from_transaction_hash,
+                ))
+                .load_async::<(crate::ReceiptIdString, crate::ParentTransactionHashString)>(pool),
+            10,
+            "Parent Transaction for Receipts were fetched".to_string(),
+            &receipts
+        )
+        .unwrap_or_default();
 
         let found_hashes_len = tx_hashes_for_receipts_via_outcomes.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipts_via_outcomes);
@@ -238,34 +290,34 @@ async fn find_tx_hashes_for_receipts(
         receipts
             .retain(|r| !tx_hashes_for_receipts.contains_key(r.receipt_id.to_string().as_str()));
 
-        let tx_hashes_for_receipt_via_transactions: Vec<(String, String)> =
-            crate::await_retry_or_panic!(
-                schema::transactions::table
-                    .filter(
-                        schema::transactions::dsl::converted_into_receipt_id.eq(any(
-                            receipts
-                                .clone()
-                                .iter()
-                                .filter(|r| {
-                                    matches!(
+        let tx_hashes_for_receipt_via_transactions: Vec<(
+            crate::ReceiptIdString,
+            crate::ParentTransactionHashString,
+        )> = crate::await_retry_or_panic!(
+            schema::transactions::table
+                .filter(
+                    schema::transactions::dsl::converted_into_receipt_id.eq(any(receipts
+                        .clone()
+                        .iter()
+                        .filter(|r| {
+                            matches!(
                                 r.receipt,
                                 near_indexer::near_primitives::views::ReceiptEnumView::Action { .. }
                             )
-                                })
-                                .map(|r| r.receipt_id.to_string())
-                                .collect::<Vec<String>>()
-                        )),
-                    )
-                    .select((
-                        schema::transactions::dsl::converted_into_receipt_id,
-                        schema::transactions::dsl::transaction_hash,
-                    ))
-                    .load_async::<(String, String)>(pool),
-                10,
-                "Parent Transaction for ExecutionOutcome were fetched".to_string(),
-                &receipts
-            )
-            .unwrap_or_default();
+                        })
+                        .map(|r| r.receipt_id.to_string())
+                        .collect::<Vec<crate::ReceiptIdString>>())),
+                )
+                .select((
+                    schema::transactions::dsl::converted_into_receipt_id,
+                    schema::transactions::dsl::transaction_hash,
+                ))
+                .load_async::<(crate::ReceiptIdString, crate::ParentTransactionHashString)>(pool),
+            10,
+            "Parent Transaction for ExecutionOutcome were fetched".to_string(),
+            &receipts
+        )
+        .unwrap_or_default();
 
         let found_hashes_len = tx_hashes_for_receipt_via_transactions.len();
         tx_hashes_for_receipts.extend(tx_hashes_for_receipt_via_transactions);
