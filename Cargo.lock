@@ -1884,6 +1884,7 @@ dependencies = [
  "base64 0.11.0",
  "bigdecimal",
  "borsh 0.7.2",
+ "cached",
  "chrono",
  "clap",
  "diesel",

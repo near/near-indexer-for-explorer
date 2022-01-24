@@ -1,10 +1,10 @@
 use clap::Parser;
-use std::collections::HashMap;
 use std::convert::TryFrom;
 #[macro_use]
 extern crate diesel;
 
 use actix_diesel::Database;
+pub use cached::SizedCache;
 use diesel::PgConnection;
 use futures::future::try_join_all;
 use futures::{try_join, StreamExt};
@@ -37,7 +37,7 @@ pub type ParentTransactionHashString = String;
 // The key is ReceiptID
 // The value is TransactionHash (the very parent of the Receipt)
 pub type ReceiptsCache =
-    std::sync::Arc<Mutex<HashMap<ReceiptIdString, ParentTransactionHashString>>>;
+    std::sync::Arc<Mutex<SizedCache<ReceiptIdString, ParentTransactionHashString>>>;
 
 async fn handle_message(
     pool: &actix_diesel::Database<PgConnection>,
@@ -176,7 +176,8 @@ async fn listen_blocks(
     // Later we need to find the Receipt which is a parent to underlying Receipts.
     // Receipt ID will of the child will be stored as key and parent Transaction hash/Receipt ID
     // will be stored as a value
-    let receipts_cache: ReceiptsCache = std::sync::Arc::new(Mutex::new(HashMap::new()));
+    let receipts_cache: ReceiptsCache =
+        std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
     let handle_messages =
         tokio_stream::wrappers::ReceiverStream::new(stream).map(|streamer_message| {

@@ -1,4 +1,5 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
+use cached::Cached;
 use diesel::PgConnection;
 use futures::future::try_join_all;
 
@@ -41,7 +42,7 @@ pub async fn store_execution_outcomes_for_chunk(
         // remove it from cache once found as it is not expected to observe the Receipt for
         // second time
         let parent_transaction_hash =
-            receipts_cache_lock.remove(outcome.execution_outcome.id.to_string().as_str());
+            receipts_cache_lock.cache_remove(&outcome.execution_outcome.id.to_string());
 
         let model = models::execution_outcomes::ExecutionOutcome::from_execution_outcome(
             &outcome.execution_outcome,
@@ -64,7 +65,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     // could find their parents in cache
                     if let Some(transaction_hash) = &parent_transaction_hash {
                         receipts_cache_lock
-                            .insert(receipt_id.to_string(), transaction_hash.clone());
+                            .cache_set(receipt_id.to_string(), transaction_hash.clone());
                     }
                     models::execution_outcomes::ExecutionOutcomeReceipt {
                         executed_receipt_id: outcome.execution_outcome.id.to_string(),

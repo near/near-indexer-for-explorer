@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
+use cached::Cached;
 use diesel::pg::expression::array_comparison::any;
 use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
 use futures::future::try_join_all;
@@ -129,11 +130,11 @@ async fn find_tx_hashes_for_receipts(
         crate::ParentTransactionHashString,
     > = HashMap::new();
 
-    let receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache.lock().await;
     // add receipt-transaction pairs from the cache to the response
     tx_hashes_for_receipts.extend(receipts.iter().filter_map(|receipt| {
         if let Some(parent_transaction_hash) =
-            receipts_cache_lock.get(receipt.receipt_id.to_string().as_str())
+            receipts_cache_lock.cache_get(&receipt.receipt_id.to_string())
         {
             Some((
                 receipt.receipt_id.to_string(),
