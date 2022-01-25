@@ -135,16 +135,14 @@ async fn find_tx_hashes_for_receipts(
     let mut receipts_cache_lock = receipts_cache.lock().await;
     // add receipt-transaction pairs from the cache to the response
     tx_hashes_for_receipts.extend(receipts.iter().filter_map(|receipt| {
-        if let Some(parent_transaction_hash) =
-            receipts_cache_lock.cache_get(&receipt.receipt_id.to_string())
-        {
-            Some((
-                receipt.receipt_id.to_string(),
-                parent_transaction_hash.clone(),
-            ))
-        } else {
-            None
-        }
+        receipts_cache_lock
+            .cache_get(&receipt.receipt_id.to_string())
+            .map(|parent_transaction_hash| {
+                (
+                    receipt.receipt_id.to_string(),
+                    parent_transaction_hash.clone(),
+                )
+            })
     }));
     // releasing the lock
     drop(receipts_cache_lock);

@@ -53,7 +53,6 @@ fn compose_ft_db_events(
     block_timestamp: u64,
     shard_id: &near_indexer::near_primitives::types::ShardId,
 ) -> Vec<models::assets::fungible_token_events::FungibleTokenEvent> {
-    let mut index_in_shard = 0;
     let mut ft_events = Vec::new();
     for (event, outcome) in events_with_outcomes {
         let contract_id = &outcome.receipt.receiver_id;
@@ -64,7 +63,7 @@ fn compose_ft_db_events(
                         emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
                         emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                         emitted_in_shard_id: BigDecimal::from(*shard_id),
-                        emitted_index_of_event_entry_in_shard: index_in_shard,
+                        emitted_index_of_event_entry_in_shard: ft_events.len() as i32,
                         emitted_by_contract_account_id: contract_id.to_string(),
                         amount: mint_event.amount.to_string(),
                         event_kind: models::enums::FtEventKind::Mint,
@@ -80,7 +79,6 @@ fn compose_ft_db_events(
                             .escape_default()
                             .to_string(),
                     });
-                    index_in_shard += 1;
                 }
             }
             event_types::Nep141EventKind::FtTransfer(transfer_events) => {
@@ -89,7 +87,7 @@ fn compose_ft_db_events(
                         emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
                         emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                         emitted_in_shard_id: BigDecimal::from(*shard_id),
-                        emitted_index_of_event_entry_in_shard: index_in_shard,
+                        emitted_index_of_event_entry_in_shard: ft_events.len() as i32,
                         emitted_by_contract_account_id: contract_id.to_string(),
                         amount: transfer_event.amount.to_string(),
                         event_kind: models::enums::FtEventKind::Transfer,
@@ -108,7 +106,6 @@ fn compose_ft_db_events(
                             .escape_default()
                             .to_string(),
                     });
-                    index_in_shard += 1;
                 }
             }
             event_types::Nep141EventKind::FtBurn(burn_events) => {
@@ -117,7 +114,7 @@ fn compose_ft_db_events(
                         emitted_for_receipt_id: outcome.receipt.receipt_id.to_string(),
                         emitted_at_block_timestamp: BigDecimal::from(block_timestamp),
                         emitted_in_shard_id: BigDecimal::from(*shard_id),
-                        emitted_index_of_event_entry_in_shard: index_in_shard,
+                        emitted_index_of_event_entry_in_shard: ft_events.len() as i32,
                         emitted_by_contract_account_id: contract_id.to_string(),
                         amount: burn_event.amount.to_string(),
                         event_kind: models::enums::FtEventKind::Burn,
@@ -133,7 +130,6 @@ fn compose_ft_db_events(
                             .escape_default()
                             .to_string(),
                     });
-                    index_in_shard += 1;
                 }
             }
         }
