@@ -16,8 +16,6 @@ use tracing::{error, warn};
 use crate::models;
 use crate::schema;
 
-type ReceiptDataIdString = String;
-
 /// Saves receipts to database
 pub(crate) async fn store_receipts(
     pool: &actix_diesel::Database<PgConnection>,
@@ -85,51 +83,24 @@ async fn store_chunk_receipts(
                 }
             };
             if let Some(transaction_hash) = tx_hashes_for_receipts.get(&receipt_or_data_id) {
-                    {
-                        Some(models::Receipt::from_receipt_view(
-                            r,
-                            block_hash,
-                            transaction_hash,
-                            chunk_hash,
-                            index as i32,
-                            block_timestamp,
-                        ))
-                    } else {
-                        warn!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Skipping Receipt {} as we can't find parent Transaction for it. Happen in block hash {}, chunk hash {}",
-                            r.receipt_id.to_string(),
-                            block_hash,
-                            chunk_hash,
-                        );
-                        skipping_receipt_ids.insert(r.receipt_id);
-                        None
-                    }
-                }
-                near_primitives::views::ReceiptEnumView::Data { data_id, .. } => {
-                    if let Some(transaction_hash) =
-                    tx_hashes_for_receipts.get(&crate::ReceiptOrDataId::DataId(data_id))
-                    {
-                        Some(models::Receipt::from_receipt_view(
-                            r,
-                            block_hash,
-                            transaction_hash,
-                            chunk_hash,
-                            index as i32,
-                            block_timestamp,
-                        ))
-                    } else {
-                        warn!(
-                            target: crate::INDEXER_FOR_EXPLORER,
-                            "Skipping Receipt {} as we can't find parent Transaction for it. Happen in block hash {}, chunk hash {}",
-                            r.receipt_id.to_string(),
-                            block_hash,
-                            chunk_hash,
-                        );
-                        skipping_receipt_ids.insert(r.receipt_id);
-                        None
-                    }
-                }
+                Some(models::Receipt::from_receipt_view(
+                        r,
+                        block_hash,
+                        transaction_hash,
+                        chunk_hash,
+                        index as i32,
+                        block_timestamp,
+                    ))
+            } else {
+                warn!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Skipping Receipt {} as we can't find parent Transaction for it. Happen in block hash {}, chunk hash {}",
+                    r.receipt_id.to_string(),
+                    block_hash,
+                    chunk_hash,
+                );
+                skipping_receipt_ids.insert(r.receipt_id);
+                None
             }
         })
         .collect();
@@ -251,7 +222,7 @@ async fn find_tx_hashes_for_receipts(
     let mut retries_left: u8 = 4; // retry at least times even in no-strict mode to avoid data loss
     let mut find_tx_retry_interval = crate::INTERVAL;
     loop {
-        let data_ids: Vec<ReceiptDataIdString> = receipts
+        let data_ids: Vec<String> = receipts
             .iter()
             .filter_map(|r| match r.receipt {
                 near_indexer::near_primitives::views::ReceiptEnumView::Data { data_id, .. } => {
