@@ -76,10 +76,15 @@ async fn store_chunk_receipts(
             // depending on the Receipt kind
             // In case of Action Receipt we are looking for ReceiptId
             // In case of Data Receipt we are looking for DataId
-            match r.receipt {
+            let receipt_or_data_id = match r.receipt {
                 near_primitives::views::ReceiptEnumView::Action { .. } => {
-                    if let Some(transaction_hash) =
-                    tx_hashes_for_receipts.get(&crate::ReceiptOrDataId::ReceiptId(r.receipt_id))
+                    crate::ReceiptOrDataId::ReceiptId(r.receipt_id)
+                }
+                near_primitives::views::ReceiptEnumView::Data { data_id, .. } => {
+                    crate::ReceiptOrDataId::DataId(data_id)
+                }
+            };
+            if let Some(transaction_hash) = tx_hashes_for_receipts.get(&receipt_or_data_id) {
                     {
                         Some(models::Receipt::from_receipt_view(
                             r,
