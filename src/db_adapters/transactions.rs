@@ -89,11 +89,11 @@ pub(crate) async fn store_transactions(
 async fn collect_converted_to_receipt_ids(
     pool: &actix_diesel::Database<PgConnection>,
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
-) -> anyhow::Result<Vec<crate::ReceiptIdString>> {
+) -> anyhow::Result<Vec<String>> {
     Ok(schema::transactions::table
         .select(schema::transactions::dsl::converted_into_receipt_id)
         .filter(schema::transactions::dsl::included_in_block_hash.eq(block_hash.to_string()))
-        .get_results_async::<crate::ReceiptIdString>(pool)
+        .get_results_async::<String>(pool)
         .await
         .context("DB Error")?)
 }
@@ -120,21 +120,22 @@ async fn store_chunk_transactions(
                 .outcome
                 .receipt_ids
                 .first()
-                .expect("`receipt_ids` must contain one Receipt Id")
-                .to_string();
+                .expect("`receipt_ids` must contain one Receipt Id");
 
             // Save this Transaction hash to ReceiptsCache
             // we use the Receipt ID to which this transaction was converted
             // and the Transaction hash as a value.
             // Later, while Receipt will be looking for a parent Transaction hash
             // it will be able to find it in the ReceiptsCache
-            receipts_cache_lock
-                .cache_set(converted_into_receipt_id.clone(), transaction_hash.clone());
+            receipts_cache_lock.cache_set(
+                crate::ReceiptOrDataId::ReceiptId(*converted_into_receipt_id),
+                transaction_hash.clone(),
+            );
 
             models::transactions::Transaction::from_indexer_transaction(
                 tx,
                 &transaction_hash,
-                &converted_into_receipt_id,
+                &converted_into_receipt_id.to_string(),
                 block_hash,
                 chunk_hash,
                 block_timestamp,

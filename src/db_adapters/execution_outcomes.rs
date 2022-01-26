@@ -41,8 +41,9 @@ pub async fn store_execution_outcomes_for_chunk(
         // Trying to take the parent Transaction hash for the Receipt from ReceiptsCache
         // remove it from cache once found as it is not expected to observe the Receipt for
         // second time
-        let parent_transaction_hash =
-            receipts_cache_lock.cache_remove(&outcome.execution_outcome.id.to_string());
+        let parent_transaction_hash = receipts_cache_lock.cache_remove(
+            &crate::ReceiptOrDataId::ReceiptId(outcome.execution_outcome.id),
+        );
 
         let model = models::execution_outcomes::ExecutionOutcome::from_execution_outcome(
             &outcome.execution_outcome,
@@ -64,8 +65,10 @@ pub async fn store_execution_outcomes_for_chunk(
                     // as key and `parent_transaction_hash` as value, so the Receipts from one of the next blocks
                     // could find their parents in cache
                     if let Some(transaction_hash) = &parent_transaction_hash {
-                        receipts_cache_lock
-                            .cache_set(receipt_id.to_string(), transaction_hash.clone());
+                        receipts_cache_lock.cache_set(
+                            crate::ReceiptOrDataId::ReceiptId(*receipt_id),
+                            transaction_hash.clone(),
+                        );
                     }
                     models::execution_outcomes::ExecutionOutcomeReceipt {
                         executed_receipt_id: outcome.execution_outcome.id.to_string(),
