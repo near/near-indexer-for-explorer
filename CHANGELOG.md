@@ -1,5 +1,10 @@
 # Changelog
 
+## DRAFT 0.10.9
+
+* Add [FT events](https://nomicon.io/Standards/FungibleToken/Event.html) support: `assets__fungible_token_events` table stores the information about FT `mint`, `transfer`, `burn` events
+* Add index on `action_receipt_actions` table. Applying migration could take some time
+
 ## 0.10.8
 
 * Upgrade nearcore to `1.24.0-rc.1`
