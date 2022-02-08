@@ -70,8 +70,9 @@ COPY --from=build /near/indexer-explorer/migrations ./migrations
  
 # If the --store-genesis flag isn't set, the accounts in genesis won't get created in the DB which will lead to foreign key constraint violations
 # See https://github.com/near/near-indexer-for-explorer/issues/167
-CMD ./diesel migration run && \
-    ./indexer-explorer --home-dir /root/.near/localnet init ${BOOT_NODES:+--boot-nodes=${BOOT_NODES}} --chain-id localnet && \
-    sed -i 's/"tracked_shards": \[\]/"tracked_shards": \[0\]/' /root/.near/localnet/config.json && \
-    sed -i 's/"archive": false/"archive": true/' /root/.near/localnet/config.json && \
+# TODO productize the skip-if-already-intialized check below better (maybe as a script?)
+CMD { [ -d /root/.near/localnet ] || ./diesel migration run; } && \
+    { [ -d /root/.near/localnet ] || ./indexer-explorer --home-dir /root/.near/localnet init ${BOOT_NODES:+--boot-nodes=${BOOT_NODES}} --chain-id localnet; } && \
+    { [ -d /root/.near/localnet ] || sed -i 's/"tracked_shards": \[\]/"tracked_shards": \[0\]/' /root/.near/localnet/config.json; } && \
+    { [ -d /root/.near/localnet ] || sed -i 's/"archive": false/"archive": true/' /root/.near/localnet/config.json; } && \
     ./indexer-explorer --home-dir /root/.near/localnet run --store-genesis sync-from-latest
