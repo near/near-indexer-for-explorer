@@ -1,0 +1,2 @@
+CREATE INDEX action_receipt_actions_receiver_and_timestamp_idx
+    ON action_receipt_actions (receipt_receiver_account_id, receipt_included_in_block_timestamp);

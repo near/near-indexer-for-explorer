@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.10.10
+
+* Upgrade `nearcore` to `1.24.0-rc.3`
+
+## 0.10.9
+
+* Add [FT events](https://nomicon.io/Standards/FungibleToken/Event.html) support: `assets__fungible_token_events` table stores the information about FT `mint`, `transfer`, `burn` events
+* Add index on `action_receipt_actions` table. Applying migration could take some time
+* Introduce `ReceiptsCache` to optimize the way we match `Receipts` with parent `Transactions`
+* Upgrade nearcore to `1.24.0-rc.2`
+
+## 0.10.8
+
+* Upgrade nearcore to `1.24.0-rc.1`
+
+## 0.10.7
+
+* Upgrade `nearcore` to 1.23.1
+* Optimized the latency of putting the data into database
+
 ## 0.10.6
 
 * Upgrade `nearcore` to 1.23.1-rc.2

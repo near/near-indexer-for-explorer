@@ -16,7 +16,7 @@ NOTE: Please, keep in mind that the access to the database is shared across ever
 ## Self-hosting
 
 The final setup consists of the following components:
-* PostgreSQL database (you can run it locally or in the cloud), which can hold the whole history of the blockchain (as of Decemeber 2021, mainnet takes 900GB of data in PostgreSQL storage, and testnet takes 375GB)
+* PostgreSQL database (you can run it locally or in the cloud), which can hold the whole history of the blockchain (as of January 2022, mainnet takes 1.1TB of data in PostgreSQL storage, and testnet takes 420GB)
 * NEAR Indexer for Explorer binary that operates as a regular NEAR Protocol peer-to-peer node, so you will operate it as any other [Archival Node in NEAR](https://docs.near.org/docs/develop/node/archival/hardware-archival)
 
 ### Prepare Development Environment
@@ -155,8 +155,8 @@ After that, you could create read-only user in PostgreSQL:
 ```sql
 CREATE ROLE readonly;
 GRANT USAGE ON SCHEMA public TO readonly;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly;
-ALTER ROLE public_readonly SET statement_timeout = '30s';
+-- Put here your limit or just ignore this command
+ALTER ROLE readonly SET statement_timeout = '30s';
 
 CREATE USER explorer with password 'password';
 GRANT readonly TO explorer;
@@ -174,8 +174,8 @@ Running your NEAR Indexer for Explorer node on top of a backup data will reduce 
 
 All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots:
 
-* [Recent 5-epoch Mainnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/rpc/data.tar)
-* [Recent 5-epoch Testnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/rpc/data.tar)
+* [Recent 5-epoch Mainnet data folder](https://near-protocol-public.s3-accelerate.amazonaws.com/backups/mainnet/rpc/data.tar)
+* [Recent 5-epoch Testnet data folder](https://near-protocol-public.s3-accelerate.amazonaws.com/backups/testnet/rpc/data.tar)
 
 
 ## Running NEAR Indexer for Explorer as archival node
@@ -199,8 +199,8 @@ The syncing process in archival mode can take a lot of time, so it's better to d
 
 All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots:
 
-* [Archival Mainnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/mainnet/archive/data.tar)
-* [Archival Testnet data folder](https://near-protocol-public.s3.ca-central-1.amazonaws.com/backups/testnet/archive/data.tar)
+* [Archival Mainnet data folder](https://near-protocol-public.s3-accelerate.amazonaws.com/backups/mainnet/archive/data.tar)
+* [Archival Testnet data folder](https://near-protocol-public.s3-accelerate.amazonaws.com/backups/testnet/archive/data.tar)
 
 See https://docs.near.org/docs/roles/integrator/exchange-integration#running-an-archival-node for reference
 

@@ -140,3 +140,13 @@ pub enum NftEventKind {
     Transfer,
     Burn,
 }
+
+#[derive(Debug, DbEnum, Clone)]
+#[DbValueStyle = "SCREAMING_SNAKE_CASE"]
+#[DieselType = "Ft_event_kind"]
+#[PgType = "ft_event_kind"]
+pub enum FtEventKind {
+    Mint,
+    Transfer,
+    Burn,
+}
