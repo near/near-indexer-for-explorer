@@ -44,8 +44,12 @@ RUN cargo +"$(cat /tmp/rust-toolchain)" build --release
 RUN rm src/*.rs
 RUN rm /tmp/target/release/indexer-explorer*
 
-# Now that the dependencies are built, copy the actual code in and build that too
-COPY . .
+# Now that the dependencies are built, copy just the rest of the Rust code in and build 
+# that too (so that a change in the run-in-docker.sh script doesn't invalidate the entire
+# Docker cache for the Rust build)
+COPY ./src ./src
+
+RUN find .
 
 # This touch is necessary so that Rust doesn't skip the build (even though the source has completely changed... Rust cache is weird :P)
 RUN touch src/main.rs
@@ -63,10 +67,11 @@ RUN apt-get update -qq && apt-get install -y \
 
 WORKDIR /near/indexer-explorer
 
-COPY --from=build /usr/local/cargo/bin/diesel .
 COPY --from=build /tmp/target/release/indexer-explorer .
-# Diesel needs a migrations directory to run
-COPY --from=build /near/indexer-explorer/migrations ./migrations
+
+COPY --from=build /usr/local/cargo/bin/diesel .
+COPY diesel.toml .
+COPY migrations ./migrations
 
 COPY ./run-in-docker.sh .
 
