@@ -77,4 +77,4 @@ COPY ./run-in-docker.sh .
 
 # Pass the BOOT_NODES environment variable to set boot nodes in the initialized genesis
 # An arbitrary number of extra parameters to the indexer that runs can be set via CMD
-ENTRYPOINT run-in-docker.sh ./diesel ${DATABASE_URL} ./indexer-explorer
+ENTRYPOINT bash run-in-docker.sh ./diesel "${DATABASE_URL}" ./indexer-explorer
