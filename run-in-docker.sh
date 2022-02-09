@@ -77,7 +77,7 @@ if ! [ -d "${LOCALNET_NEAR_DIRPATH}" ]; then
     fi
 
     # Required due to https://github.com/near/near-indexer-for-explorer#configure-near-indexer-for-explorer
-    if num_tracked_shard_instances="$(grep "${TRACKED_SHARD_CONFIG_PROPERTY}" | wc -l)"; then
+    if ! num_tracked_shard_instances="$(grep -c "\"${TRACKED_SHARD_CONFIG_PROPERTY}\":" "${CONFIG_JSON_FILEPATH}" || true)"; then
         echo "Error: An error occurred getting the number of instances of the '${TRACKED_SHARD_CONFIG_PROPERTY}' config property to verify there's only one" >&2
         exit 1
     fi
@@ -91,7 +91,7 @@ if ! [ -d "${LOCALNET_NEAR_DIRPATH}" ]; then
     fi
 
     # Required to keep more than 5 blocks in memory
-    if num_archive_instances="$(grep "${ARCHIVE_CONFIG_PROPERTY}" | wc -l)"; then
+    if ! num_archive_instances="$(grep -c "\"${ARCHIVE_CONFIG_PROPERTY}\":" "${CONFIG_JSON_FILEPATH}" || true)"; then
         echo "Error: An error occurred getting the number of instances of the '${ARCHIVE_CONFIG_PROPERTY}' config property to verify there's only one" >&2
         exit 1
     fi

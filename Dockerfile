@@ -49,8 +49,6 @@ RUN rm /tmp/target/release/indexer-explorer*
 # Docker cache for the Rust build)
 COPY ./src ./src
 
-RUN find .
-
 # This touch is necessary so that Rust doesn't skip the build (even though the source has completely changed... Rust cache is weird :P)
 RUN touch src/main.rs
 
@@ -70,8 +68,8 @@ WORKDIR /near/indexer-explorer
 COPY --from=build /tmp/target/release/indexer-explorer .
 
 COPY --from=build /usr/local/cargo/bin/diesel .
-COPY diesel.toml .
-COPY migrations ./migrations
+# NOTE: We'd expect to need the diesel.toml here, but for some reason we don't
+COPY ./migrations ./migrations
 
 COPY ./run-in-docker.sh .
 
