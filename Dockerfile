@@ -67,12 +67,9 @@ COPY --from=build /usr/local/cargo/bin/diesel .
 COPY --from=build /tmp/target/release/indexer-explorer .
 # Diesel needs a migrations directory to run
 COPY --from=build /near/indexer-explorer/migrations ./migrations
- 
-# If the --store-genesis flag isn't set, the accounts in genesis won't get created in the DB which will lead to foreign key constraint violations
-# See https://github.com/near/near-indexer-for-explorer/issues/167
-# TODO productize the skip-if-already-intialized check below better (maybe as a script?)
-CMD { [ -d /root/.near/localnet ] || ./diesel migration run; } && \
-    { [ -d /root/.near/localnet ] || ./indexer-explorer --home-dir /root/.near/localnet init ${BOOT_NODES:+--boot-nodes=${BOOT_NODES}} --chain-id localnet; } && \
-    { [ -d /root/.near/localnet ] || sed -i 's/"tracked_shards": \[\]/"tracked_shards": \[0\]/' /root/.near/localnet/config.json; } && \
-    { [ -d /root/.near/localnet ] || sed -i 's/"archive": false/"archive": true/' /root/.near/localnet/config.json; } && \
-    ./indexer-explorer --home-dir /root/.near/localnet run --store-genesis sync-from-latest
+
+COPY ./run-in-docker.sh .
+
+# Pass the BOOT_NODES environment variable to set boot nodes in the initialized genesis
+# An arbitrary number of extra parameters to the indexer that runs can be set via CMD
+ENTRYPOINT run-in-docker.sh ./diesel ${DATABASE_URL} ./indexer-explorer
