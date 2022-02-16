@@ -334,7 +334,8 @@ fn main() {
             system.block_on(async move {
                 let indexer_config =
                     construct_near_indexer_config(&pool, home_dir, args.clone()).await;
-                let indexer = near_indexer::Indexer::new(indexer_config);
+                let indexer =
+                    near_indexer::Indexer::new(indexer_config).expect("Failed to initiate Indexer");
                 if args.store_genesis {
                     let near_config = indexer.near_config().clone();
                     db_adapters::genesis::store_genesis_records(pool.clone(), near_config.clone())
