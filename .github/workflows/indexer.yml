@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: Download task definition
         run: |
-          aws ecs describe-task-definition --task-definition service \
+          aws ecs describe-task-definition --task-definition indexer-development-node \
           --query taskDefinition > task-definition.json
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
@@ -53,8 +53,8 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ secrets.ECS_SERVICE }}
-          cluster: ${{ secrets.ECS_CLUSTER }}
+          service: indexer-development-cluster
+          cluster: indexer-development-node
           wait-for-service-stability: true
   stagingDeployment:
     name: Deploy Staging
