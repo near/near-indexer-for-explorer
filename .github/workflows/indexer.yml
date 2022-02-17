@@ -33,6 +33,7 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
   deployDeployment:
+    needs: build
     name: Deploy Development
     runs-on: ubuntu-latest
     environment: development
@@ -57,6 +58,7 @@ jobs:
           wait-for-service-stability: true
   stagingDeployment:
     name: Deploy Staging
+    needs: build
     runs-on: ubuntu-latest
     environment: staging
     steps:
@@ -80,6 +82,7 @@ jobs:
           wait-for-service-stability: true
   productionDeployment:
     name: Production Staging
+    needs: build
     runs-on: ubuntu-latest
     environment: production
     steps:
