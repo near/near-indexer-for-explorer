@@ -214,8 +214,7 @@ async fn listen_blocks(
     tokio::time::sleep(std::time::Duration::from_secs(7)).await;
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() {
     // We use it to automatically search the for root certificates to perform HTTPS calls
     // (sending telemetry and downloading genesis)
     openssl_probe::init_ssl_cert_env_vars();
@@ -227,7 +226,7 @@ async fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::parse();
 
     let mut env_filter = EnvFilter::new(
-        "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,aggregated=info",
+        "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,aggregated=info,near_lake_framework=info",
     );
 
     if opts.debug {
@@ -268,16 +267,21 @@ async fn main() -> anyhow::Result<()> {
         s3_region_name: opts.s3_region_name.clone(),
         start_block_height: opts.start_block_height, // want to start from the freshest
     };
-    let stream = near_lake_framework::streamer(config);
+    let system = actix::System::new();
+    system.block_on(async move {
+        let stream = near_lake_framework::streamer(config);
 
-    listen_blocks(
-        stream,
-        pool.clone(),
-        opts.concurrency,
-        !opts.non_strict_mode,
-        None,
-    )
-    .await;
+        listen_blocks(
+            stream,
+            pool.clone(),
+            opts.concurrency,
+            !opts.non_strict_mode,
+            None,
+        )
+        .await;
 
-    Ok(())
+        actix::System::current().stop();
+    });
+
+    system.run().unwrap();
 }
