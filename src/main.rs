@@ -12,9 +12,9 @@ use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info, warn};
 use tracing_subscriber::EnvFilter;
 
-use crate::configs::{Opts, SubCommand};
+use crate::configs::Opts;
 
-mod aggregated;
+// mod aggregated;
 mod configs;
 mod db_adapters;
 mod models;
@@ -31,8 +31,8 @@ const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub enum ReceiptOrDataId {
-    ReceiptId(near_indexer::near_primitives::hash::CryptoHash),
-    DataId(near_indexer::near_primitives::hash::CryptoHash),
+    ReceiptId(near_lake_framework::near_indexer_primitives::CryptoHash),
+    DataId(near_lake_framework::near_indexer_primitives::CryptoHash),
 }
 // Creating type aliases to make HashMap types for cache more explicit
 pub type ParentTransactionHashString = String;
@@ -131,7 +131,7 @@ async fn handle_message(
         // StateChange related to Account
         let account_changes_future = db_adapters::account_changes::store_account_changes(
             pool,
-            &streamer_message.state_changes,
+            &streamer_message.shards,
             &streamer_message.block.header.hash,
             streamer_message.block.header.timestamp,
         );
@@ -154,7 +154,7 @@ async fn handle_message(
 }
 
 async fn listen_blocks(
-    stream: mpsc::Receiver<near_indexer::StreamerMessage>,
+    stream: mpsc::Receiver<near_indexer_primitives::StreamerMessage>,
     pool: Database<PgConnection>,
     concurrency: std::num::NonZeroU16,
     strict_mode: bool,
@@ -214,65 +214,8 @@ async fn listen_blocks(
     tokio::time::sleep(std::time::Duration::from_secs(7)).await;
 }
 
-/// Takes `home_dir` and `RunArgs` to build proper IndexerConfig and returns it
-async fn construct_near_indexer_config(
-    pool: &Database<PgConnection>,
-    home_dir: std::path::PathBuf,
-    args: configs::RunArgs,
-) -> near_indexer::IndexerConfig {
-    // Extract await mode to avoid duplication
-    info!(
-        target: crate::INDEXER_FOR_EXPLORER,
-        "construct_near_indexer_config"
-    );
-    let sync_mode: near_indexer::SyncModeEnum = match args.sync_mode {
-        configs::SyncModeSubCommand::SyncFromInterruption(interruption_args)
-            if interruption_args.delta == 1 =>
-        {
-            info!(target: crate::INDEXER_FOR_EXPLORER, "got from interruption");
-            // If delta is 0 we just return IndexerConfig with sync_mode FromInterruption
-            // without any changes
-            near_indexer::SyncModeEnum::FromInterruption
-        }
-        configs::SyncModeSubCommand::SyncFromInterruption(interruption_args) => {
-            info!(target: crate::INDEXER_FOR_EXPLORER, "got from interruption");
-            info!(
-                target: crate::INDEXER_FOR_EXPLORER,
-                "delta is non zero, calculating..."
-            );
-
-            db_adapters::blocks::latest_block_height(pool)
-                .await
-                .ok()
-                .map(|latest_block_height| {
-                    if let Some(height) = latest_block_height {
-                        near_indexer::SyncModeEnum::BlockHeight(
-                            height.saturating_sub(interruption_args.delta),
-                        )
-                    } else {
-                        near_indexer::SyncModeEnum::FromInterruption
-                    }
-                })
-                .unwrap_or_else(|| near_indexer::SyncModeEnum::FromInterruption)
-        }
-        configs::SyncModeSubCommand::SyncFromBlock(block_args) => {
-            near_indexer::SyncModeEnum::BlockHeight(block_args.height)
-        }
-        configs::SyncModeSubCommand::SyncFromLatest => near_indexer::SyncModeEnum::LatestSynced,
-    };
-
-    near_indexer::IndexerConfig {
-        home_dir,
-        sync_mode,
-        await_for_node_synced: if args.stream_while_syncing {
-            near_indexer::AwaitForNodeSyncedEnum::StreamWhileSyncing
-        } else {
-            near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
-        },
-    }
-}
-
-fn main() {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     // We use it to automatically search the for root certificates to perform HTTPS calls
     // (sending telemetry and downloading genesis)
     openssl_probe::init_ssl_cert_env_vars();
@@ -320,66 +263,21 @@ fn main() {
         .with_writer(std::io::stderr)
         .init();
 
-    let home_dir = opts.home_dir.unwrap_or_else(near_indexer::get_default_home);
+    let config = near_lake_framework::LakeConfig {
+        s3_bucket_name: opts.s3_bucket_name.clone(),
+        s3_region_name: opts.s3_region_name.clone(),
+        start_block_height: opts.start_block_height, // want to start from the freshest
+    };
+    let stream = near_lake_framework::streamer(config);
 
-    match opts.subcmd {
-        SubCommand::Run(args) => {
-            tracing::info!(
-                target: crate::INDEXER_FOR_EXPLORER,
-                "NEAR Indexer for Explorer v{} starting...",
-                env!("CARGO_PKG_VERSION")
-            );
+    listen_blocks(
+        stream,
+        pool.clone(),
+        opts.concurrency,
+        !opts.non_strict_mode,
+        None,
+    )
+    .await;
 
-            let system = actix::System::new();
-            system.block_on(async move {
-                let indexer_config =
-                    construct_near_indexer_config(&pool, home_dir, args.clone()).await;
-                let indexer =
-                    near_indexer::Indexer::new(indexer_config).expect("Failed to initiate Indexer");
-                if args.store_genesis {
-                    let near_config = indexer.near_config().clone();
-                    db_adapters::genesis::store_genesis_records(pool.clone(), near_config.clone())
-                        .await
-                        .expect("Failed to store the records from the genesis");
-                }
-
-                // Regular indexer process starts here
-                let stream = indexer.streamer();
-
-                // Spawning the computation of aggregated data
-                aggregated::spawn_aggregated_computations(pool.clone(), &indexer);
-
-                listen_blocks(
-                    stream,
-                    pool,
-                    args.concurrency,
-                    !args.non_strict_mode,
-                    args.stop_after_number_of_blocks,
-                )
-                .await;
-
-                actix::System::current().stop();
-            });
-            system.run().unwrap();
-        }
-        SubCommand::Init(config) => near_indexer::init_configs(
-            &home_dir,
-            config.chain_id.as_ref().map(AsRef::as_ref),
-            config.account_id.map(|account_id_string| {
-                near_indexer::near_primitives::types::AccountId::try_from(account_id_string)
-                    .expect("Received accound_id is not valid")
-            }),
-            config.test_seed.as_ref().map(AsRef::as_ref),
-            config.num_shards,
-            config.fast,
-            config.genesis.as_ref().map(AsRef::as_ref),
-            config.download_genesis,
-            config.download_genesis_url.as_ref().map(AsRef::as_ref),
-            config.download_config,
-            config.download_config_url.as_ref().map(AsRef::as_ref),
-            config.boot_nodes.as_ref().map(AsRef::as_ref),
-            config.max_gas_burnt_view,
-        )
-        .expect("Failed to initiate config"),
-    }
+    Ok(())
 }

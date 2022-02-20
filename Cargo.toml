@@ -1,6 +1,6 @@
 [package]
 name = "indexer-explorer"
-version = "0.10.12"
+version = "0.10.12-lake.1"
 authors = ["Near Inc <hello@nearprotocol.com>"]
 edition = "2021"
 
@@ -32,13 +32,16 @@ openssl-probe = { version = "0.1.2" }
 r2d2 = "0.8.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.55"
-tokio = { version = "1.1", features = ["sync", "time"] }
-tokio-stream = { version = "0.1" }
+tokio = { version = "1.1", features = ["sync", "time", "macros", "rt-multi-thread"] }
+tokio-stream = { version = "0.1.8" }
 tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 uint = { version = "0.8.3", default-features = false }
 
 actix-diesel = { git = "https://github.com/frol/actix-diesel", branch = "actix-0.11-beta.2" }
-near-indexer = { git = "https://github.com/near/nearcore", rev = "539f254f793a3324a29e6e97e3b804b9fa4f27a2" }
-near-crypto = { git = "https://github.com/near/nearcore", rev = "539f254f793a3324a29e6e97e3b804b9fa4f27a2" }
+near-indexer = { git = "https://github.com/near/nearcore", rev = "5f09a3bf042b32d1ff26554433ad6449199ea02a" }
+near-crypto = { git = "https://github.com/near/nearcore", rev = "5f09a3bf042b32d1ff26554433ad6449199ea02a" }
+near-primitives = { git = "https://github.com/near/nearcore", rev = "5f09a3bf042b32d1ff26554433ad6449199ea02a" }
+near-indexer-primitives = { git = "https://github.com/near/nearcore", rev = "5f09a3bf042b32d1ff26554433ad6449199ea02a" }
 near-client = { git = "https://github.com/near/nearcore", rev = "539f254f793a3324a29e6e97e3b804b9fa4f27a2" }
+near-lake-framework = { git = "https://github.com/near/near-lake-framework", rev = "34f77424051bf032bc5f1d21565ef6e021937b71" }
