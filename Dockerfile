@@ -44,8 +44,10 @@ RUN cargo +"$(cat /tmp/rust-toolchain)" build --release
 RUN rm src/*.rs
 RUN rm /tmp/target/release/indexer-explorer*
 
-# Now that the dependencies are built, copy the actual code in and build that too
-COPY . .
+# Now that the dependencies are built, copy just the rest of the Rust code in and build 
+# that too (so that a change in the run-in-docker.sh script doesn't invalidate the entire
+# Docker cache for the Rust build)
+COPY ./src ./src
 
 # This touch is necessary so that Rust doesn't skip the build (even though the source has completely changed... Rust cache is weird :P)
 RUN touch src/main.rs
@@ -63,15 +65,14 @@ RUN apt-get update -qq && apt-get install -y \
 
 WORKDIR /near/indexer-explorer
 
-COPY --from=build /usr/local/cargo/bin/diesel .
 COPY --from=build /tmp/target/release/indexer-explorer .
-# Diesel needs a migrations directory to run
-COPY --from=build /near/indexer-explorer/migrations ./migrations
- 
-# If the --store-genesis flag isn't set, the accounts in genesis won't get created in the DB which will lead to foreign key constraint violations
-# See https://github.com/near/near-indexer-for-explorer/issues/167
-CMD ./diesel migration run && \
-    ./indexer-explorer --home-dir /root/.near/localnet init ${BOOT_NODES:+--boot-nodes=${BOOT_NODES}} --chain-id localnet && \
-    sed -i 's/"tracked_shards": \[\]/"tracked_shards": \[0\]/' /root/.near/localnet/config.json && \
-    sed -i 's/"archive": false/"archive": true/' /root/.near/localnet/config.json && \
-    ./indexer-explorer --home-dir /root/.near/localnet run --store-genesis sync-from-latest
+
+COPY --from=build /usr/local/cargo/bin/diesel .
+
+COPY ./migrations ./migrations
+
+COPY ./run-in-docker.sh .
+
+# Pass the BOOT_NODES environment variable to set boot nodes in the initialized genesis
+# An arbitrary number of extra parameters to the indexer that runs can be set via CMD
+ENTRYPOINT bash run-in-docker.sh ./diesel "${DATABASE_URL}" ./indexer-explorer
