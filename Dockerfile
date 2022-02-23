@@ -68,7 +68,7 @@ WORKDIR /near/indexer-explorer
 COPY --from=build /tmp/target/release/indexer-explorer .
 
 COPY --from=build /usr/local/cargo/bin/diesel .
-# NOTE: We'd expect to need the diesel.toml here, but for some reason we don't
+
 COPY ./migrations ./migrations
 
 COPY ./run-in-docker.sh .
