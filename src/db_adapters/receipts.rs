@@ -261,7 +261,7 @@ async fn find_tx_hashes_for_receipts(
                             .map(
                                 |(receipt_id_string, transaction_hash_string): (String, String)| {
                                     (
-                                        crate::ReceiptOrDataId::ReceiptId(
+                                        crate::ReceiptOrDataId::DataId(
                                             near_primitives::hash::CryptoHash::from_str(
                                                 &receipt_id_string,
                                             )
