@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.14
+
+* Fix the bug in logic of finding parent transaction for a receipt
+
 ## 0.10.13
 
 * Upgrade `nearcore` to `1.25.0-rc.3`
