@@ -73,7 +73,7 @@ $ cargo build --release
 To connect NEAR Indexer for Explorer to the specific chain you need to have necessary configs, you can generate it as follows:
 
 ```bash
-$ ./target/release/indexer-explorer --home-dir ~/.near/testnet init --chain-id testnet --download-config --download-genesis
+$ ./target/release/near-indexer --home-dir ~/.near/testnet init --chain-id testnet --download-config --download-genesis
 ```
 
 The above code will download the official genesis config and generate necessary configs. You can replace `testnet` in the command above to different network ID (`betanet`, `mainnet`).
