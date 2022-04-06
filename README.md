@@ -11,7 +11,7 @@ NEAR runs the indexer and maintains it for [NEAR Explorer](https://github.com/ne
 
 WARNING: We may evolve the data schemas, so make sure you follow the release notes of this repository.
 
-NOTE: Please, keep in mind that the access to the database is shared across everyone in the world, so it is better to make sure you limit the amount of queris and individual queries are efficient.
+NOTE: Please, keep in mind that the access to the database is shared across everyone in the world, so it is better to make sure you limit the amount of queries and individual queries are efficient.
 
 ## Self-hosting
 
