@@ -5,7 +5,7 @@ use futures::future::try_join_all;
 use crate::models;
 use crate::schema;
 
-pub(crate) async fn store_account_changes(
+pub(crate) async fn store_account_changes_for_shard(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_indexer::IndexerShard],
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,

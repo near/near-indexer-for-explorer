@@ -129,7 +129,7 @@ async fn handle_message(
         };
 
         // StateChange related to Account
-        let account_changes_future = db_adapters::account_changes::store_account_changes(
+        let account_changes_future = db_adapters::account_changes::store_account_changes_for_shard(
             pool,
             &streamer_message.shards,
             &streamer_message.block.header.hash,

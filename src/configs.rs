@@ -9,9 +9,9 @@ use clap::Parser;
     version,
     author,
     about,
-    setting(clap::AppSettings::DisableHelpSubcommand),
-    setting(clap::AppSettings::PropagateVersion),
-    setting(clap::AppSettings::NextLineHelp)
+    disable_help_subcommand(true),
+    propagate_version(true),
+    next_line_help(true),
 )]
 pub(crate) struct Opts {
     /// Sets a custom config dir. Defaults to ~/.near/
