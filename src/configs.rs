@@ -11,7 +11,7 @@ use clap::Parser;
     about,
     disable_help_subcommand(true),
     propagate_version(true),
-    next_line_help(true),
+    next_line_help(true)
 )]
 pub(crate) struct Opts {
     /// Sets a custom config dir. Defaults to ~/.near/

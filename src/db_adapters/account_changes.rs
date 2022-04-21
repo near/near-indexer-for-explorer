@@ -11,9 +11,9 @@ pub(crate) async fn store_account_changes(
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
-    let futures = shards
-        .iter()
-        .map(|shard| store_account_changes_for_shard(pool, &shard.state_changes, block_hash, block_timestamp));
+    let futures = shards.iter().map(|shard| {
+        store_account_changes_for_shard(pool, &shard.state_changes, block_hash, block_timestamp)
+    });
 
     try_join_all(futures).await.map(|_| ())
 }
