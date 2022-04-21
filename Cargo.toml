@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 actix = "=0.13.0"
-actix-rt = "=2.2.0"
+actix-rt = "2.2.0"
 anyhow = "1.0.51"
 base64 = "0.11"
 bigdecimal = "=0.1.0"
