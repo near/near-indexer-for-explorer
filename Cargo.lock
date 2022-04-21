@@ -10,30 +10,6 @@ checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
 name = "actix"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "543c47e7827f8fcc9d1445bd98ba402137bfce80ee2187429de49c52b5131bd3"
-dependencies = [
- "actix-rt",
- "actix_derive",
- "bitflags",
- "bytes",
- "crossbeam-channel",
- "futures-core",
- "futures-sink",
- "futures-task",
- "futures-util",
- "log",
- "once_cell",
- "parking_lot 0.11.2",
- "pin-project-lite",
- "smallvec",
- "tokio",
- "tokio-util 0.6.9",
-]
-
-[[package]]
-name = "actix"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f728064aca1c318585bf4bb04ffcfac9e75e508ab4e8b1bd9ba5dfe04e2cbed5"
@@ -89,10 +65,9 @@ dependencies = [
 [[package]]
 name = "actix-diesel"
 version = "0.3.1-alpha.0"
-source = "git+https://github.com/frol/actix-diesel?branch=actix-0.11-beta.2#7066a04ccce15b20940d926758837c99954765cc"
+source = "git+https://github.com/frol/actix-diesel?rev=3a001986c89dfabfc3c448d8bae28525101b4992#3a001986c89dfabfc3c448d8bae28525101b4992"
 dependencies = [
- "actix 0.11.1",
- "actix-rt",
+ "actix",
  "derive_more",
  "diesel",
  "futures",
@@ -1944,7 +1919,7 @@ dependencies = [
 name = "indexer-explorer"
 version = "0.10.15"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "actix-diesel",
  "actix-rt",
  "anyhow",
@@ -2399,7 +2374,7 @@ name = "near-chain"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "borsh 0.9.2",
  "chrono",
  "delay-detector",
@@ -2458,7 +2433,7 @@ name = "near-chunks"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "borsh 0.9.2",
  "chrono",
  "futures",
@@ -2493,7 +2468,7 @@ name = "near-client"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "actix-rt",
  "ansi_term",
  "borsh 0.9.2",
@@ -2534,7 +2509,7 @@ name = "near-client-primitives"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "chrono",
  "near-chain-configs",
  "near-chain-primitives",
@@ -2598,7 +2573,7 @@ name = "near-indexer"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "anyhow",
  "async-recursion",
  "futures",
@@ -2631,7 +2606,7 @@ name = "near-jsonrpc"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "actix-cors",
  "actix-web",
  "easy-ext",
@@ -2674,7 +2649,7 @@ name = "near-jsonrpc-primitives"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "near-chain-configs",
  "near-client-primitives",
  "near-crypto",
@@ -2706,7 +2681,7 @@ name = "near-network"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "anyhow",
  "borsh 0.9.2",
  "bytes",
@@ -2738,7 +2713,7 @@ name = "near-network-primitives"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "anyhow",
  "borsh 0.9.2",
  "chrono",
@@ -2754,7 +2729,7 @@ name = "near-performance-metrics"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "bitflags",
  "bytes",
  "futures",
@@ -2853,7 +2828,7 @@ name = "near-rate-limiter"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "bytes",
  "futures-core",
  "pin-project-lite",
@@ -2867,7 +2842,7 @@ name = "near-rosetta-rpc"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "actix-cors",
  "actix-http",
  "actix-web",
@@ -3017,7 +2992,7 @@ name = "near-telemetry"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "actix-web",
  "awc",
  "futures",
@@ -3128,7 +3103,7 @@ name = "nearcore"
 version = "1.26.0-rc.1"
 source = "git+https://github.com/near/nearcore?rev=c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c#c7eaf26ba3e934a1ee76af2d2ac4266fa276d28c"
 dependencies = [
- "actix 0.13.0",
+ "actix",
  "actix-rt",
  "actix-web",
  "anyhow",
