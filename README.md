@@ -176,7 +176,7 @@ All the backups can be downloaded from the public S3 bucket which contains lates
 
 ## Running NEAR Indexer for Explorer as archival node
 
-It's not necessary but in order to index everything in the network it is better to do it from the genesis. `nearcore` node is running in non-archival mode by default. That means that the node keeps data only for [5 last epochs](https://docs.near.org/docs/concepts/epoch). In order to index data from the genesis we need to turn the node in archival mode.
+It's not necessary but in order to index everything in the network it is better to do it from the genesis. `nearcore` node is running in non-archival mode by default. That means that the node keeps data only for [5 last epochs](https://docs.near.org/concepts/basics/epoch). In order to index data from the genesis we need to turn the node in archival mode.
 
 To do it we need to update `config.json` located in `--home-dir` or your choice (by default it is `~/.near`).
 
@@ -195,7 +195,7 @@ The syncing process in archival mode can take a lot of time, so it's better to d
 
 All the backups can be downloaded from the public S3 bucket which contains latest daily snapshots following the instruction [here](https://near-nodes.io/intro/node-data-snapshots).
 
-See https://docs.near.org/docs/roles/integrator/exchange-integration#running-an-archival-node for reference
+See [this link](https://docs.near.org/integrator/exchange-integration#running-an-archival-node) for reference
 
 ## Local debugging
 
