@@ -158,7 +158,7 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public to readonly;
 -- Put here your limit or just ignore this command
 ALTER ROLE readonly SET statement_timeout = '30s';
 
-CREATE USER explorer with password 'password';
+CREATE USER explorer with login password 'password';
 GRANT readonly TO explorer;
 ```
 
