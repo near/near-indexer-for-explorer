@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.22
+
+* Upgrade `nearcore` to `1.29.0-rc.1`
+
 ## 0.10.21
 
 * Upgrade `nearcore` to `1.28.0`
