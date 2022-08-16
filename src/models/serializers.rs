@@ -72,9 +72,7 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
         ActionView::CreateAccount => (ActionKind::CreateAccount, json!({})),
         ActionView::DeployContract { code } => (
             ActionKind::DeployContract,
-            json!({
-                "code_sha256":  hex::encode(code)
-            }),
+            json!({ "code_sha256": hex::encode(code) }),
         ),
         ActionView::FunctionCall {
             method_name,
