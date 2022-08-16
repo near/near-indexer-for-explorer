@@ -1,6 +1,6 @@
 [package]
 name = "indexer-explorer"
-version = "0.10.22"
+version = "0.10.23"
 authors = ["Near Inc <hello@nearprotocol.com>"]
 edition = "2021"
 

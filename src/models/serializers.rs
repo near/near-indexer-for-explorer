@@ -73,9 +73,7 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
         ActionView::DeployContract { code } => (
             ActionKind::DeployContract,
             json!({
-                "code_sha256":  hex::encode(
-                    base64::decode(code).expect("code expected to be encoded to base64")
-                )
+                "code_sha256":  hex::encode(code)
             }),
         ),
         ActionView::FunctionCall {

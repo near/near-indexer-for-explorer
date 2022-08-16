@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.23
+
+* Fix the way we get `sha256` of the deployed contract code according to the changes introduced in `nearcore 1.29.0-rc.1`
+
 ## 0.10.22
 
 * Upgrade `nearcore` to `1.29.0-rc.1`
