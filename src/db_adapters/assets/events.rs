@@ -8,7 +8,7 @@ use super::event_types;
 
 pub(crate) async fn store_events(
     pool: &Database<PgConnection>,
-    streamer_message: &near_indexer::StreamerMessage,
+    streamer_message: &near_lake_framework::near_indexer_primitives:: StreamerMessage,
 ) -> anyhow::Result<()> {
     let futures = streamer_message.shards.iter().map(|shard| {
         collect_and_store_events(pool, shard, streamer_message.block.header.timestamp)
@@ -43,7 +43,7 @@ pub(crate) async fn detect_db_error(
 
 async fn collect_and_store_events(
     pool: &Database<PgConnection>,
-    shard: &near_indexer::IndexerShard,
+    shard: &near_lake_framework::near_indexer_primitives::IndexerShard,
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
     let mut ft_events_with_outcomes = Vec::new();
@@ -80,7 +80,7 @@ async fn collect_and_store_events(
 }
 
 fn extract_events(
-    outcome: &near_indexer::IndexerExecutionOutcomeWithReceipt,
+    outcome: &near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt,
 ) -> Vec<event_types::NearEvent> {
     let prefix = "EVENT_JSON:";
     outcome.execution_outcome.outcome.logs.iter().filter_map(|untrimmed_log| {

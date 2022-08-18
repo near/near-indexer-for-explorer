@@ -10,16 +10,14 @@ use futures::try_join;
 
 use tracing::info;
 
-use near_indexer::near_primitives;
-
 use crate::models;
 use crate::schema;
 
 /// Saves new Accounts to database or deletes the ones should be deleted
 pub(crate) async fn handle_accounts(
     pool: &actix_diesel::Database<PgConnection>,
-    outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
-    block_height: near_primitives::types::BlockHeight,
+    outcomes: &[near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
+    block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
 ) -> anyhow::Result<()> {
     if outcomes.is_empty() {
         return Ok(());
@@ -29,20 +27,20 @@ pub(crate) async fn handle_accounts(
         .filter(|outcome_with_receipt| {
             matches!(
                 outcome_with_receipt.execution_outcome.outcome.status,
-                near_primitives::views::ExecutionStatusView::SuccessValue(_)
-                    | near_primitives::views::ExecutionStatusView::SuccessReceiptId(_)
+                near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::SuccessValue(_)
+                    | near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::SuccessReceiptId(_)
             )
         })
         .map(|outcome_with_receipt| &outcome_with_receipt.receipt);
 
     let mut accounts =
-        HashMap::<near_primitives::types::AccountId, models::accounts::Account>::new();
+        HashMap::<near_lake_framework::near_indexer_primitives::types::AccountId, models::accounts::Account>::new();
 
     for receipt in successful_receipts {
-        if let near_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
+        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
             for action in actions {
                 match action {
-                    near_primitives::views::ActionView::CreateAccount => {
+                    near_lake_framework::near_indexer_primitives::views::ActionView::CreateAccount => {
                         accounts.insert(
                             receipt.receiver_id.clone(),
                             models::accounts::Account::new_from_receipt(
@@ -52,7 +50,7 @@ pub(crate) async fn handle_accounts(
                             ),
                         );
                     }
-                    near_primitives::views::ActionView::Transfer { .. } => {
+                    near_lake_framework::near_indexer_primitives::views::ActionView::Transfer { .. } => {
                         if receipt.receiver_id.len() == 64usize {
                             accounts.insert(
                                 receipt.receiver_id.clone(),
@@ -64,7 +62,7 @@ pub(crate) async fn handle_accounts(
                             );
                         }
                     }
-                    near_primitives::views::ActionView::DeleteAccount { .. } => {
+                    near_lake_framework::near_indexer_primitives::views::ActionView::DeleteAccount { .. } => {
                         accounts
                             .entry(receipt.receiver_id.clone())
                             .and_modify(|existing_account| {
@@ -225,8 +223,8 @@ pub(crate) async fn store_accounts_from_genesis(
 
 pub(crate) async fn get_lockup_account_ids_at_block_height(
     pool: &actix_diesel::Database<PgConnection>,
-    block_height: &near_primitives::types::BlockHeight,
-) -> anyhow::Result<Vec<near_primitives::types::AccountId>> {
+    block_height: &near_lake_framework::near_indexer_primitives::types::BlockHeight,
+) -> anyhow::Result<Vec<near_lake_framework::near_indexer_primitives::types::AccountId>> {
     // Diesel does not support named joins
     // https://github.com/diesel-rs/diesel/pull/2254
     // Raw SQL (diesel-1.4.7/src/query_builder/functions.rs:464) does not support async methods
@@ -269,7 +267,7 @@ pub(crate) async fn get_lockup_account_ids_at_block_height(
             results
                 .into_iter()
                 .map(|account_id_string|
-                    near_primitives::types::AccountId::try_from(account_id_string)
+                    near_lake_framework::near_indexer_primitives::types::AccountId::try_from(account_id_string)
                         .expect("Selecting lockup account ids bumped into the account_id which is not valid; that should never happen"))
                 .collect()
         })

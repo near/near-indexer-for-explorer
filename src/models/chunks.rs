@@ -16,8 +16,8 @@ pub struct Chunk {
 
 impl Chunk {
     pub fn from_chunk_view(
-        chunk_view: &near_indexer::IndexerChunkView,
-        block_hash: &near_indexer::near_primitives::hash::CryptoHash,
+        chunk_view: &near_lake_framework::near_indexer_primitives::IndexerChunkView,
+        block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
     ) -> Self {
         Self {
             included_in_block_hash: block_hash.to_string(),

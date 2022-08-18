@@ -85,7 +85,7 @@ pub(crate) async fn store_genesis_records(
             }
 
             match record {
-                near_indexer::near_primitives::state_record::StateRecord::Account {
+                near_primitives::state_record::StateRecord::Account {
                     account_id,
                     ..
                 } => {
@@ -94,7 +94,7 @@ pub(crate) async fn store_genesis_records(
                         genesis_height,
                     ));
                 }
-                near_indexer::near_primitives::state_record::StateRecord::AccessKey {
+                near_primitives::state_record::StateRecord::AccessKey {
                     account_id,
                     public_key,
                     access_key,

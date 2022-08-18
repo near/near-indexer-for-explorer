@@ -8,15 +8,13 @@ use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::try_join;
 use tracing::info;
 
-use near_indexer::near_primitives;
-
 use crate::models;
 use crate::schema;
 
 pub(crate) async fn handle_access_keys(
     pool: &actix_diesel::Database<PgConnection>,
-    outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
-    block_height: near_primitives::types::BlockHeight,
+    outcomes: &[near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
+    block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
 ) -> anyhow::Result<()> {
     if outcomes.is_empty() {
         return Ok(());
@@ -26,8 +24,8 @@ pub(crate) async fn handle_access_keys(
         .filter(|outcome_with_receipt| {
             matches!(
                 outcome_with_receipt.execution_outcome.outcome.status,
-                near_primitives::views::ExecutionStatusView::SuccessValue(_)
-                    | near_primitives::views::ExecutionStatusView::SuccessReceiptId(_)
+                near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::SuccessValue(_)
+                    | near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::SuccessReceiptId(_)
             )
         })
         .map(|outcome_with_receipt| &outcome_with_receipt.receipt);
@@ -36,10 +34,10 @@ pub(crate) async fn handle_access_keys(
     let mut deleted_accounts = HashMap::<String, String>::new();
 
     for receipt in successful_receipts {
-        if let near_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
+        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
             for action in actions {
                 match action {
-                    near_primitives::views::ActionView::DeleteAccount { .. } => {
+                    near_lake_framework::near_indexer_primitives::views::ActionView::DeleteAccount { .. } => {
                         deleted_accounts.insert(
                             receipt.receiver_id.to_string(),
                             receipt.receipt_id.to_string(),
@@ -54,7 +52,7 @@ pub(crate) async fn handle_access_keys(
                                     Some(receipt.receipt_id.to_string());
                             });
                     }
-                    near_primitives::views::ActionView::AddKey {
+                    near_lake_framework::near_indexer_primitives::views::ActionView::AddKey {
                         public_key,
                         access_key,
                     } => {
@@ -69,7 +67,7 @@ pub(crate) async fn handle_access_keys(
                             ),
                         );
                     }
-                    near_primitives::views::ActionView::DeleteKey { public_key } => {
+                    near_lake_framework::near_indexer_primitives::views::ActionView::DeleteKey { public_key } => {
                         access_keys
                             .entry((public_key.to_string(), receipt.receiver_id.to_string()))
                             .and_modify(|existing_access_key| {
@@ -87,7 +85,7 @@ pub(crate) async fn handle_access_keys(
                                 last_update_block_height: block_height.into(),
                             });
                     }
-                    near_indexer::near_primitives::views::ActionView::Transfer { .. } => {
+                    near_lake_framework::near_indexer_primitives::views::ActionView::Transfer { .. } => {
                         if receipt.receiver_id.len() != 64usize {
                             continue;
                         }
@@ -100,9 +98,9 @@ pub(crate) async fn handle_access_keys(
                                     models::access_keys::AccessKey::from_action_view(
                                         &near_crypto::PublicKey::from(public_key.clone()),
                                         &receipt.receiver_id,
-                                        &near_primitives::views::AccessKeyView {
+                                        &near_lake_framework::near_indexer_primitives::views::AccessKeyView {
                                             nonce: 0,
-                                            permission: near_primitives::views::AccessKeyPermissionView::FullAccess
+                                            permission: near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView::FullAccess
                                         },
                                         &receipt.receipt_id,
                                         block_height,

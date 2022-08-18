@@ -8,7 +8,7 @@ use crate::schema;
 
 pub(crate) async fn store_execution_outcomes(
     pool: &actix_diesel::Database<PgConnection>,
-    shards: &[near_indexer::IndexerShard],
+    shards: &[near_lake_framework::near_indexer_primitives::IndexerShard],
     block_timestamp: u64,
     receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
@@ -28,8 +28,8 @@ pub(crate) async fn store_execution_outcomes(
 /// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
 pub async fn store_execution_outcomes_for_chunk(
     pool: &actix_diesel::Database<PgConnection>,
-    execution_outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
-    shard_id: near_indexer::near_primitives::types::ShardId,
+    execution_outcomes: &[near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
+    shard_id: near_lake_framework::near_indexer_primitives::types::ShardId,
     block_timestamp: u64,
     receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {

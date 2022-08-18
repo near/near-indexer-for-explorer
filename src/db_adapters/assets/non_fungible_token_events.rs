@@ -11,11 +11,11 @@ use super::event_types;
 
 pub(crate) async fn store_nft_events(
     pool: &Database<PgConnection>,
-    shard: &near_indexer::IndexerShard,
+    shard: &near_lake_framework::near_indexer_primitives::IndexerShard,
     block_timestamp: u64,
     events_with_outcomes: &[(
         assets::event_types::Nep171Event,
-        &near_indexer::IndexerExecutionOutcomeWithReceipt,
+        &near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt,
     )],
 ) -> anyhow::Result<()> {
     let nft_events = compose_nft_db_events(events_with_outcomes, block_timestamp, &shard.shard_id);
@@ -48,10 +48,10 @@ async fn detect_nft_db_error(async_error: &AsyncError<diesel::result::Error>) ->
 fn compose_nft_db_events(
     events_with_outcomes: &[(
         assets::event_types::Nep171Event,
-        &near_indexer::IndexerExecutionOutcomeWithReceipt,
+        &near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt,
     )],
     block_timestamp: u64,
-    shard_id: &near_indexer::near_primitives::types::ShardId,
+    shard_id: &near_lake_framework::near_indexer_primitives::types::ShardId,
 ) -> Vec<models::assets::non_fungible_token_events::NonFungibleTokenEvent> {
     let mut nft_events = Vec::new();
     for (event, outcome) in events_with_outcomes {

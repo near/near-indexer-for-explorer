@@ -26,12 +26,12 @@ pub struct Transaction {
 
 impl Transaction {
     pub fn from_indexer_transaction(
-        tx: &near_indexer::IndexerTransactionWithOutcome,
+        tx: &near_lake_framework::near_indexer_primitives::IndexerTransactionWithOutcome,
         // hack for supporting duplicated transaction hashes
         transaction_hash: &str,
         converted_into_receipt_id: &str,
-        block_hash: &near_indexer::near_primitives::hash::CryptoHash,
-        chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
+        block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
+        chunk_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
         block_timestamp: u64,
         index_in_chunk: i32,
     ) -> Self {
@@ -74,7 +74,7 @@ impl TransactionAction {
     pub fn from_action_view(
         transaction_hash: String,
         index: i32,
-        action_view: &near_indexer::near_primitives::views::ActionView,
+        action_view: &near_lake_framework::near_indexer_primitives::views::ActionView,
     ) -> Self {
         let (action_kind, args) =
             crate::models::extract_action_type_and_value_from_action_view(action_view);

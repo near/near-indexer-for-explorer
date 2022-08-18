@@ -14,9 +14,9 @@ pub struct Account {
 
 impl Account {
     pub fn new_from_receipt(
-        account_id: &near_indexer::near_primitives::types::AccountId,
-        created_by_receipt_id: &near_indexer::near_primitives::hash::CryptoHash,
-        last_update_block_height: near_indexer::near_primitives::types::BlockHeight,
+        account_id: &near_lake_framework::near_indexer_primitives::types::AccountId,
+        created_by_receipt_id: &near_lake_framework::near_indexer_primitives::CryptoHash,
+        last_update_block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
     ) -> Self {
         Self {
             account_id: account_id.to_string(),
@@ -27,8 +27,8 @@ impl Account {
     }
 
     pub fn new_from_genesis(
-        account_id: &near_indexer::near_primitives::types::AccountId,
-        last_update_block_height: near_indexer::near_primitives::types::BlockHeight,
+        account_id: &near_lake_framework::near_indexer_primitives::types::AccountId,
+        last_update_block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
     ) -> Self {
         Self {
             account_id: account_id.to_string(),

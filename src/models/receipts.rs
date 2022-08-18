@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 
-use near_indexer::near_primitives::views::DataReceiverView;
+use near_lake_framework::near_indexer_primitives::views::DataReceiverView;
 
 use crate::models::enums::{ActionKind, ReceiptKind};
 use crate::schema;
@@ -27,10 +27,10 @@ pub struct Receipt {
 
 impl Receipt {
     pub fn from_receipt_view(
-        receipt: &near_indexer::near_primitives::views::ReceiptView,
-        block_hash: &near_indexer::near_primitives::hash::CryptoHash,
+        receipt: &near_lake_framework::near_indexer_primitives::views::ReceiptView,
+        block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
         transaction_hash: &str,
-        chunk_hash: &near_indexer::near_primitives::hash::CryptoHash,
+        chunk_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
         index_in_chunk: i32,
         block_timestamp: u64,
     ) -> Self {
@@ -56,13 +56,13 @@ pub struct DataReceipt {
     pub data: Option<Vec<u8>>,
 }
 
-impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for DataReceipt {
+impl TryFrom<&near_lake_framework::near_indexer_primitives::views::ReceiptView> for DataReceipt {
     type Error = &'static str;
 
     fn try_from(
-        receipt_view: &near_indexer::near_primitives::views::ReceiptView,
+        receipt_view: &near_lake_framework::near_indexer_primitives::views::ReceiptView,
     ) -> Result<Self, Self::Error> {
-        if let near_indexer::near_primitives::views::ReceiptEnumView::Data { data_id, data } =
+        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Data { data_id, data } =
             &receipt_view.receipt
         {
             Ok(Self {
@@ -85,13 +85,13 @@ pub struct ActionReceipt {
     pub gas_price: BigDecimal,
 }
 
-impl TryFrom<&near_indexer::near_primitives::views::ReceiptView> for ActionReceipt {
+impl TryFrom<&near_lake_framework::near_indexer_primitives::views::ReceiptView> for ActionReceipt {
     type Error = &'static str;
 
     fn try_from(
-        receipt_view: &near_indexer::near_primitives::views::ReceiptView,
+        receipt_view: &near_lake_framework::near_indexer_primitives::views::ReceiptView,
     ) -> Result<Self, Self::Error> {
-        if let near_indexer::near_primitives::views::ReceiptEnumView::Action {
+        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action {
             signer_id,
             signer_public_key,
             gas_price,
@@ -127,7 +127,7 @@ impl ActionReceiptAction {
     pub fn from_action_view(
         receipt_id: String,
         index: i32,
-        action_view: &near_indexer::near_primitives::views::ActionView,
+        action_view: &near_lake_framework::near_indexer_primitives::views::ActionView,
         predecessor_account_id: String,
         receiver_account_id: String,
         block_timestamp: u64,

@@ -1,23 +1,19 @@
 [package]
 name = "indexer-explorer"
-version = "0.10.12-lake.1"
+version = "0.10.19"
 authors = ["Near Inc <hello@nearprotocol.com>"]
 edition = "2021"
 
 [dependencies]
-actix = "=0.11.0-beta.2"
-actix-rt = "=2.2.0"  # remove it once actix is upgraded to 0.11+
-actix-web = "=4.0.0-beta.6"
-actix-http = "=3.0.0-beta.6"
-actix-tls = "=3.0.0-beta.5"
-actix_derive = "=0.6.0-beta.1"
+actix = "0.13.0"
+actix-rt = "2.2.0"
 anyhow = "1.0.51"
 base64 = "0.11"
 bigdecimal = "=0.1.0"
 borsh = "0.7.1"
 cached = "0.23.0"
 chrono = "0.4.19"
-clap = { version = "3.0.0-beta.5", features = ["color", "derive", "env"] }
+clap = { version = "3.1.6", features = ["color", "derive", "env"] }
 diesel = { version = "1.4.7", features = ["postgres", "numeric", "serde_json"] }
 # Using hacky diesel-derive-enum https://github.com/adwhit/diesel-derive-enum/issues/52
 diesel-derive-enum = { git = "https://github.com/khorolets/diesel-derive-enum.git", branch = "lookup-hack", features = ["postgres"] }
@@ -32,16 +28,13 @@ openssl-probe = { version = "0.1.2" }
 r2d2 = "0.8.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.55"
-tokio = { version = "1.1", features = ["sync", "time", "macros", "rt-multi-thread"] }
-tokio-stream = { version = "0.1.8" }
+tokio = { version = "1.1", features = ["sync", "time"] }
+tokio-stream = { version = "0.1" }
 tracing = "0.1.13"
 tracing-subscriber = "0.2.4"
 uint = { version = "0.8.3", default-features = false }
 
-actix-diesel = { git = "https://github.com/frol/actix-diesel", branch = "actix-0.11-beta.2" }
-near-indexer = { git = "https://github.com/near/nearcore", rev = "5f09a3bf042b32d1ff26554433ad6449199ea02a" }
-near-crypto = { git = "https://github.com/near/nearcore", rev = "5f09a3bf042b32d1ff26554433ad6449199ea02a" }
-near-primitives = { git = "https://github.com/near/nearcore", rev = "5f09a3bf042b32d1ff26554433ad6449199ea02a" }
-near-indexer-primitives = { git = "https://github.com/near/nearcore", rev = "5f09a3bf042b32d1ff26554433ad6449199ea02a" }
-near-client = { git = "https://github.com/near/nearcore", rev = "539f254f793a3324a29e6e97e3b804b9fa4f27a2" }
-near-lake-framework = { git = "https://github.com/near/near-lake-framework", rev = "34f77424051bf032bc5f1d21565ef6e021937b71" }
+actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c89dfabfc3c448d8bae28525101b4992" }
+near-lake-framework = "0.5"
+near-primitives = "0.14"
+near-crypto = "0.14"

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use near_indexer::near_primitives::serialize::option_u128_dec_format;
-use near_indexer::near_primitives::views::ActionView;
+use near_primitives::serialize::option_u128_dec_format;
+use near_lake_framework::near_indexer_primitives::views::ActionView;
 
 use crate::models::enums::ActionKind;
 
@@ -10,12 +10,12 @@ use crate::models::enums::ActionKind;
 /// to change serde parameters of serialization.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct AccessKeyView {
-    pub nonce: near_indexer::near_primitives::types::Nonce,
+    pub nonce: near_lake_framework::near_indexer_primitives::types::Nonce,
     pub permission: AccessKeyPermissionView,
 }
 
-impl From<&near_indexer::near_primitives::views::AccessKeyView> for AccessKeyView {
-    fn from(access_key_view: &near_indexer::near_primitives::views::AccessKeyView) -> Self {
+impl From<&near_lake_framework::near_indexer_primitives::views::AccessKeyView> for AccessKeyView {
+    fn from(access_key_view: &near_lake_framework::near_indexer_primitives::views::AccessKeyView) -> Self {
         Self {
             nonce: access_key_view.nonce,
             permission: access_key_view.permission.clone().into(),
@@ -34,22 +34,22 @@ impl From<&near_indexer::near_primitives::views::AccessKeyView> for AccessKeyVie
 pub(crate) enum AccessKeyPermissionView {
     FunctionCall {
         #[serde(with = "option_u128_dec_format")]
-        allowance: Option<near_indexer::near_primitives::types::Balance>,
+        allowance: Option<near_lake_framework::near_indexer_primitives::types::Balance>,
         receiver_id: String,
         method_names: Vec<String>,
     },
     FullAccess,
 }
 
-impl From<near_indexer::near_primitives::views::AccessKeyPermissionView>
+impl From<near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView>
     for AccessKeyPermissionView
 {
-    fn from(permission: near_indexer::near_primitives::views::AccessKeyPermissionView) -> Self {
+    fn from(permission: near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView) -> Self {
         match permission {
-            near_indexer::near_primitives::views::AccessKeyPermissionView::FullAccess => {
+            near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView::FullAccess => {
                 Self::FullAccess
             }
-            near_indexer::near_primitives::views::AccessKeyPermissionView::FunctionCall {
+            near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView::FunctionCall {
                 allowance,
                 receiver_id,
                 method_names,
@@ -66,7 +66,7 @@ impl From<near_indexer::near_primitives::views::AccessKeyPermissionView>
 }
 
 pub(crate) fn extract_action_type_and_value_from_action_view(
-    action_view: &near_indexer::near_primitives::views::ActionView,
+    action_view: &near_lake_framework::near_indexer_primitives::views::ActionView,
 ) -> (crate::models::enums::ActionKind, serde_json::Value) {
     match action_view {
         ActionView::CreateAccount => (ActionKind::CreateAccount, json!({})),

@@ -22,23 +22,23 @@ pub struct AccountChange {
 
 impl AccountChange {
     pub fn from_state_change_with_cause(
-        state_change_with_cause: &near_indexer::near_primitives::views::StateChangeWithCauseView,
-        changed_in_block_hash: &near_indexer::near_primitives::hash::CryptoHash,
+        state_change_with_cause: &near_lake_framework::near_indexer_primitives::views::StateChangeWithCauseView,
+        changed_in_block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
         changed_in_block_timestamp: u64,
         index_in_block: i32,
     ) -> Option<Self> {
-        let near_indexer::near_primitives::views::StateChangeWithCauseView { cause, value } =
+        let near_lake_framework::near_indexer_primitives::views::StateChangeWithCauseView { cause, value } =
             state_change_with_cause;
 
         let (account_id, account): (
             String,
-            Option<&near_indexer::near_primitives::views::AccountView>,
+            Option<&near_lake_framework::near_indexer_primitives::views::AccountView>,
         ) = match value {
-            near_indexer::near_primitives::views::StateChangeValueView::AccountUpdate {
+            near_lake_framework::near_indexer_primitives::views::StateChangeValueView::AccountUpdate {
                 account_id,
                 account,
             } => (account_id.to_string(), Some(account)),
-            near_indexer::near_primitives::views::StateChangeValueView::AccountDeletion {
+            near_lake_framework::near_indexer_primitives::views::StateChangeValueView::AccountDeletion {
                 account_id,
             } => (account_id.to_string(), None),
             _ => return None,
@@ -48,16 +48,16 @@ impl AccountChange {
             affected_account_id: account_id,
             changed_in_block_timestamp: changed_in_block_timestamp.into(),
             changed_in_block_hash: changed_in_block_hash.to_string(),
-            caused_by_transaction_hash: if let near_indexer::near_primitives::views::StateChangeCauseView::TransactionProcessing {tx_hash } = cause {
+            caused_by_transaction_hash: if let near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::TransactionProcessing {tx_hash } = cause {
                 Some(tx_hash.to_string())
             } else {
                 None
             },
             caused_by_receipt_id: match cause {
-                near_indexer::near_primitives::views::StateChangeCauseView::ActionReceiptProcessingStarted { receipt_hash} => Some(receipt_hash.to_string()),
-                near_indexer::near_primitives::views::StateChangeCauseView::ActionReceiptGasReward { receipt_hash } => Some(receipt_hash.to_string()),
-                near_indexer::near_primitives::views::StateChangeCauseView::ReceiptProcessing { receipt_hash } => Some(receipt_hash.to_string()),
-                near_indexer::near_primitives::views::StateChangeCauseView::PostponedReceipt { receipt_hash } => Some(receipt_hash.to_string()),
+                near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::ActionReceiptProcessingStarted { receipt_hash} => Some(receipt_hash.to_string()),
+                near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::ActionReceiptGasReward { receipt_hash } => Some(receipt_hash.to_string()),
+                near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::ReceiptProcessing { receipt_hash } => Some(receipt_hash.to_string()),
+                near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::PostponedReceipt { receipt_hash } => Some(receipt_hash.to_string()),
                 _ => None,
             },
             update_reason: cause.into(),

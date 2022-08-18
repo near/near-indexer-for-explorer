@@ -22,7 +22,7 @@ pub struct ExecutionOutcome {
 
 impl ExecutionOutcome {
     pub fn from_execution_outcome(
-        execution_outcome: &near_indexer::near_primitives::views::ExecutionOutcomeWithIdView,
+        execution_outcome: &near_lake_framework::near_indexer_primitives::views::ExecutionOutcomeWithIdView,
         index_in_chunk: i32,
         executed_in_block_timestamp: u64,
         shard_id: u64,

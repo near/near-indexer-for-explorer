@@ -3,15 +3,13 @@ use anyhow::Context;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 
-use near_indexer::near_primitives;
-
 use crate::models;
 use crate::schema;
 
 /// Saves block to database
 pub(crate) async fn store_block(
     pool: &actix_diesel::Database<PgConnection>,
-    block: &near_primitives::views::BlockView,
+    block: &near_lake_framework::near_indexer_primitives::views::BlockView,
 ) -> anyhow::Result<()> {
     let block_model = models::blocks::Block::from(block);
 

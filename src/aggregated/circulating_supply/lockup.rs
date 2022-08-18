@@ -24,7 +24,7 @@ pub(super) async fn get_lockup_contract_state(
     let block_reference = near_primitives::types::BlockReference::BlockId(
         near_primitives::types::BlockId::Height(*block_height),
     );
-    let request = near_primitives::views::QueryRequest::ViewState {
+    let request = near_lake_framework::near_indexer_primitives::views::QueryRequest::ViewState {
         account_id: account_id.clone(),
         prefix: vec![].into(),
     };
@@ -47,7 +47,7 @@ pub(super) async fn get_lockup_contract_state(
         })?;
 
     let view_state_result = match state_response.kind {
-        near_primitives::views::QueryResponseKind::ViewState(x) => x,
+        near_lake_framework::near_indexer_primitives::views::QueryResponseKind::ViewState(x) => x,
         _ => {
             anyhow::bail!(
                 "Failed to extract ViewState response for lockup contract {}, block_height {}",
@@ -89,7 +89,7 @@ pub(super) async fn get_lockup_contract_state(
 // https://github.com/near/core-contracts/pull/136
 // For each contract, we should choose the logic based on the binary version of the contract
 pub(super) fn is_bug_inside_contract(
-    code_hash: &near_primitives::hash::CryptoHash,
+    code_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
     account_id: &near_primitives::types::AccountId,
 ) -> anyhow::Result<bool> {
     match &*code_hash.to_string() {

@@ -45,7 +45,7 @@ pub type ReceiptsCache =
 
 async fn handle_message(
     pool: &actix_diesel::Database<PgConnection>,
-    streamer_message: near_indexer::StreamerMessage,
+    streamer_message: near_lake_framework::near_indexer_primitives::StreamerMessage,
     strict_mode: bool,
     receipts_cache: ReceiptsCache,
 ) -> anyhow::Result<()> {
@@ -154,7 +154,7 @@ async fn handle_message(
 }
 
 async fn listen_blocks(
-    stream: mpsc::Receiver<near_indexer_primitives::StreamerMessage>,
+    stream: mpsc::Receiver<near_lake_framework::near_indexer_primitives::StreamerMessage>,
     pool: Database<PgConnection>,
     concurrency: std::num::NonZeroU16,
     strict_mode: bool,
@@ -214,7 +214,7 @@ async fn listen_blocks(
     tokio::time::sleep(std::time::Duration::from_secs(7)).await;
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     // We use it to automatically search the for root certificates to perform HTTPS calls
     // (sending telemetry and downloading genesis)
     openssl_probe::init_ssl_cert_env_vars();
@@ -262,14 +262,14 @@ fn main() {
         .with_writer(std::io::stderr)
         .init();
 
-    let config = near_lake_framework::LakeConfig {
-        s3_bucket_name: opts.s3_bucket_name.clone(),
-        s3_region_name: opts.s3_region_name.clone(),
-        start_block_height: opts.start_block_height, // want to start from the freshest
-    };
+    let config = near_lake_framework::LakeConfigBuilder::default()
+        .s3_bucket_name(opts.s3_bucket_name.clone())
+        .s3_region_name(opts.s3_region_name.clone())
+        .start_block_height(opts.start_block_height) // want to start from the freshest
+        .build()?;
     let system = actix::System::new();
     system.block_on(async move {
-        let stream = near_lake_framework::streamer(config);
+        let (lake_handle, stream) = near_lake_framework::streamer(config);
 
         listen_blocks(
             stream,
@@ -281,7 +281,15 @@ fn main() {
         .await;
 
         actix::System::current().stop();
-    });
 
-    system.run().unwrap();
+        // propagate errors from the sender
+        match lake_handle.await {
+            Ok(Ok(())) => Ok(()),
+            Ok(Err(e)) => Err(e),
+            Err(e) => Err(anyhow::Error::from(e)), // JoinError
+        }
+    })?;
+
+    system.run()?;
+    Ok(())
 }

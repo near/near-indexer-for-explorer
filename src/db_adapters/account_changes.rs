@@ -8,8 +8,8 @@ use crate::schema;
 /// Saves state change related to account to database
 pub(crate) async fn store_account_changes(
     pool: &actix_diesel::Database<PgConnection>,
-    shards: &[near_indexer::IndexerShard],
-    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
+    shards: &[near_lake_framework::near_indexer_primitives::IndexerShard],
+    block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
     let futures = shards.iter().map(|shard| {
@@ -21,8 +21,8 @@ pub(crate) async fn store_account_changes(
 
 async fn store_account_changes_for_chunk(
     pool: &actix_diesel::Database<PgConnection>,
-    state_changes: &[near_indexer::near_primitives::views::StateChangeWithCauseView],
-    block_hash: &near_indexer::near_primitives::hash::CryptoHash,
+    state_changes: &[near_lake_framework::near_indexer_primitives::views::StateChangeWithCauseView],
+    block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
     if state_changes.is_empty() {
