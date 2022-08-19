@@ -9,6 +9,7 @@ RUN apt-get update -qq && \
         g++ \
         pkg-config \
         libssl-dev \
+        libpq-dev \
         curl \
         llvm \
         clang
