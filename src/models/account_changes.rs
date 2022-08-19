@@ -27,8 +27,10 @@ impl AccountChange {
         changed_in_block_timestamp: u64,
         index_in_block: i32,
     ) -> Option<Self> {
-        let near_lake_framework::near_indexer_primitives::views::StateChangeWithCauseView { cause, value } =
-            state_change_with_cause;
+        let near_lake_framework::near_indexer_primitives::views::StateChangeWithCauseView {
+            cause,
+            value,
+        } = state_change_with_cause;
 
         let (account_id, account): (
             String,

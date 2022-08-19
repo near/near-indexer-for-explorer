@@ -24,11 +24,10 @@ pub(crate) async fn store_transactions(
             tried_to_insert_transactions_count += chunk.transactions.len();
             store_chunk_transactions(
                 pool,
-                chunk
-                    .transactions
-                    .iter()
-                    .enumerate()
-                    .collect::<Vec<(usize, &near_lake_framework::near_indexer_primitives::IndexerTransactionWithOutcome)>>(),
+                chunk.transactions.iter().enumerate().collect::<Vec<(
+                    usize,
+                    &near_lake_framework::near_indexer_primitives::IndexerTransactionWithOutcome,
+                )>>(),
                 &chunk.header.chunk_hash,
                 block_hash,
                 block_timestamp,
@@ -88,17 +87,20 @@ async fn collect_converted_to_receipt_ids(
     pool: &actix_diesel::Database<PgConnection>,
     block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
 ) -> anyhow::Result<Vec<String>> {
-    Ok(schema::transactions::table
+    schema::transactions::table
         .select(schema::transactions::dsl::converted_into_receipt_id)
         .filter(schema::transactions::dsl::included_in_block_hash.eq(block_hash.to_string()))
         .get_results_async::<String>(pool)
         .await
-        .context("DB Error")?)
+        .context("DB Error")
 }
 
 async fn store_chunk_transactions(
     pool: &actix_diesel::Database<PgConnection>,
-    transactions: Vec<(usize, &near_lake_framework::near_indexer_primitives::IndexerTransactionWithOutcome)>,
+    transactions: Vec<(
+        usize,
+        &near_lake_framework::near_indexer_primitives::IndexerTransactionWithOutcome,
+    )>,
     chunk_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
     block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
     block_timestamp: u64,

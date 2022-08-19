@@ -29,7 +29,7 @@ pub(crate) async fn store_ft_events(
             10,
             "FungibleTokenEvent were adding to database".to_string(),
             &ft_events_chunk,
-            &detect_ft_db_error
+            detect_ft_db_error
         );
     }
 

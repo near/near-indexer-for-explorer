@@ -1,6 +1,0 @@
-.git
-.gitignore
-.dockerignore
-Dockerfile
-target
-*.swp

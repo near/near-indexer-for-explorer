@@ -2,11 +2,10 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
-use actix_diesel::Database;
+
 use bigdecimal::BigDecimal;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::try_join;
-use tracing::info;
 
 use crate::models;
 use crate::schema;
@@ -34,7 +33,11 @@ pub(crate) async fn handle_access_keys(
     let mut deleted_accounts = HashMap::<String, String>::new();
 
     for receipt in successful_receipts {
-        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
+        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action {
+            actions,
+            ..
+        } = &receipt.receipt
+        {
             for action in actions {
                 match action {
                     near_lake_framework::near_indexer_primitives::views::ActionView::DeleteAccount { .. } => {
@@ -223,26 +226,5 @@ pub(crate) async fn handle_access_keys(
         add_access_keys_future
     )?;
 
-    Ok(())
-}
-
-pub(crate) async fn store_access_keys_from_genesis(
-    pool: Database<PgConnection>,
-    access_keys_models: Vec<models::access_keys::AccessKey>,
-) -> anyhow::Result<()> {
-    info!(
-        target: crate::INDEXER_FOR_EXPLORER,
-        "Adding/updating access keys from genesis..."
-    );
-
-    crate::await_retry_or_panic!(
-        diesel::insert_into(schema::access_keys::table)
-            .values(access_keys_models.clone())
-            .on_conflict_do_nothing()
-            .execute_async(&pool),
-        10,
-        "AccessKeys were stored from genesis".to_string(),
-        &access_keys_models
-    );
     Ok(())
 }

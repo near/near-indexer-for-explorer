@@ -1,14 +1,9 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
-use actix_diesel::Database;
-use anyhow::Context;
-use bigdecimal::BigDecimal;
-use diesel::{BoolExpressionMethods, ExpressionMethods, PgConnection, QueryDsl};
-use futures::try_join;
 
-use tracing::info;
+use diesel::{ExpressionMethods, PgConnection, QueryDsl};
+use futures::try_join;
 
 use crate::models;
 use crate::schema;
@@ -33,11 +28,17 @@ pub(crate) async fn handle_accounts(
         })
         .map(|outcome_with_receipt| &outcome_with_receipt.receipt);
 
-    let mut accounts =
-        HashMap::<near_lake_framework::near_indexer_primitives::types::AccountId, models::accounts::Account>::new();
+    let mut accounts = HashMap::<
+        near_lake_framework::near_indexer_primitives::types::AccountId,
+        models::accounts::Account,
+    >::new();
 
     for receipt in successful_receipts {
-        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action { actions, .. } = &receipt.receipt {
+        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action {
+            actions,
+            ..
+        } = &receipt.receipt
+        {
             for action in actions {
                 match action {
                     near_lake_framework::near_indexer_primitives::views::ActionView::CreateAccount => {
@@ -197,78 +198,4 @@ pub(crate) async fn handle_accounts(
     // see https://github.com/nearprotocol/nearcore/issues/3467
     try_join!(delete_accounts_future, create_or_update_accounts_future)?;
     Ok(())
-}
-
-pub(crate) async fn store_accounts_from_genesis(
-    pool: Database<PgConnection>,
-    accounts_models: Vec<models::accounts::Account>,
-) -> anyhow::Result<()> {
-    info!(
-        target: crate::INDEXER_FOR_EXPLORER,
-        "Adding/updating accounts from genesis..."
-    );
-
-    crate::await_retry_or_panic!(
-        diesel::insert_into(schema::accounts::table)
-            .values(accounts_models.clone())
-            .on_conflict_do_nothing()
-            .execute_async(&pool),
-        10,
-        "Accounts were stored from genesis".to_string(),
-        &accounts_models
-    );
-
-    Ok(())
-}
-
-pub(crate) async fn get_lockup_account_ids_at_block_height(
-    pool: &actix_diesel::Database<PgConnection>,
-    block_height: &near_lake_framework::near_indexer_primitives::types::BlockHeight,
-) -> anyhow::Result<Vec<near_lake_framework::near_indexer_primitives::types::AccountId>> {
-    // Diesel does not support named joins
-    // https://github.com/diesel-rs/diesel/pull/2254
-    // Raw SQL (diesel-1.4.7/src/query_builder/functions.rs:464) does not support async methods
-    // So we decided to use view + simple SQL with `where` clause
-    // Initial SQL statement:
-    //   let raw_sql: String = format!("
-    //   SELECT accounts.account_id, blocks_start.block_height, blocks_end.block_height
-    //   FROM accounts
-    //            LEFT JOIN receipts AS receipts_start ON accounts.created_by_receipt_id = receipts_start.receipt_id
-    //            LEFT JOIN blocks AS blocks_start ON receipts_start.included_in_block_hash = blocks_start.block_hash
-    //            LEFT JOIN receipts AS receipts_end ON accounts.deleted_by_receipt_id = receipts_end.receipt_id
-    //            LEFT JOIN blocks AS blocks_end ON receipts_end.included_in_block_hash = blocks_end.block_hash
-    //   WHERE accounts.account_id like '%.lockup.near'
-    //     AND (blocks_start.block_height IS NULL OR blocks_start.block_height <= {0})
-    //     AND (blocks_end.block_height IS NULL OR blocks_end.block_height >= {0});
-    // ", block_height);
-
-    schema::aggregated__lockups::table
-        .select(schema::aggregated__lockups::dsl::account_id)
-        .filter(
-            schema::aggregated__lockups::dsl::creation_block_height
-                .is_null()
-                .or(schema::aggregated__lockups::dsl::creation_block_height
-                    .le(BigDecimal::from(*block_height))),
-        )
-        .filter(
-            schema::aggregated__lockups::dsl::deletion_block_height
-                .is_null()
-                .or(schema::aggregated__lockups::dsl::deletion_block_height
-                    .ge(BigDecimal::from(*block_height))),
-        )
-        .get_results_async::<String>(pool)
-        .await
-        .with_context(|| format!(
-                "DB error while collecting lockup account ids for block_height {}",
-                block_height
-            )
-        )
-        .map(|results| {
-            results
-                .into_iter()
-                .map(|account_id_string|
-                    near_lake_framework::near_indexer_primitives::types::AccountId::try_from(account_id_string)
-                        .expect("Selecting lockup account ids bumped into the account_id which is not valid; that should never happen"))
-                .collect()
-        })
 }

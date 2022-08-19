@@ -8,7 +8,7 @@ use super::event_types;
 
 pub(crate) async fn store_events(
     pool: &Database<PgConnection>,
-    streamer_message: &near_lake_framework::near_indexer_primitives:: StreamerMessage,
+    streamer_message: &near_lake_framework::near_indexer_primitives::StreamerMessage,
 ) -> anyhow::Result<()> {
     let futures = streamer_message.shards.iter().map(|shard| {
         collect_and_store_events(pool, shard, streamer_message.block.header.timestamp)

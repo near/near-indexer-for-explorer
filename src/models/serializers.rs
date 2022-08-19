@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use near_primitives::serialize::option_u128_dec_format;
 use near_lake_framework::near_indexer_primitives::views::ActionView;
+use near_primitives::serialize::option_u128_dec_format;
 
 use crate::models::enums::ActionKind;
 
@@ -15,7 +15,9 @@ pub(crate) struct AccessKeyView {
 }
 
 impl From<&near_lake_framework::near_indexer_primitives::views::AccessKeyView> for AccessKeyView {
-    fn from(access_key_view: &near_lake_framework::near_indexer_primitives::views::AccessKeyView) -> Self {
+    fn from(
+        access_key_view: &near_lake_framework::near_indexer_primitives::views::AccessKeyView,
+    ) -> Self {
         Self {
             nonce: access_key_view.nonce,
             permission: access_key_view.permission.clone().into(),
@@ -44,7 +46,9 @@ pub(crate) enum AccessKeyPermissionView {
 impl From<near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView>
     for AccessKeyPermissionView
 {
-    fn from(permission: near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView) -> Self {
+    fn from(
+        permission: near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView,
+    ) -> Self {
         match permission {
             near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView::FullAccess => {
                 Self::FullAccess

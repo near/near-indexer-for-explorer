@@ -10,10 +10,16 @@ pub enum ReceiptKind {
 }
 
 impl From<&near_lake_framework::near_indexer_primitives::views::ReceiptEnumView> for ReceiptKind {
-    fn from(receipt_enum_view: &near_lake_framework::near_indexer_primitives::views::ReceiptEnumView) -> Self {
+    fn from(
+        receipt_enum_view: &near_lake_framework::near_indexer_primitives::views::ReceiptEnumView,
+    ) -> Self {
         match receipt_enum_view {
-            near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action { .. } => Self::Action,
-            near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Data { .. } => Self::Data,
+            near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action {
+                ..
+            } => Self::Action,
+            near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Data {
+                ..
+            } => Self::Data,
         }
     }
 }
@@ -44,8 +50,12 @@ pub enum ExecutionOutcomeStatus {
     SuccessReceiptId,
 }
 
-impl From<near_lake_framework::near_indexer_primitives::views::ExecutionStatusView> for ExecutionOutcomeStatus {
-    fn from(status: near_lake_framework::near_indexer_primitives::views::ExecutionStatusView) -> Self {
+impl From<near_lake_framework::near_indexer_primitives::views::ExecutionStatusView>
+    for ExecutionOutcomeStatus
+{
+    fn from(
+        status: near_lake_framework::near_indexer_primitives::views::ExecutionStatusView,
+    ) -> Self {
         match status {
             near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::Unknown => Self::Unknown,
             near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::Failure(_) => Self::Failure,
@@ -70,8 +80,12 @@ pub enum AccessKeyPermission {
     FunctionCall,
 }
 
-impl From<&near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView> for AccessKeyPermission {
-    fn from(item: &near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView) -> Self {
+impl From<&near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView>
+    for AccessKeyPermission
+{
+    fn from(
+        item: &near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView,
+    ) -> Self {
         match item {
             near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView::FunctionCall {
                 ..
@@ -86,12 +100,10 @@ impl From<&near_lake_framework::near_indexer_primitives::views::AccessKeyPermiss
 impl From<&near_primitives::account::AccessKeyPermission> for AccessKeyPermission {
     fn from(item: &near_primitives::account::AccessKeyPermission) -> Self {
         match item {
-            near_primitives::account::AccessKeyPermission::FunctionCall {
-                ..
-            } => Self::FunctionCall,
-            near_primitives::account::AccessKeyPermission::FullAccess => {
-                Self::FullAccess
+            near_primitives::account::AccessKeyPermission::FunctionCall { .. } => {
+                Self::FunctionCall
             }
+            near_primitives::account::AccessKeyPermission::FullAccess => Self::FullAccess,
         }
     }
 }
@@ -112,7 +124,9 @@ pub enum StateChangeReasonKind {
     Resharding,
 }
 
-impl From<&near_lake_framework::near_indexer_primitives::views::StateChangeCauseView> for StateChangeReasonKind {
+impl From<&near_lake_framework::near_indexer_primitives::views::StateChangeCauseView>
+    for StateChangeReasonKind
+{
     fn from(
         state_change_cause_view: &near_lake_framework::near_indexer_primitives::views::StateChangeCauseView,
     ) -> Self {

@@ -1,20 +1,16 @@
 use clap::Parser;
-use std::convert::TryFrom;
 #[macro_use]
 extern crate diesel;
 
-use actix_diesel::Database;
 pub use cached::SizedCache;
 use diesel::PgConnection;
 use futures::future::try_join_all;
 use futures::{try_join, StreamExt};
-use tokio::sync::{mpsc, Mutex};
-use tracing::{debug, info, warn};
-use tracing_subscriber::EnvFilter;
+use tokio::sync::Mutex;
+use tracing::{debug, info};
 
 use crate::configs::Opts;
 
-// mod aggregated;
 mod configs;
 mod db_adapters;
 mod models;
@@ -24,7 +20,7 @@ mod retriable;
 
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
-const AGGREGATED: &str = "aggregated";
+// const AGGREGATED: &str = "aggregated";
 
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
@@ -150,29 +146,27 @@ async fn handle_message(
             assets_events_future
         )?;
     }
+
     Ok(())
 }
 
-async fn listen_blocks(
-    stream: mpsc::Receiver<near_lake_framework::near_indexer_primitives::StreamerMessage>,
-    pool: Database<PgConnection>,
-    concurrency: std::num::NonZeroU16,
-    strict_mode: bool,
-    stop_after_number_of_blocks: Option<std::num::NonZeroUsize>,
-) {
-    if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
-        warn!(
-            target: crate::INDEXER_FOR_EXPLORER,
-            "Indexer will stop after indexing {} blocks", stop_after_n_blocks,
-        );
-    }
-    if !strict_mode {
-        warn!(
-            target: crate::INDEXER_FOR_EXPLORER,
-            "Indexer is starting in NON-STRICT mode",
-        );
-    }
-    info!(target: crate::INDEXER_FOR_EXPLORER, "Stream has started");
+#[actix::main]
+async fn main() -> anyhow::Result<()> {
+    // We use it to automatically search the for root certificates to perform HTTPS calls
+    // (sending telemetry and downloading genesis)
+    openssl_probe::init_ssl_cert_env_vars();
+
+    dotenv::dotenv().ok();
+
+    let opts: Opts = Opts::parse();
+
+    configs::init_tracing(opts.debug)?;
+
+    // We establish connection as early as possible as an additional sanity check.
+    // Indexer should fail if .env file with credentials is missing/wrong
+    let pool = models::establish_connection(&opts.database_url);
+
+    let strict_mode = !opts.non_strict_mode;
 
     // We want to prevent unnecessary SELECT queries to the database to find
     // the Transaction hash for the Receipt.
@@ -182,8 +176,15 @@ async fn listen_blocks(
     let receipts_cache: ReceiptsCache =
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
-    let handle_messages =
-        tokio_stream::wrappers::ReceiverStream::new(stream).map(|streamer_message| {
+    let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
+    let (sender, stream) = near_lake_framework::streamer(config);
+
+    tracing::info!(
+        target: INDEXER_FOR_EXPLORER,
+        "Starting Indexer for Explorer (lake)...",
+    );
+    let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
+        .map(|streamer_message| {
             info!(
                 target: crate::INDEXER_FOR_EXPLORER,
                 "Block height {}", &streamer_message.block.header.height
@@ -194,102 +195,16 @@ async fn listen_blocks(
                 strict_mode,
                 std::sync::Arc::clone(&receipts_cache),
             )
-        });
-    let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
-        handle_messages
-            .take(stop_after_n_blocks.get())
-            .boxed_local()
-    } else {
-        handle_messages.boxed_local()
+        })
+        .buffer_unordered(1usize);
+
+    while let Some(_handle_message) = handlers.next().await {}
+    drop(handlers); // close the channel so the sender will stop
+
+    // propagate errors from the sender
+    match sender.await {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(e),
+        Err(e) => Err(anyhow::Error::from(e)), // JoinError
     }
-    .buffer_unordered(usize::from(concurrency.get()));
-
-    while let Some(_handled_message) = handle_messages.next().await {}
-    // Graceful shutdown
-    info!(
-        target: crate::INDEXER_FOR_EXPLORER,
-        "Indexer will be shutdown gracefully in 7 seconds...",
-    );
-    drop(handle_messages);
-    tokio::time::sleep(std::time::Duration::from_secs(7)).await;
-}
-
-fn main() -> anyhow::Result<()> {
-    // We use it to automatically search the for root certificates to perform HTTPS calls
-    // (sending telemetry and downloading genesis)
-    openssl_probe::init_ssl_cert_env_vars();
-
-    // We establish connection as early as possible as an additional sanity check.
-    // Indexer should fail if .env file with credentials is missing/wrong
-    let pool = models::establish_connection();
-
-    let opts: Opts = Opts::parse();
-
-    let mut env_filter = EnvFilter::new(
-        "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,aggregated=info,near_lake_framework=info",
-    );
-
-    if opts.debug {
-        env_filter = env_filter.add_directive(
-            "indexer_for_explorer=debug"
-                .parse()
-                .expect("Failed to parse directive"),
-        );
-    } else {
-        env_filter = env_filter.add_directive(
-            "indexer_for_explorer=info"
-                .parse()
-                .expect("Failed to parse directive"),
-        );
-    };
-
-    if let Ok(rust_log) = std::env::var("RUST_LOG") {
-        if !rust_log.is_empty() {
-            for directive in rust_log.split(',').filter_map(|s| match s.parse() {
-                Ok(directive) => Some(directive),
-                Err(err) => {
-                    eprintln!("Ignoring directive `{}`: {}", s, err);
-                    None
-                }
-            }) {
-                env_filter = env_filter.add_directive(directive);
-            }
-        }
-    }
-
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(env_filter)
-        .with_writer(std::io::stderr)
-        .init();
-
-    let config = near_lake_framework::LakeConfigBuilder::default()
-        .s3_bucket_name(opts.s3_bucket_name.clone())
-        .s3_region_name(opts.s3_region_name.clone())
-        .start_block_height(opts.start_block_height) // want to start from the freshest
-        .build()?;
-    let system = actix::System::new();
-    system.block_on(async move {
-        let (lake_handle, stream) = near_lake_framework::streamer(config);
-
-        listen_blocks(
-            stream,
-            pool.clone(),
-            opts.concurrency,
-            !opts.non_strict_mode,
-            None,
-        )
-        .await;
-
-        actix::System::current().stop();
-
-        // propagate errors from the sender
-        match lake_handle.await {
-            Ok(Ok(())) => Ok(()),
-            Ok(Err(e)) => Err(e),
-            Err(e) => Err(anyhow::Error::from(e)), // JoinError
-        }
-    })?;
-
-    system.run()?;
-    Ok(())
 }

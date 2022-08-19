@@ -62,8 +62,10 @@ impl TryFrom<&near_lake_framework::near_indexer_primitives::views::ReceiptView> 
     fn try_from(
         receipt_view: &near_lake_framework::near_indexer_primitives::views::ReceiptView,
     ) -> Result<Self, Self::Error> {
-        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Data { data_id, data } =
-            &receipt_view.receipt
+        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Data {
+            data_id,
+            data,
+        } = &receipt_view.receipt
         {
             Ok(Self {
                 receipt_id: receipt_view.receipt_id.to_string(),

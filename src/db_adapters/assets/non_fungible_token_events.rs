@@ -29,7 +29,7 @@ pub(crate) async fn store_nft_events(
             10,
             "NonFungibleTokenEvent were adding to database".to_string(),
             &nft_events_chunk,
-            &detect_nft_db_error
+            detect_nft_db_error
         );
     }
 

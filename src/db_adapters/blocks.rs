@@ -1,5 +1,4 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
-use anyhow::Context;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 
@@ -28,26 +27,13 @@ pub(crate) async fn store_block(
 /// Gets the latest block's height from database
 pub(crate) async fn latest_block_height(
     pool: &actix_diesel::Database<PgConnection>,
-) -> Result<Option<u64>, String> {
+) -> anyhow::Result<Option<u64>> {
     tracing::debug!(target: crate::INDEXER_FOR_EXPLORER, "fetching latest");
     Ok(schema::blocks::table
         .select((schema::blocks::dsl::block_height,))
         .order(schema::blocks::dsl::block_height.desc())
         .limit(1)
-        .get_optional_result_async::<(bigdecimal::BigDecimal,)>(pool)
-        .await
-        .map_err(|err| format!("DB Error: {}", err))?
+        .get_optional_result_async::<(BigDecimal,)>(pool)
+        .await?
         .and_then(|(block_height,)| block_height.to_u64()))
-}
-
-pub(crate) async fn get_latest_block_before_timestamp(
-    pool: &actix_diesel::Database<PgConnection>,
-    timestamp: u64,
-) -> anyhow::Result<models::Block> {
-    Ok(schema::blocks::table
-        .filter(schema::blocks::dsl::block_timestamp.le(BigDecimal::from(timestamp)))
-        .order(schema::blocks::dsl::block_timestamp.desc())
-        .first_async::<models::Block>(pool)
-        .await
-        .context("DB Error")?)
 }
