@@ -2,8 +2,8 @@ use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::PgConnection;
 use futures::future::try_join_all;
 
-use crate::models;
 use crate::schema;
+use crate::{metrics, models};
 
 pub(crate) async fn store_account_changes(
     pool: &actix_diesel::Database<PgConnection>,
@@ -11,6 +11,9 @@ pub(crate) async fn store_account_changes(
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["AccountChanges"])
+        .start_timer();
     let futures = shards.iter().map(|shard| {
         store_account_changes_for_shard(pool, &shard.state_changes, block_hash, block_timestamp)
     });

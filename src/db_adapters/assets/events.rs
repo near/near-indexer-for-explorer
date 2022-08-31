@@ -3,6 +3,7 @@ use diesel::PgConnection;
 use tracing::warn;
 
 use crate::db_adapters::assets;
+use crate::metrics;
 
 use super::event_types;
 
@@ -10,6 +11,9 @@ pub(crate) async fn store_events(
     pool: &Database<PgConnection>,
     streamer_message: &near_indexer::StreamerMessage,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["Events"])
+        .start_timer();
     let futures = streamer_message.shards.iter().map(|shard| {
         collect_and_store_events(pool, shard, streamer_message.block.header.timestamp)
     });

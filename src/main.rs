@@ -17,10 +17,11 @@ use crate::configs::{Opts, SubCommand};
 mod aggregated;
 mod configs;
 mod db_adapters;
+mod metrics;
 mod models;
-mod schema;
 #[macro_use]
 mod retriable;
+mod schema;
 
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
@@ -49,6 +50,7 @@ async fn handle_message(
     strict_mode: bool,
     receipts_cache: ReceiptsCache,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::HANDLE_MESSAGE_TIME.start_timer();
     debug!(
         target: INDEXER_FOR_EXPLORER,
         "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
