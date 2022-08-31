@@ -51,6 +51,10 @@ async fn handle_message(
     receipts_cache: ReceiptsCache,
 ) -> anyhow::Result<()> {
     let _timer = metrics::HANDLE_MESSAGE_TIME.start_timer();
+    info!(
+        target: INDEXER_FOR_EXPLORER,
+        height = ?streamer_message.block.header.height, "begin",
+    );
     debug!(
         target: INDEXER_FOR_EXPLORER,
         "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
@@ -152,6 +156,10 @@ async fn handle_message(
             assets_events_future
         )?;
     }
+    info!(
+        target: INDEXER_FOR_EXPLORER,
+        height = ?streamer_message.block.header.height, "done"
+    );
     Ok(())
 }
 
@@ -186,16 +194,22 @@ async fn listen_blocks(
 
     let handle_messages =
         tokio_stream::wrappers::ReceiverStream::new(stream).map(|streamer_message| {
+            let height = streamer_message.block.header.height;
             info!(
                 target: crate::INDEXER_FOR_EXPLORER,
-                "Block height {}", &streamer_message.block.header.height
+                "Block height {}", &height
             );
-            handle_message(
+            let res = handle_message(
                 &pool,
                 streamer_message,
                 strict_mode,
                 std::sync::Arc::clone(&receipts_cache),
-            )
+            );
+            info!(
+                target: crate::INDEXER_FOR_EXPLORER,
+                "Done block height {}", &height
+            );
+            res
         });
     let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
         handle_messages
