@@ -1,4 +1,4 @@
-use near_metrics::{try_create_histogram, try_create_histogram_vec, Histogram, HistogramVec};
+use near_metrics::{try_create_histogram, try_create_histogram_vec, Histogram, HistogramVec, exponential_buckets};
 use once_cell::sync::Lazy;
 
 pub(crate) static HANDLE_MESSAGE_TIME: Lazy<Histogram> = Lazy::new(|| {
@@ -14,10 +14,7 @@ pub(crate) static STORE_TIME: Lazy<HistogramVec> = Lazy::new(|| {
         "indexer_for_explorer_store_time",
         "Latency of storing an object in the DB",
         &["object"],
-        Some(vec![
-            50., 100., 300., 500., 700., 800., 900., 950., 1000., 1050., 1100., 1150., 1200.,
-            1250., 1300.,
-        ]),
+        Some(exponential_buckets(0.001, 1.6, 30).unwrap()),
     )
     .unwrap()
 });
