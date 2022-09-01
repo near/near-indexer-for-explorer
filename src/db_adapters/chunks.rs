@@ -1,8 +1,8 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use diesel::PgConnection;
 
-use crate::models;
 use crate::schema;
+use crate::{metrics, models};
 
 /// Saves chunks to database
 pub(crate) async fn store_chunks(
@@ -10,6 +10,9 @@ pub(crate) async fn store_chunks(
     shards: &[near_indexer::IndexerShard],
     block_hash: &near_indexer::near_primitives::hash::CryptoHash,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["Chunks"])
+        .start_timer();
     if shards.is_empty() {
         return Ok(());
     }
