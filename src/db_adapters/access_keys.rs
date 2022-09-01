@@ -10,7 +10,7 @@ use tracing::info;
 
 use near_indexer::near_primitives;
 
-use crate::models;
+use crate::{metrics, models};
 use crate::schema;
 
 pub(crate) async fn handle_access_keys(
@@ -18,6 +18,9 @@ pub(crate) async fn handle_access_keys(
     outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["AccessKeys"])
+        .start_timer();
     if outcomes.is_empty() {
         return Ok(());
     }

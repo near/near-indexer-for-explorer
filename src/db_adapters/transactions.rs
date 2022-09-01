@@ -6,8 +6,8 @@ use futures::future::try_join_all;
 
 use near_indexer::near_primitives;
 
-use crate::models;
 use crate::schema;
+use crate::{metrics, models};
 
 /// Saves Transactions to database
 pub(crate) async fn store_transactions(
@@ -18,6 +18,9 @@ pub(crate) async fn store_transactions(
     block_height: near_primitives::types::BlockHeight,
     receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["Transactions"])
+        .start_timer();
     let mut tried_to_insert_transactions_count = 0;
     let tx_futures = shards
         .iter()
