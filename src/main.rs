@@ -273,6 +273,8 @@ async fn construct_near_indexer_config(
 }
 
 fn main() {
+    let opts: Opts = Opts::parse();
+
     // We use it to automatically search the for root certificates to perform HTTPS calls
     // (sending telemetry and downloading genesis)
     openssl_probe::init_ssl_cert_env_vars();
@@ -280,8 +282,6 @@ fn main() {
     // We establish connection as early as possible as an additional sanity check.
     // Indexer should fail if .env file with credentials is missing/wrong
     let pool = models::establish_connection();
-
-    let opts: Opts = Opts::parse();
 
     let mut env_filter = EnvFilter::new(
         "tokio_reactor=info,near=info,stats=info,telemetry=info,indexer=info,aggregated=info",
