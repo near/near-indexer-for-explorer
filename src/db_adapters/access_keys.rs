@@ -10,8 +10,8 @@ use tracing::info;
 
 use near_indexer::near_primitives;
 
-use crate::{metrics, models};
 use crate::schema;
+use crate::{metrics, models};
 
 pub(crate) async fn handle_access_keys(
     pool: &actix_diesel::Database<PgConnection>,

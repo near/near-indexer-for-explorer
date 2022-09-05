@@ -12,8 +12,8 @@ use tracing::info;
 
 use near_indexer::near_primitives;
 
-use crate::{metrics, models};
 use crate::schema;
+use crate::{metrics, models};
 
 /// Saves new Accounts to database or deletes the ones should be deleted
 pub(crate) async fn handle_accounts(

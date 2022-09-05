@@ -1,4 +1,6 @@
-use near_metrics::{try_create_histogram, try_create_histogram_vec, Histogram, HistogramVec, exponential_buckets};
+use near_metrics::{
+    exponential_buckets, try_create_histogram, try_create_histogram_vec, Histogram, HistogramVec,
+};
 use once_cell::sync::Lazy;
 
 pub(crate) static HANDLE_MESSAGE_TIME: Lazy<Histogram> = Lazy::new(|| {
