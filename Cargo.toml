@@ -22,7 +22,7 @@ futures = "0.3.5"
 hex = "0.4"
 itertools = "0.10.3"
 # syn version conflict, replace with crates.io version once released
-near-sdk = { git = "https://github.com/near/near-sdk-rs", rev="03487c184d37b0382dd9bd41c57466acad58fc1f" }
+near-sdk = { git = "https://github.com/near/near-sdk-rs", rev = "03487c184d37b0382dd9bd41c57466acad58fc1f" }
 num-traits = "0.2.11"
 openssl-probe = { version = "0.1.2" }
 once_cell = "1.5.2"
@@ -39,4 +39,4 @@ actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c8
 near-indexer = { git = "https://github.com/near/nearcore", rev = "088a149c3f2708af64b0053e3d03df1dfee00e7e" }
 near-crypto = { git = "https://github.com/near/nearcore", rev = "088a149c3f2708af64b0053e3d03df1dfee00e7e" }
 near-client = { git = "https://github.com/near/nearcore", rev = "088a149c3f2708af64b0053e3d03df1dfee00e7e" }
-near-metrics = { git = "https://github.com/near/nearcore", rev = "088a149c3f2708af64b0053e3d03df1dfee00e7e" }
+near-o11y = { git = "https://github.com/near/nearcore", rev = "8dc9a0bab8aa4648fc7af777e9fa7e3e545c95a5" }

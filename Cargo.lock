@@ -2002,7 +2002,7 @@ dependencies = [
  "near-client",
  "near-crypto",
  "near-indexer",
- "near-metrics",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=8dc9a0bab8aa4648fc7af777e9fa7e3e545c95a5)",
  "near-sdk",
  "num-traits",
  "once_cell",
@@ -2435,7 +2435,7 @@ dependencies = [
  "near-client-primitives",
  "near-crypto",
  "near-metrics",
- "near-o11y",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e)",
  "near-pool",
  "near-primitives",
  "near-store",
@@ -2535,7 +2535,7 @@ dependencies = [
  "near-metrics",
  "near-network",
  "near-network-primitives",
- "near-o11y",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e)",
  "near-performance-metrics",
  "near-performance-metrics-macros",
  "near-pool",
@@ -2671,7 +2671,7 @@ dependencies = [
  "near-metrics",
  "near-network",
  "near-network-primitives",
- "near-o11y",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e)",
  "near-primitives",
  "near-rpc-error-macro 0.0.0",
  "once_cell",
@@ -2718,7 +2718,7 @@ name = "near-logger-utils"
 version = "0.0.0"
 source = "git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e#088a149c3f2708af64b0053e3d03df1dfee00e7e"
 dependencies = [
- "near-o11y",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e)",
  "tracing",
 ]
 
@@ -2767,7 +2767,7 @@ dependencies = [
  "near-logger-utils",
  "near-metrics",
  "near-network-primitives",
- "near-o11y",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e)",
  "near-performance-metrics",
  "near-performance-metrics-macros",
  "near-primitives",
@@ -2825,6 +2825,28 @@ dependencies = [
  "once_cell",
  "opentelemetry",
  "opentelemetry-jaeger",
+ "strum",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-opentelemetry",
+ "tracing-serde",
+ "tracing-subscriber 0.3.11",
+]
+
+[[package]]
+name = "near-o11y"
+version = "0.0.0"
+source = "git+https://github.com/near/nearcore?rev=8dc9a0bab8aa4648fc7af777e9fa7e3e545c95a5#8dc9a0bab8aa4648fc7af777e9fa7e3e545c95a5"
+dependencies = [
+ "atty",
+ "backtrace",
+ "clap",
+ "once_cell",
+ "opentelemetry",
+ "opentelemetry-jaeger",
+ "prometheus",
  "strum",
  "thiserror",
  "tokio",
@@ -3085,7 +3107,7 @@ dependencies = [
  "lru",
  "near-crypto",
  "near-metrics",
- "near-o11y",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e)",
  "near-primitives",
  "num_cpus",
  "once_cell",
@@ -3157,7 +3179,7 @@ dependencies = [
  "byteorder",
  "near-account-id",
  "near-crypto",
- "near-o11y",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e)",
  "near-primitives",
  "near-primitives-core 0.0.0",
  "near-vm-errors 0.0.0",
@@ -3249,7 +3271,7 @@ dependencies = [
  "near-metrics",
  "near-network",
  "near-network-primitives",
- "near-o11y",
+ "near-o11y 0.0.0 (git+https://github.com/near/nearcore?rev=088a149c3f2708af64b0053e3d03df1dfee00e7e)",
  "near-performance-metrics",
  "near-pool",
  "near-primitives",
