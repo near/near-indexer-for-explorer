@@ -5,14 +5,17 @@ use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 
 use near_indexer::near_primitives;
 
-use crate::models;
 use crate::schema;
+use crate::{metrics, models};
 
 /// Saves block to database
 pub(crate) async fn store_block(
     pool: &actix_diesel::Database<PgConnection>,
     block: &near_primitives::views::BlockView,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["Block"])
+        .start_timer();
     let block_model = models::blocks::Block::from(block);
 
     crate::await_retry_or_panic!(

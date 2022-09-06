@@ -3,8 +3,8 @@ use cached::Cached;
 use diesel::PgConnection;
 use futures::future::try_join_all;
 
-use crate::models;
 use crate::schema;
+use crate::{metrics, models};
 
 pub(crate) async fn store_execution_outcomes(
     pool: &actix_diesel::Database<PgConnection>,
@@ -12,6 +12,9 @@ pub(crate) async fn store_execution_outcomes(
     block_timestamp: u64,
     receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["ExecutionOutcomes"])
+        .start_timer();
     let futures = shards.iter().map(|shard| {
         store_execution_outcomes_for_chunk(
             pool,

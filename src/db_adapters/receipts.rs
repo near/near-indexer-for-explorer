@@ -13,8 +13,8 @@ use futures::try_join;
 use num_traits::cast::FromPrimitive;
 use tracing::{error, warn};
 
-use crate::models;
 use crate::schema;
+use crate::{metrics, models};
 
 /// Saves receipts to database
 pub(crate) async fn store_receipts(
@@ -25,6 +25,9 @@ pub(crate) async fn store_receipts(
     strict_mode: bool,
     receipts_cache: crate::ReceiptsCache,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["Receipts"])
+        .start_timer();
     let futures = shards
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())

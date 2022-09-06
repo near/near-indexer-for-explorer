@@ -12,8 +12,8 @@ use tracing::info;
 
 use near_indexer::near_primitives;
 
-use crate::models;
 use crate::schema;
+use crate::{metrics, models};
 
 /// Saves new Accounts to database or deletes the ones should be deleted
 pub(crate) async fn handle_accounts(
@@ -21,6 +21,9 @@ pub(crate) async fn handle_accounts(
     outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     block_height: near_primitives::types::BlockHeight,
 ) -> anyhow::Result<()> {
+    let _timer = metrics::STORE_TIME
+        .with_label_values(&["Accounts"])
+        .start_timer();
     if outcomes.is_empty() {
         return Ok(());
     }
