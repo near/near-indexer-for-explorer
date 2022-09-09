@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.24
+
+* Upgrade `nearcore` to [`1.29.0-rc.2`](https://github.com/near/nearcore/releases/tag/1.29.0-rc.2) (according to nearcore release notes, it will require 3GB more RAM than before)
+
 ## 0.10.23
 
 * Fix the way we get `sha256` of the deployed contract code according to the changes introduced in `nearcore 1.29.0-rc.1`
