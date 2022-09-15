@@ -1,6 +1,6 @@
 [package]
 name = "indexer-explorer-lake"
-version = "0.10.0"
+version = "0.10.1"
 authors = ["Near Inc <hello@nearprotocol.com>"]
 edition = "2021"
 rust-version = "1.62.1"
@@ -39,6 +39,6 @@ uint = { version = "0.8.3", default-features = false }
 
 actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c89dfabfc3c448d8bae28525101b4992" }
 near-jsonrpc-client = "0.4.0-beta.0"
-near-lake-framework = "0.5.1"
+near-lake-framework = "0.5.2"
 near-primitives = "0.14"
 near-crypto = "0.14"

@@ -1582,7 +1582,7 @@ dependencies = [
 
 [[package]]
 name = "indexer-explorer-lake"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "actix",
  "actix-diesel",
@@ -1925,9 +1925,9 @@ dependencies = [
 
 [[package]]
 name = "near-lake-framework"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e64c96682214091519e78f991cb17c1991f0c1b32d2f9bd9977fe71ede4e6e5"
+checksum = "5984129964c79102a489ccd9f2af31b4bb8e9f78b0e757f480cb13d426e1915f"
 dependencies = [
  "anyhow",
  "async-stream",
