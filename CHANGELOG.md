@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.26
+
+* Upgrade `nearcore` to `1.29.0-rc.3`
+
 ## 0.10.25
 
 * Update `serializer` to encode `args_base64` since `nearcore` is no more encoding `args` in `FunctionCall` Actions (fix of #305)
