@@ -196,7 +196,7 @@ async fn main() -> anyhow::Result<()> {
                 std::sync::Arc::clone(&receipts_cache),
             )
         })
-        .buffer_unordered(1usize);
+        .buffer_unordered(opts.concurrency.get().into());
 
     while let Some(_handle_message) = handlers.next().await {}
     drop(handlers); // close the channel so the sender will stop
