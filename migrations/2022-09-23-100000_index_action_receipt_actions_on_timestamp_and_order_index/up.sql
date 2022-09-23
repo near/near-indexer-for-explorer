@@ -1,0 +1,1 @@
+CREATE INDEX action_receipt_actions_receipt_included_in_block_timestamp_index_in_action_receipt_idx ON action_receipt_actions(receipt_included_in_block_timestamp, index_in_action_receipt);
