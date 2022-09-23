@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* (MIGRATION REQUIRED) Add new complex index on `action_receipt_actions` (`block_timestamp` + `index_in_actions`) that is used for strict ordering
+
 ## 0.10.26
 
 * Upgrade `nearcore` to `1.29.0-rc.3`
