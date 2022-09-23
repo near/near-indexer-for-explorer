@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.27
 
+* Upgrade Indexer Framework to be based on [`nearcore` version `1.29.0`](https://github.com/near/nearcore/releases/tag/1.29.0)
 * (MIGRATION REQUIRED) Add new complex index on `action_receipt_actions` (`block_timestamp` + `index_in_actions`) that is used for strict ordering
 
 ## 0.10.26
