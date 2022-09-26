@@ -15,6 +15,8 @@ NOTE: Please, keep in mind that the access to the database is shared across ever
 
 ## Self-hosting
 
+> **HEAD UP!** There is [a fork of Indexer for Explorer](https://github.com/khorolets/near-indexer-for-explorer) that is based on [NEAR Lake](https://near-indexers.io/docs/projects/near-lake-framework), and thus it is much lighter in terms of resources, so if you plan to run Indexer for Explorer on mainnet or testnet, strongly consider using the fork. Pagoda runs both upstream and the fork versions side by side to ensure extra stability.
+
 The final setup consists of the following components:
 * PostgreSQL database (you can run it locally or in the cloud), which can hold the whole history of the blockchain (as of January 2022, mainnet takes 1.1TB of data in PostgreSQL storage, and testnet takes 420GB)
 * NEAR Indexer for Explorer binary that operates as a regular NEAR Protocol peer-to-peer node, so you will operate it as any other [Archival Node in NEAR](https://docs.near.org/docs/develop/node/archival/hardware-archival)
