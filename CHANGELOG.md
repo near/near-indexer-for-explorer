@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.28
+
+* Fixed function args extraction (`args->args_json`) for actions (`action_receipt_actions` and `transaction_actions` tables). This bug affected all the records since 0.10.22 release. Consider removing and re-indexing all the records from the time you deployed 0.10.22+ release.
+
 ## 0.10.27
 
 * Upgrade Indexer Framework to be based on [`nearcore` version `1.29.0`](https://github.com/near/nearcore/releases/tag/1.29.0)
