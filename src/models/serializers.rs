@@ -88,14 +88,11 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
             });
 
             // During denormalization of action_receipt_actions table we wanted to try to decode
-            // args which is base64 encoded in case if it is a JSON object and put them near initial
-            // args_base64
+            // args in case if it is a JSON object and put them along side with args_base64
             // See for reference https://github.com/near/near-indexer-for-explorer/issues/87
-            if let Ok(decoded_args) = base64::decode(args) {
-                if let Ok(mut args_json) = serde_json::from_slice(&decoded_args) {
-                    escape_json(&mut args_json);
-                    arguments["args_json"] = args_json;
-                }
+            if let Ok(mut args_json) = serde_json::from_slice(&args) {
+                escape_json(&mut args_json);
+                arguments["args_json"] = args_json;
             }
 
             (ActionKind::FunctionCall, arguments)
