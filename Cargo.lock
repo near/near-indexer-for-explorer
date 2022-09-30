@@ -2005,7 +2005,7 @@ dependencies = [
 
 [[package]]
 name = "indexer-explorer"
-version = "0.10.27"
+version = "0.10.29"
 dependencies = [
  "actix",
  "actix-diesel",
