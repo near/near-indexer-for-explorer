@@ -63,17 +63,8 @@ pub(super) async fn get_lockup_contract_state(
         )
     })?;
 
-    let mut state = LockupContract::try_from_slice(
-        base64::decode(&view_state.value)
-            .with_context(|| {
-                format!(
-                    "Failed to decode `view_state` for lockup contract {}",
-                    account_id
-                )
-            })?
-            .as_slice(),
-    )
-    .with_context(|| format!("Failed to construct LockupContract for {}", account_id))?;
+    let mut state = LockupContract::try_from_slice(&view_state.value)
+        .with_context(|| format!("Failed to construct LockupContract for {}", account_id))?;
 
     // If owner of the lockup account didn't call the
     // `check_transfers_vote` contract method we won't be able to
