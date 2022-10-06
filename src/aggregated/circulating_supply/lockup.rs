@@ -27,6 +27,7 @@ pub(super) async fn get_lockup_contract_state(
     let request = near_primitives::views::QueryRequest::ViewState {
         account_id: account_id.clone(),
         prefix: vec![].into(),
+        include_proof: false,
     };
     let query = Query::new(block_reference, request);
 

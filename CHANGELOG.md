@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.30
+
+* Upgrade Indexer Framework to be based on [`nearcore` version `1.30.0-rc.2`](https://github.com/near/nearcore/releases/tag/1.30.0-rc.2)
+
 ## 0.10.29
 
 * Fixed circulating supply computation given that the args are not base64-encoded anymore (was broken since 0.10.22 release)

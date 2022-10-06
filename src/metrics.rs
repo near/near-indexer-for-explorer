@@ -1,4 +1,4 @@
-use near_metrics::{
+use near_o11y::metrics::{
     exponential_buckets, try_create_histogram, try_create_histogram_vec, Histogram, HistogramVec,
 };
 use once_cell::sync::Lazy;
