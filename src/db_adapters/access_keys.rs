@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use actix_diesel::Database;
-use bigdecimal::BigDecimal;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::try_join;
 use tracing::info;
@@ -25,22 +24,12 @@ pub(crate) async fn handle_access_keys(
     }
 
     let mut access_keys = HashMap::<(String, String), models::access_keys::AccessKey>::new();
-    let mut deleted_accounts = HashMap::<String, String>::new();
 
     for state_change in state_changes {
         if let near_primitives::views::StateChangeCauseView::ReceiptProcessing { receipt_hash } =
             state_change.cause
         {
             match &state_change.value {
-                near_primitives::views::StateChangeValueView::AccountDeletion { account_id } => {
-                    deleted_accounts.insert(account_id.to_string(), receipt_hash.to_string());
-                    access_keys
-                        .iter_mut()
-                        .filter(|((_, receiver_id), _)| receiver_id == &account_id.to_string())
-                        .for_each(|(_, access_key)| {
-                            access_key.deleted_by_receipt_id = Some(receipt_hash.to_string());
-                        });
-                }
                 near_primitives::views::StateChangeValueView::AccessKeyUpdate {
                     account_id,
                     public_key,
@@ -90,34 +79,6 @@ pub(crate) async fn handle_access_keys(
         .values()
         .cloned()
         .partition(|model| model.created_by_receipt_id.is_some());
-
-    let delete_access_keys_for_deleted_accounts = async {
-        let last_update_block_height: BigDecimal = block_height.into();
-        for (account_id, deleted_by_receipt_id) in deleted_accounts {
-            let target = schema::access_keys::table
-                .filter(schema::access_keys::dsl::deleted_by_receipt_id.is_null())
-                .filter(
-                    schema::access_keys::dsl::last_update_block_height
-                        .lt(last_update_block_height.clone()),
-                )
-                .filter(schema::access_keys::dsl::account_id.eq(account_id));
-
-            crate::await_retry_or_panic!(
-                diesel::update(target.clone())
-                    .set((
-                        schema::access_keys::dsl::deleted_by_receipt_id
-                            .eq(deleted_by_receipt_id.clone()),
-                        schema::access_keys::dsl::last_update_block_height
-                            .eq(last_update_block_height.clone()),
-                    ))
-                    .execute_async(pool),
-                10,
-                "AccessKeys were deleting".to_string(),
-                &deleted_by_receipt_id
-            );
-        }
-        Ok(())
-    };
 
     let update_access_keys_future = async {
         for value in access_keys_to_update {
@@ -185,11 +146,7 @@ pub(crate) async fn handle_access_keys(
         Ok(())
     };
 
-    try_join!(
-        delete_access_keys_for_deleted_accounts,
-        update_access_keys_future,
-        add_access_keys_future
-    )?;
+    try_join!(update_access_keys_future, add_access_keys_future)?;
 
     Ok(())
 }
