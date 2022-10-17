@@ -116,7 +116,7 @@ async fn handle_message(
             let futures = streamer_message.shards.iter().map(|shard| {
                 db_adapters::access_keys::handle_access_keys(
                     pool,
-                    &shard.receipt_execution_outcomes,
+                    &shard.state_changes,
                     streamer_message.block.header.height,
                 )
             });
