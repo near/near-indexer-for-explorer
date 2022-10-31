@@ -23,7 +23,7 @@ macro_rules! await_retry_or_panic {
                         })?
 
                         tracing::error!(
-                             target: crate::INDEXER_FOR_EXPLORER,
+                             target: crate::EXPLORER_DATABASE,
                              "Error occurred during {}: \n{:#?} \n{:#?} \n Retrying in {} milliseconds...",
                              async_error,
                              &$error_message,

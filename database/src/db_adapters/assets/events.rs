@@ -33,7 +33,7 @@ pub(crate) async fn detect_db_error(
             return true;
         } else if constraint_name == broken_data_constraint_name {
             warn!(
-                target: crate::INDEXER_FOR_EXPLORER,
+                target: crate::EXPLORER_DATABASE,
                 "assets::events: data inconsistency is found"
             );
         }
@@ -95,7 +95,7 @@ fn extract_events(
             Ok(result) => Some(result),
             Err(err) => {
                 warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
+                    target: crate::EXPLORER_DATABASE,
                     "Provided event log does not correspond to any of formats defined in NEP. Will ignore this event. \n {:#?} \n{:#?}",
                     err,
                     untrimmed_log,

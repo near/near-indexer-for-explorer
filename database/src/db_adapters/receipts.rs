@@ -92,7 +92,7 @@ async fn store_chunk_receipts(
                     ))
             } else {
                 warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
+                    target: crate::EXPLORER_DATABASE,
                     "Skipping Receipt {} as we can't find parent Transaction for it. Happen in block hash {}, chunk hash {}",
                     r.receipt_id.to_string(),
                     block_hash,
@@ -218,7 +218,7 @@ async fn find_tx_hashes_for_receipts(
     }
 
     warn!(
-        target: crate::INDEXER_FOR_EXPLORER,
+        target: crate::EXPLORER_DATABASE,
         "Looking for parent transaction hash in database for {} receipts {:#?}",
         &receipts.len(),
         &receipts,
@@ -281,7 +281,7 @@ async fn find_tx_hashes_for_receipts(
                     }
                     Err(async_error) => {
                         error!(
-                            target: crate::INDEXER_FOR_EXPLORER,
+                            target: crate::EXPLORER_DATABASE,
                             "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
                             interval.as_millis(),
                             async_error,
@@ -450,7 +450,7 @@ async fn find_tx_hashes_for_receipts(
             }
         }
         warn!(
-            target: crate::INDEXER_FOR_EXPLORER,
+            target: crate::EXPLORER_DATABASE,
             "Going to retry to find parent transactions for receipts in {} milliseconds... \n {:#?}\n block hash {} \nchunk hash {}",
             find_tx_retry_interval.as_millis(),
             &receipts,
