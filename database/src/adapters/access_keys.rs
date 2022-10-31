@@ -8,7 +8,7 @@ use futures::try_join;
 use crate::models;
 use crate::schema;
 
-pub(crate) async fn handle_access_keys(
+pub async fn handle_access_keys(
     pool: &actix_diesel::Database<PgConnection>,
     state_changes: &[near_lake_framework::near_indexer_primitives::views::StateChangeWithCauseView],
     block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,

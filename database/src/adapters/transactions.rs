@@ -8,7 +8,7 @@ use crate::models;
 use crate::schema;
 
 /// Saves Transactions to database
-pub(crate) async fn store_transactions(
+pub async fn store_transactions(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_lake_framework::near_indexer_primitives::IndexerShard],
     block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,

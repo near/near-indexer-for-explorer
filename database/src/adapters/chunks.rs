@@ -5,7 +5,7 @@ use crate::models;
 use crate::schema;
 
 /// Saves chunks to database
-pub(crate) async fn store_chunks(
+pub async fn store_chunks(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_lake_framework::near_indexer_primitives::IndexerShard],
     block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,

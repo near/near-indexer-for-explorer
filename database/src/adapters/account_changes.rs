@@ -6,7 +6,7 @@ use crate::models;
 use crate::schema;
 
 /// Saves state change related to account to database
-pub(crate) async fn store_account_changes(
+pub async fn store_account_changes(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_lake_framework::near_indexer_primitives::IndexerShard],
     block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,

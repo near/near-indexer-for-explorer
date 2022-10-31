@@ -26,7 +26,7 @@ pub mod receipts;
 mod serializers;
 pub mod transactions;
 
-pub(crate) fn establish_connection(database_url: &str) -> actix_diesel::Database<PgConnection> {
+pub fn establish_connection(database_url: &str) -> actix_diesel::Database<PgConnection> {
     actix_diesel::Database::builder()
         .pool_max_size(30)
         .open(database_url)

@@ -6,7 +6,7 @@ use futures::future::try_join_all;
 use crate::models;
 use crate::schema;
 
-pub(crate) async fn store_execution_outcomes(
+pub async fn store_execution_outcomes(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_lake_framework::near_indexer_primitives::IndexerShard],
     block_timestamp: u64,

@@ -6,7 +6,7 @@ use crate::adapters::assets;
 
 use super::event_types;
 
-pub(crate) async fn store_events(
+pub async fn store_events(
     pool: &Database<PgConnection>,
     streamer_message: &near_lake_framework::near_indexer_primitives::StreamerMessage,
 ) -> anyhow::Result<()> {

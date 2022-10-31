@@ -6,7 +6,7 @@ use crate::models;
 use crate::schema;
 
 /// Saves block to database
-pub(crate) async fn store_block(
+pub async fn store_block(
     pool: &actix_diesel::Database<PgConnection>,
     block: &near_lake_framework::near_indexer_primitives::views::BlockView,
 ) -> anyhow::Result<()> {
@@ -25,7 +25,7 @@ pub(crate) async fn store_block(
 }
 
 /// Gets the latest block's height from database
-pub(crate) async fn latest_block_height(
+pub async fn latest_block_height(
     pool: &actix_diesel::Database<PgConnection>,
 ) -> anyhow::Result<Option<u64>> {
     tracing::debug!(target: crate::EXPLORER_DATABASE, "fetching latest");

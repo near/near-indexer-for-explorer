@@ -9,7 +9,7 @@ use crate::models;
 use crate::schema;
 
 /// Saves new Accounts to database or deletes the ones should be deleted
-pub(crate) async fn handle_accounts(
+pub async fn handle_accounts(
     pool: &actix_diesel::Database<PgConnection>,
     outcomes: &[near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
     block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
