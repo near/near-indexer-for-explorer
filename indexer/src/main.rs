@@ -6,7 +6,7 @@ use futures::{try_join, StreamExt};
 use tokio::sync::Mutex;
 use tracing::{debug, info};
 
-use explorer_database::{db_adapters, models};
+use explorer_database::{adapters, models};
 
 use crate::configs::Opts;
 
@@ -40,10 +40,10 @@ async fn handle_message(
         target: INDEXER_FOR_EXPLORER,
         "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
     );
-    db_adapters::blocks::store_block(pool, &streamer_message.block).await?;
+    adapters::blocks::store_block(pool, &streamer_message.block).await?;
 
     // Chunks
-    db_adapters::chunks::store_chunks(
+    adapters::chunks::store_chunks(
         pool,
         &streamer_message.shards,
         &streamer_message.block.header.hash,
@@ -51,7 +51,7 @@ async fn handle_message(
     .await?;
 
     // Transactions
-    let transactions_future = db_adapters::transactions::store_transactions(
+    let transactions_future = adapters::transactions::store_transactions(
         pool,
         &streamer_message.shards,
         &streamer_message.block.header.hash,
@@ -61,7 +61,7 @@ async fn handle_message(
     );
 
     // Receipts
-    let receipts_future = db_adapters::receipts::store_receipts(
+    let receipts_future = adapters::receipts::store_receipts(
         pool,
         &streamer_message.shards,
         &streamer_message.block.header.hash,
@@ -78,7 +78,7 @@ async fn handle_message(
     try_join!(transactions_future, receipts_future)?;
 
     // ExecutionOutcomes
-    let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
+    let execution_outcomes_future = adapters::execution_outcomes::store_execution_outcomes(
         pool,
         &streamer_message.shards,
         streamer_message.block.header.timestamp,
@@ -88,7 +88,7 @@ async fn handle_message(
     // Accounts
     let accounts_future = async {
         let futures = streamer_message.shards.iter().map(|shard| {
-            db_adapters::accounts::handle_accounts(
+            adapters::accounts::handle_accounts(
                 pool,
                 &shard.receipt_execution_outcomes,
                 streamer_message.block.header.height,
@@ -99,13 +99,13 @@ async fn handle_message(
     };
 
     // Event-based entities (FT, NFT)
-    let assets_events_future = db_adapters::assets::events::store_events(pool, &streamer_message);
+    let assets_events_future = adapters::assets::events::store_events(pool, &streamer_message);
 
     if strict_mode {
         // AccessKeys
         let access_keys_future = async {
             let futures = streamer_message.shards.iter().map(|shard| {
-                db_adapters::access_keys::handle_access_keys(
+                adapters::access_keys::handle_access_keys(
                     pool,
                     &shard.state_changes,
                     streamer_message.block.header.height,
@@ -116,7 +116,7 @@ async fn handle_message(
         };
 
         // StateChange related to Account
-        let account_changes_future = db_adapters::account_changes::store_account_changes(
+        let account_changes_future = adapters::account_changes::store_account_changes(
             pool,
             &streamer_message.shards,
             &streamer_message.block.header.hash,

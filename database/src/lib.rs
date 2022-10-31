@@ -3,7 +3,7 @@ pub extern crate diesel;
 
 pub use actix_diesel;
 
-pub mod db_adapters;
+pub mod adapters;
 pub mod models;
 
 mod schema;

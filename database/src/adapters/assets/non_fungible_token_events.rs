@@ -3,7 +3,7 @@ use actix_diesel::{AsyncError, Database};
 use bigdecimal::BigDecimal;
 use diesel::PgConnection;
 
-use crate::db_adapters::{assets, CHUNK_SIZE_FOR_BATCH_INSERT};
+use crate::adapters::{assets, CHUNK_SIZE_FOR_BATCH_INSERT};
 use crate::models;
 use crate::schema;
 

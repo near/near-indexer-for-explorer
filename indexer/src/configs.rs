@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
-use explorer_database::{db_adapters, models};
+use explorer_database::{adapters, models};
 
 use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_lake_framework::near_indexer_primitives::types::{BlockReference, Finality};
@@ -121,9 +121,7 @@ async fn get_start_block_height(opts: &Opts) -> u64 {
         StartOptions::FromBlock { height } => *height,
         StartOptions::FromInterruption => {
             let pool = models::establish_connection(&opts.database_url);
-            let last_indexed_block: u64 = match db_adapters::blocks::latest_block_height(&pool)
-                .await
-            {
+            let last_indexed_block: u64 = match adapters::blocks::latest_block_height(&pool).await {
                 Ok(last_indexed_block) => {
                     if let Some(last_indexed_block) = last_indexed_block {
                         last_indexed_block

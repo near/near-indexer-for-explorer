@@ -2,7 +2,7 @@ use actix_diesel::{AsyncError, Database};
 use diesel::PgConnection;
 use tracing::warn;
 
-use crate::db_adapters::assets;
+use crate::adapters::assets;
 
 use super::event_types;
 
