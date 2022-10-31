@@ -1,14 +1,16 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+#[macro_use]
+pub extern crate diesel;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub use actix_diesel;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub mod db_adapters;
+pub mod models;
+
+mod schema;
+#[macro_use]
+mod retriable;
+
+const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
+const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
+
+const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);

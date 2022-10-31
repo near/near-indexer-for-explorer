@@ -1210,6 +1210,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77f3309417938f28bf8228fcff79a4a37103981e3e186d2ccd19c74b38f4eb71"
 
 [[package]]
+name = "explorer-database"
+version = "0.1.0"
+dependencies = [
+ "actix-diesel",
+ "anyhow",
+ "base64 0.11.0",
+ "bigdecimal",
+ "cached",
+ "diesel",
+ "diesel-derive-enum",
+ "futures",
+ "hex",
+ "near-crypto",
+ "near-lake-framework",
+ "near-primitives",
+ "num-traits",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1585,33 +1608,23 @@ name = "indexer-explorer-lake"
 version = "0.10.1"
 dependencies = [
  "actix",
- "actix-diesel",
  "actix-rt",
  "anyhow",
  "aws-sdk-s3",
  "aws-types",
- "base64 0.11.0",
- "bigdecimal",
  "borsh 0.7.2",
  "cached",
  "chrono",
  "clap",
- "diesel",
- "diesel-derive-enum",
  "dotenv",
+ "explorer-database",
  "futures",
- "hex",
  "itertools",
- "near-crypto",
  "near-jsonrpc-client",
  "near-lake-framework",
- "near-primitives",
  "near-sdk",
- "num-traits",
  "openssl-probe",
  "r2d2",
- "serde",
- "serde_json",
  "tokio",
  "tokio-stream",
  "tracing",

@@ -1,29 +1,20 @@
 use clap::Parser;
-#[macro_use]
-extern crate diesel;
 
 pub use cached::SizedCache;
-use diesel::PgConnection;
 use futures::future::try_join_all;
 use futures::{try_join, StreamExt};
 use tokio::sync::Mutex;
 use tracing::{debug, info};
 
+use explorer_database::{db_adapters, models};
+
 use crate::configs::Opts;
 
 mod configs;
-mod db_adapters;
-mod models;
-mod schema;
-#[macro_use]
-mod retriable;
 
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
 // const AGGREGATED: &str = "aggregated";
-
-const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
-const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub enum ReceiptOrDataId {
@@ -40,7 +31,7 @@ pub type ReceiptsCache =
     std::sync::Arc<Mutex<SizedCache<ReceiptOrDataId, ParentTransactionHashString>>>;
 
 async fn handle_message(
-    pool: &actix_diesel::Database<PgConnection>,
+    pool: &explorer_database::actix_diesel::Database<explorer_database::diesel::PgConnection>,
     streamer_message: near_lake_framework::near_indexer_primitives::StreamerMessage,
     strict_mode: bool,
     receipts_cache: ReceiptsCache,
