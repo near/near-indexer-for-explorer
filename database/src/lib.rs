@@ -5,6 +5,7 @@ pub use actix_diesel;
 
 pub mod adapters;
 pub mod models;
+pub mod receipts_cache;
 
 mod schema;
 #[macro_use]

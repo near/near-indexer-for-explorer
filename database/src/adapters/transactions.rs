@@ -14,7 +14,7 @@ pub async fn store_transactions(
     block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
     block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
-    receipts_cache: crate::ReceiptsCache,
+    receipts_cache: crate::receipts_cache::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let mut tried_to_insert_transactions_count = 0;
     let tx_futures = shards
@@ -106,7 +106,7 @@ async fn store_chunk_transactions(
     block_timestamp: u64,
     // hack for supporting duplicated transaction hashes. Empty for most of transactions
     transaction_hash_suffix: &str,
-    receipts_cache: crate::ReceiptsCache,
+    receipts_cache: crate::receipts_cache::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let mut receipts_cache_lock = receipts_cache.lock().await;
 
@@ -128,7 +128,7 @@ async fn store_chunk_transactions(
             // Later, while Receipt will be looking for a parent Transaction hash
             // it will be able to find it in the ReceiptsCache
             receipts_cache_lock.cache_set(
-                crate::ReceiptOrDataId::ReceiptId(*converted_into_receipt_id),
+                crate::receipts_cache::ReceiptOrDataId::ReceiptId(*converted_into_receipt_id),
                 transaction_hash.clone(),
             );
 

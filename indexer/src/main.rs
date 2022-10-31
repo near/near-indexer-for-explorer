@@ -6,7 +6,7 @@ use futures::{try_join, StreamExt};
 use tokio::sync::Mutex;
 use tracing::{debug, info};
 
-use explorer_database::{adapters, models};
+use explorer_database::{adapters, models, receipts_cache};
 
 use crate::configs::Opts;
 
@@ -16,25 +16,11 @@ mod configs;
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
 // const AGGREGATED: &str = "aggregated";
 
-#[derive(Clone, Hash, PartialEq, Eq, Debug)]
-pub enum ReceiptOrDataId {
-    ReceiptId(near_lake_framework::near_indexer_primitives::CryptoHash),
-    DataId(near_lake_framework::near_indexer_primitives::CryptoHash),
-}
-// Creating type aliases to make HashMap types for cache more explicit
-pub type ParentTransactionHashString = String;
-// Introducing a simple cache for Receipts to find their parent Transactions without
-// touching the database
-// The key is ReceiptID
-// The value is TransactionHash (the very parent of the Receipt)
-pub type ReceiptsCache =
-    std::sync::Arc<Mutex<SizedCache<ReceiptOrDataId, ParentTransactionHashString>>>;
-
 async fn handle_message(
     pool: &explorer_database::actix_diesel::Database<explorer_database::diesel::PgConnection>,
     streamer_message: near_lake_framework::near_indexer_primitives::StreamerMessage,
     strict_mode: bool,
-    receipts_cache: ReceiptsCache,
+    receipts_cache: receipts_cache::ReceiptsCache,
 ) -> anyhow::Result<()> {
     debug!(
         target: INDEXER_FOR_EXPLORER,
@@ -164,7 +150,7 @@ async fn main() -> anyhow::Result<()> {
     // Later we need to find the Receipt which is a parent to underlying Receipts.
     // Receipt ID will of the child will be stored as key and parent Transaction hash/Receipt ID
     // will be stored as a value
-    let receipts_cache: ReceiptsCache =
+    let receipts_cache: receipts_cache::ReceiptsCache =
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
     let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;

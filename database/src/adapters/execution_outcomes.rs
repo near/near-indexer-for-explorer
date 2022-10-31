@@ -10,7 +10,7 @@ pub async fn store_execution_outcomes(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_lake_framework::near_indexer_primitives::IndexerShard],
     block_timestamp: u64,
-    receipts_cache: crate::ReceiptsCache,
+    receipts_cache: crate::receipts_cache::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let futures = shards.iter().map(|shard| {
         store_execution_outcomes_for_chunk(
@@ -31,7 +31,7 @@ pub async fn store_execution_outcomes_for_chunk(
     execution_outcomes: &[near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
     shard_id: near_lake_framework::near_indexer_primitives::types::ShardId,
     block_timestamp: u64,
-    receipts_cache: crate::ReceiptsCache,
+    receipts_cache: crate::receipts_cache::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let mut outcome_models: Vec<models::execution_outcomes::ExecutionOutcome> = vec![];
     let mut outcome_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> =
@@ -42,7 +42,7 @@ pub async fn store_execution_outcomes_for_chunk(
         // remove it from cache once found as it is not expected to observe the Receipt for
         // second time
         let parent_transaction_hash = receipts_cache_lock.cache_remove(
-            &crate::ReceiptOrDataId::ReceiptId(outcome.execution_outcome.id),
+            &crate::receipts_cache::ReceiptOrDataId::ReceiptId(outcome.execution_outcome.id),
         );
 
         let model = models::execution_outcomes::ExecutionOutcome::from_execution_outcome(
@@ -66,7 +66,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     // could find their parents in cache
                     if let Some(transaction_hash) = &parent_transaction_hash {
                         receipts_cache_lock.cache_set(
-                            crate::ReceiptOrDataId::ReceiptId(*receipt_id),
+                            crate::receipts_cache::ReceiptOrDataId::ReceiptId(*receipt_id),
                             transaction_hash.clone(),
                         );
                     }
