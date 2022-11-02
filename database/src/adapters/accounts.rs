@@ -9,10 +9,10 @@ use crate::models;
 use crate::schema;
 
 /// Saves new Accounts to database or deletes the ones should be deleted
-pub(crate) async fn handle_accounts(
+pub async fn handle_accounts(
     pool: &actix_diesel::Database<PgConnection>,
-    outcomes: &[near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
-    block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
+    outcomes: &[near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
+    block_height: near_indexer_primitives::types::BlockHeight,
 ) -> anyhow::Result<()> {
     if outcomes.is_empty() {
         return Ok(());
@@ -22,26 +22,22 @@ pub(crate) async fn handle_accounts(
         .filter(|outcome_with_receipt| {
             matches!(
                 outcome_with_receipt.execution_outcome.outcome.status,
-                near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::SuccessValue(_)
-                    | near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::SuccessReceiptId(_)
+                near_indexer_primitives::views::ExecutionStatusView::SuccessValue(_)
+                    | near_indexer_primitives::views::ExecutionStatusView::SuccessReceiptId(_)
             )
         })
         .map(|outcome_with_receipt| &outcome_with_receipt.receipt);
 
-    let mut accounts = HashMap::<
-        near_lake_framework::near_indexer_primitives::types::AccountId,
-        models::accounts::Account,
-    >::new();
+    let mut accounts =
+        HashMap::<near_indexer_primitives::types::AccountId, models::accounts::Account>::new();
 
     for receipt in successful_receipts {
-        if let near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action {
-            actions,
-            ..
-        } = &receipt.receipt
+        if let near_indexer_primitives::views::ReceiptEnumView::Action { actions, .. } =
+            &receipt.receipt
         {
             for action in actions {
                 match action {
-                    near_lake_framework::near_indexer_primitives::views::ActionView::CreateAccount => {
+                    near_indexer_primitives::views::ActionView::CreateAccount => {
                         accounts.insert(
                             receipt.receiver_id.clone(),
                             models::accounts::Account::new_from_receipt(
@@ -51,7 +47,7 @@ pub(crate) async fn handle_accounts(
                             ),
                         );
                     }
-                    near_lake_framework::near_indexer_primitives::views::ActionView::Transfer { .. } => {
+                    near_indexer_primitives::views::ActionView::Transfer { .. } => {
                         if receipt.receiver_id.len() == 64usize {
                             accounts.insert(
                                 receipt.receiver_id.clone(),
@@ -63,7 +59,7 @@ pub(crate) async fn handle_accounts(
                             );
                         }
                     }
-                    near_lake_framework::near_indexer_primitives::views::ActionView::DeleteAccount { .. } => {
+                    near_indexer_primitives::views::ActionView::DeleteAccount { .. } => {
                         accounts
                             .entry(receipt.receiver_id.clone())
                             .and_modify(|existing_account| {

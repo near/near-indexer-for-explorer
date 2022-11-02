@@ -2,13 +2,13 @@ use actix_diesel::{AsyncError, Database};
 use diesel::PgConnection;
 use tracing::warn;
 
-use crate::db_adapters::assets;
+use crate::adapters::assets;
 
 use super::event_types;
 
-pub(crate) async fn store_events(
+pub async fn store_events(
     pool: &Database<PgConnection>,
-    streamer_message: &near_lake_framework::near_indexer_primitives::StreamerMessage,
+    streamer_message: &near_indexer_primitives::StreamerMessage,
 ) -> anyhow::Result<()> {
     let futures = streamer_message.shards.iter().map(|shard| {
         collect_and_store_events(pool, shard, streamer_message.block.header.timestamp)
@@ -33,7 +33,7 @@ pub(crate) async fn detect_db_error(
             return true;
         } else if constraint_name == broken_data_constraint_name {
             warn!(
-                target: crate::INDEXER_FOR_EXPLORER,
+                target: crate::EXPLORER_DATABASE,
                 "assets::events: data inconsistency is found"
             );
         }
@@ -43,7 +43,7 @@ pub(crate) async fn detect_db_error(
 
 async fn collect_and_store_events(
     pool: &Database<PgConnection>,
-    shard: &near_lake_framework::near_indexer_primitives::IndexerShard,
+    shard: &near_indexer_primitives::IndexerShard,
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
     let mut ft_events_with_outcomes = Vec::new();
@@ -80,7 +80,7 @@ async fn collect_and_store_events(
 }
 
 fn extract_events(
-    outcome: &near_lake_framework::near_indexer_primitives::IndexerExecutionOutcomeWithReceipt,
+    outcome: &near_indexer_primitives::IndexerExecutionOutcomeWithReceipt,
 ) -> Vec<event_types::NearEvent> {
     let prefix = "EVENT_JSON:";
     outcome.execution_outcome.outcome.logs.iter().filter_map(|untrimmed_log| {
@@ -95,7 +95,7 @@ fn extract_events(
             Ok(result) => Some(result),
             Err(err) => {
                 warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
+                    target: crate::EXPLORER_DATABASE,
                     "Provided event log does not correspond to any of formats defined in NEP. Will ignore this event. \n {:#?} \n{:#?}",
                     err,
                     untrimmed_log,

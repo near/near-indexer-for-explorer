@@ -16,8 +16,8 @@ pub struct Block {
     pub author_account_id: String,
 }
 
-impl From<&near_lake_framework::near_indexer_primitives::views::BlockView> for Block {
-    fn from(block_view: &near_lake_framework::near_indexer_primitives::views::BlockView) -> Self {
+impl From<&near_indexer_primitives::views::BlockView> for Block {
+    fn from(block_view: &near_indexer_primitives::views::BlockView) -> Self {
         Self {
             block_height: block_view.header.height.into(),
             block_hash: block_view.header.hash.to_string(),
