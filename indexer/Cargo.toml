@@ -1,0 +1,44 @@
+[package]
+name = "indexer-explorer-lake"
+version = "0.10.1"
+authors = ["Near Inc <hello@nearprotocol.com>"]
+edition = "2021"
+rust-version = "1.62.1"
+
+[dependencies]
+actix = "0.13.0"
+actix-rt = "2.2.0"
+anyhow = "1.0.51"
+aws-types = "0.13.0"
+aws-sdk-s3 = "0.13.0"
+base64 = "0.11"
+bigdecimal = "=0.1.0"
+borsh = "0.7.1"
+cached = "0.23.0"
+chrono = "0.4.19"
+clap = { version = "3.1.6", features = ["color", "derive", "env"] }
+diesel = { version = "1.4.7", features = ["postgres", "numeric", "serde_json"] }
+# Using hacky diesel-derive-enum https://github.com/adwhit/diesel-derive-enum/issues/52
+diesel-derive-enum = { git = "https://github.com/khorolets/diesel-derive-enum.git", branch = "lookup-hack", features = ["postgres"] }
+dotenv = "0.15.0"
+futures = "0.3.5"
+hex = "0.4"
+itertools = "0.10.3"
+# syn version conflict, replace with crates.io version once released
+near-sdk = { git = "https://github.com/near/near-sdk-rs", rev="03487c184d37b0382dd9bd41c57466acad58fc1f" }
+num-traits = "0.2.11"
+openssl-probe = { version = "0.1.2" }
+r2d2 = "0.8.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.55"
+tokio = { version = "1.1", features = ["sync", "time"] }
+tokio-stream = { version = "0.1" }
+tracing = "0.1.13"
+tracing-subscriber = "0.2.4"
+uint = { version = "0.8.3", default-features = false }
+
+actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c89dfabfc3c448d8bae28525101b4992" }
+near-jsonrpc-client = "0.4.0-beta.0"
+near-lake-framework = "0.5.2"
+near-primitives = "0.14"
+near-crypto = "0.14"
