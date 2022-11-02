@@ -3,8 +3,8 @@ use tokio::sync::Mutex;
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub enum ReceiptOrDataId {
-    ReceiptId(near_lake_framework::near_indexer_primitives::CryptoHash),
-    DataId(near_lake_framework::near_indexer_primitives::CryptoHash),
+    ReceiptId(near_indexer_primitives::CryptoHash),
+    DataId(near_indexer_primitives::CryptoHash),
 }
 // Creating type aliases to make HashMap types for cache more explicit
 pub type ParentTransactionHashString = String;

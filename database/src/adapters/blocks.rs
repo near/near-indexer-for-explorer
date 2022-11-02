@@ -8,7 +8,7 @@ use crate::schema;
 /// Saves block to database
 pub async fn store_block(
     pool: &actix_diesel::Database<PgConnection>,
-    block: &near_lake_framework::near_indexer_primitives::views::BlockView,
+    block: &near_indexer_primitives::views::BlockView,
 ) -> anyhow::Result<()> {
     let block_model = models::blocks::Block::from(block);
 

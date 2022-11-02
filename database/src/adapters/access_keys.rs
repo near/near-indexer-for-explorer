@@ -10,8 +10,8 @@ use crate::schema;
 
 pub async fn handle_access_keys(
     pool: &actix_diesel::Database<PgConnection>,
-    state_changes: &[near_lake_framework::near_indexer_primitives::views::StateChangeWithCauseView],
-    block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
+    state_changes: &[near_indexer_primitives::views::StateChangeWithCauseView],
+    block_height: near_indexer_primitives::types::BlockHeight,
 ) -> anyhow::Result<()> {
     if state_changes.is_empty() {
         return Ok(());
@@ -20,11 +20,12 @@ pub async fn handle_access_keys(
     let mut access_keys = HashMap::<(String, String), models::access_keys::AccessKey>::new();
 
     for state_change in state_changes {
-        if let near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::ReceiptProcessing { receipt_hash } =
-            state_change.cause
+        if let near_indexer_primitives::views::StateChangeCauseView::ReceiptProcessing {
+            receipt_hash,
+        } = state_change.cause
         {
             match &state_change.value {
-                near_lake_framework::near_indexer_primitives::views::StateChangeValueView::AccessKeyUpdate {
+                near_indexer_primitives::views::StateChangeValueView::AccessKeyUpdate {
                     account_id,
                     public_key,
                     access_key,
@@ -40,7 +41,7 @@ pub async fn handle_access_keys(
                         ),
                     );
                 }
-                near_lake_framework::near_indexer_primitives::views::StateChangeValueView::AccessKeyDeletion {
+                near_indexer_primitives::views::StateChangeValueView::AccessKeyDeletion {
                     account_id,
                     public_key,
                 } => {

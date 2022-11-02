@@ -10,10 +10,10 @@ use crate::schema;
 /// Saves Transactions to database
 pub async fn store_transactions(
     pool: &actix_diesel::Database<PgConnection>,
-    shards: &[near_lake_framework::near_indexer_primitives::IndexerShard],
-    block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
+    shards: &[near_indexer_primitives::IndexerShard],
+    block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
-    block_height: near_lake_framework::near_indexer_primitives::types::BlockHeight,
+    block_height: near_indexer_primitives::types::BlockHeight,
     receipts_cache: crate::receipts_cache::ReceiptsCache,
 ) -> anyhow::Result<()> {
     let mut tried_to_insert_transactions_count = 0;
@@ -26,7 +26,7 @@ pub async fn store_transactions(
                 pool,
                 chunk.transactions.iter().enumerate().collect::<Vec<(
                     usize,
-                    &near_lake_framework::near_indexer_primitives::IndexerTransactionWithOutcome,
+                    &near_indexer_primitives::IndexerTransactionWithOutcome,
                 )>>(),
                 &chunk.header.chunk_hash,
                 block_hash,
@@ -71,7 +71,10 @@ pub async fn store_transactions(
                             .to_string();
                         !inserted_receipt_ids.contains(converted_into_receipt_id)
                     })
-                    .collect::<Vec<(usize, &near_lake_framework::near_indexer_primitives::IndexerTransactionWithOutcome)>>(),
+                    .collect::<Vec<(
+                        usize,
+                        &near_indexer_primitives::IndexerTransactionWithOutcome,
+                    )>>(),
                 &chunk.header.chunk_hash,
                 block_hash,
                 block_timestamp,
@@ -85,7 +88,7 @@ pub async fn store_transactions(
 
 async fn collect_converted_to_receipt_ids(
     pool: &actix_diesel::Database<PgConnection>,
-    block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
+    block_hash: &near_indexer_primitives::CryptoHash,
 ) -> anyhow::Result<Vec<String>> {
     schema::transactions::table
         .select(schema::transactions::dsl::converted_into_receipt_id)
@@ -99,10 +102,10 @@ async fn store_chunk_transactions(
     pool: &actix_diesel::Database<PgConnection>,
     transactions: Vec<(
         usize,
-        &near_lake_framework::near_indexer_primitives::IndexerTransactionWithOutcome,
+        &near_indexer_primitives::IndexerTransactionWithOutcome,
     )>,
-    chunk_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
-    block_hash: &near_lake_framework::near_indexer_primitives::CryptoHash,
+    chunk_hash: &near_indexer_primitives::CryptoHash,
+    block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
     // hack for supporting duplicated transaction hashes. Empty for most of transactions
     transaction_hash_suffix: &str,

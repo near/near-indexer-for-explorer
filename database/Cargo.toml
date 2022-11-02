@@ -22,6 +22,6 @@ tracing = "0.1.13"
 tokio = { version = "1.1", features = ["sync", "time"] }
 
 actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c89dfabfc3c448d8bae28525101b4992" }
-near-lake-framework = "0.5.2"
+near-indexer-primitives = "0.14"
 near-primitives = "0.14"
 near-crypto = "0.14"

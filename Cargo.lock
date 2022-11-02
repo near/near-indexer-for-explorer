@@ -1223,7 +1223,7 @@ dependencies = [
  "futures",
  "hex",
  "near-crypto",
- "near-lake-framework",
+ "near-indexer-primitives",
  "near-primitives",
  "num-traits",
  "serde",

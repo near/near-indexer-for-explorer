@@ -9,17 +9,11 @@ pub enum ReceiptKind {
     Data,
 }
 
-impl From<&near_lake_framework::near_indexer_primitives::views::ReceiptEnumView> for ReceiptKind {
-    fn from(
-        receipt_enum_view: &near_lake_framework::near_indexer_primitives::views::ReceiptEnumView,
-    ) -> Self {
+impl From<&near_indexer_primitives::views::ReceiptEnumView> for ReceiptKind {
+    fn from(receipt_enum_view: &near_indexer_primitives::views::ReceiptEnumView) -> Self {
         match receipt_enum_view {
-            near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Action {
-                ..
-            } => Self::Action,
-            near_lake_framework::near_indexer_primitives::views::ReceiptEnumView::Data {
-                ..
-            } => Self::Data,
+            near_indexer_primitives::views::ReceiptEnumView::Action { .. } => Self::Action,
+            near_indexer_primitives::views::ReceiptEnumView::Data { .. } => Self::Data,
         }
     }
 }
@@ -50,19 +44,15 @@ pub enum ExecutionOutcomeStatus {
     SuccessReceiptId,
 }
 
-impl From<near_lake_framework::near_indexer_primitives::views::ExecutionStatusView>
-    for ExecutionOutcomeStatus
-{
-    fn from(
-        status: near_lake_framework::near_indexer_primitives::views::ExecutionStatusView,
-    ) -> Self {
+impl From<near_indexer_primitives::views::ExecutionStatusView> for ExecutionOutcomeStatus {
+    fn from(status: near_indexer_primitives::views::ExecutionStatusView) -> Self {
         match status {
-            near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::Unknown => Self::Unknown,
-            near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::Failure(_) => Self::Failure,
-            near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::SuccessValue(_) => {
+            near_indexer_primitives::views::ExecutionStatusView::Unknown => Self::Unknown,
+            near_indexer_primitives::views::ExecutionStatusView::Failure(_) => Self::Failure,
+            near_indexer_primitives::views::ExecutionStatusView::SuccessValue(_) => {
                 Self::SuccessValue
             }
-            near_lake_framework::near_indexer_primitives::views::ExecutionStatusView::SuccessReceiptId(_) => {
+            near_indexer_primitives::views::ExecutionStatusView::SuccessReceiptId(_) => {
                 Self::SuccessReceiptId
             }
         }
@@ -80,19 +70,13 @@ pub enum AccessKeyPermission {
     FunctionCall,
 }
 
-impl From<&near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView>
-    for AccessKeyPermission
-{
-    fn from(
-        item: &near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView,
-    ) -> Self {
+impl From<&near_indexer_primitives::views::AccessKeyPermissionView> for AccessKeyPermission {
+    fn from(item: &near_indexer_primitives::views::AccessKeyPermissionView) -> Self {
         match item {
-            near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView::FunctionCall {
-                ..
-            } => Self::FunctionCall,
-            near_lake_framework::near_indexer_primitives::views::AccessKeyPermissionView::FullAccess => {
-                Self::FullAccess
+            near_indexer_primitives::views::AccessKeyPermissionView::FunctionCall { .. } => {
+                Self::FunctionCall
             }
+            near_indexer_primitives::views::AccessKeyPermissionView::FullAccess => Self::FullAccess,
         }
     }
 }
@@ -124,23 +108,21 @@ pub enum StateChangeReasonKind {
     Resharding,
 }
 
-impl From<&near_lake_framework::near_indexer_primitives::views::StateChangeCauseView>
-    for StateChangeReasonKind
-{
+impl From<&near_indexer_primitives::views::StateChangeCauseView> for StateChangeReasonKind {
     fn from(
-        state_change_cause_view: &near_lake_framework::near_indexer_primitives::views::StateChangeCauseView,
+        state_change_cause_view: &near_indexer_primitives::views::StateChangeCauseView,
     ) -> Self {
         match state_change_cause_view {
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::TransactionProcessing { .. } => Self::TransactionProcessing,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::ActionReceiptProcessingStarted { .. } => Self::ActionReceiptProcessingStarted,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::ActionReceiptGasReward { .. } => Self::ActionReceiptGasReward,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::ReceiptProcessing { .. } => Self::ReceiptProcessing,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::PostponedReceipt { .. } => Self::PostponedReceipt,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::UpdatedDelayedReceipts { .. } => Self::UpdatedDelayedReceipts,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::ValidatorAccountsUpdate { .. } => Self::ValidatorAccountsUpdate,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::Migration { .. } => Self::Migration,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::Resharding { .. } => Self::Resharding,
-            near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::NotWritableToDisk | near_lake_framework::near_indexer_primitives::views::StateChangeCauseView::InitialState => panic!("Unexpected variant {:?} received", state_change_cause_view),
+            near_indexer_primitives::views::StateChangeCauseView::TransactionProcessing { .. } => Self::TransactionProcessing,
+            near_indexer_primitives::views::StateChangeCauseView::ActionReceiptProcessingStarted { .. } => Self::ActionReceiptProcessingStarted,
+            near_indexer_primitives::views::StateChangeCauseView::ActionReceiptGasReward { .. } => Self::ActionReceiptGasReward,
+            near_indexer_primitives::views::StateChangeCauseView::ReceiptProcessing { .. } => Self::ReceiptProcessing,
+            near_indexer_primitives::views::StateChangeCauseView::PostponedReceipt { .. } => Self::PostponedReceipt,
+            near_indexer_primitives::views::StateChangeCauseView::UpdatedDelayedReceipts { .. } => Self::UpdatedDelayedReceipts,
+            near_indexer_primitives::views::StateChangeCauseView::ValidatorAccountsUpdate { .. } => Self::ValidatorAccountsUpdate,
+            near_indexer_primitives::views::StateChangeCauseView::Migration { .. } => Self::Migration,
+            near_indexer_primitives::views::StateChangeCauseView::Resharding { .. } => Self::Resharding,
+            near_indexer_primitives::views::StateChangeCauseView::NotWritableToDisk | near_indexer_primitives::views::StateChangeCauseView::InitialState => panic!("Unexpected variant {:?} received", state_change_cause_view),
         }
     }
 }
