@@ -76,6 +76,8 @@ Example of not fine indexer logs:
 
 For now, we want to try to “skip” that block. In order to achieve this, we would run the indexer syncing process from the block height number following for the one where we have stuck.
 
+**WARNING:** This mode should only be used when there is no other way to get Indexer for Explorer unstuck and we want to trade correctness for livability of Explorer and Wallet for 99.999% users. After the incidents where some of the blocks were skipped, we MUST go back to fix the bug and re-index the borked blocks to ensure full consistency of the database!
+
 If the stuck block height is 47961813
 
 ```bash
