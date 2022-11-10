@@ -346,19 +346,19 @@ fn main() {
                 }
 
                 // Regular indexer process starts here
-                let stream = indexer.streamer();
+                // let stream = indexer.streamer();
 
                 // Spawning the computation of aggregated data
-                aggregated::spawn_aggregated_computations(pool.clone(), &indexer);
+                aggregated::spawn_aggregated_computations(pool.clone(), &indexer).await;
 
-                listen_blocks(
+                /* listen_blocks(
                     stream,
                     pool,
                     args.concurrency,
                     !args.non_strict_mode,
                     args.stop_after_number_of_blocks,
                 )
-                .await;
+                .await; */
 
                 actix::System::current().stop();
             });

@@ -63,10 +63,10 @@ pub(super) async fn run_circulating_supply_computation(
             Err(err) => {
                 error!(
                     target: crate::AGGREGATED,
-                    "Failed to compute circulating supply for {}: {}. Retry in {} hours",
+                    "Failed to compute circulating supply for {}. Retry in {} hours.\n{:#?}",
                     NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0).date(),
-                    err,
                     RETRY_DURATION.as_secs() / 60 / 60,
+                    err,
                 );
                 tokio::time::sleep(RETRY_DURATION).await;
             }
@@ -97,13 +97,13 @@ async fn check_and_collect_daily_circulating_supply(
                 block_timestamp
             );
             let supply = compute_circulating_supply_for_block(pool, view_client, &block).await?;
-            add_circulating_supply(pool, &supply).await;
+            // add_circulating_supply(pool, &supply).await;
             info!(
                 target: crate::AGGREGATED,
-                "Circulating supply for {} (timestamp {}) is {}",
+                "Circulating supply for {} (timestamp {}) is {:#?}",
                 printable_date,
                 block_timestamp,
-                supply.circulating_tokens_supply
+                supply
             );
             Ok(Some(supply))
         }
