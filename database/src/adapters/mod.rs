@@ -1,6 +1,7 @@
 pub mod access_keys;
 pub mod account_changes;
 pub mod accounts;
+pub mod aggregated;
 pub mod assets;
 pub mod blocks;
 pub mod chunks;

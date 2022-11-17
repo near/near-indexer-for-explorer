@@ -14,7 +14,6 @@ mod configs;
 
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
-// const AGGREGATED: &str = "aggregated";
 
 async fn handle_message(
     pool: &explorer_database::actix_diesel::Database<explorer_database::diesel::PgConnection>,

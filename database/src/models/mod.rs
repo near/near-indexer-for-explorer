@@ -17,6 +17,7 @@ pub(crate) use serializers::extract_action_type_and_value_from_action_view;
 pub mod access_keys;
 pub mod account_changes;
 pub mod accounts;
+pub mod aggregated;
 pub mod assets;
 pub mod blocks;
 pub mod chunks;

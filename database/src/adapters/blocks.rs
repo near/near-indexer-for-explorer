@@ -1,4 +1,5 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
+use anyhow::Context;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 
@@ -36,4 +37,16 @@ pub async fn latest_block_height(
         .get_optional_result_async::<(BigDecimal,)>(pool)
         .await?
         .and_then(|(block_height,)| block_height.to_u64()))
+}
+
+pub async fn get_latest_block_before_timestamp(
+    pool: &actix_diesel::Database<PgConnection>,
+    timestamp: u64,
+) -> anyhow::Result<models::Block> {
+    Ok(schema::blocks::table
+        .filter(schema::blocks::dsl::block_timestamp.le(BigDecimal::from(timestamp)))
+        .order(schema::blocks::dsl::block_timestamp.desc())
+        .first_async::<models::Block>(pool)
+        .await
+        .context("DB Error")?)
 }
