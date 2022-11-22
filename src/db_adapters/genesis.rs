@@ -2,7 +2,6 @@ use actix_diesel::Database;
 use diesel::PgConnection;
 
 use crate::db_adapters::access_keys::store_access_keys_from_genesis;
-use crate::db_adapters::accounts::store_accounts_from_genesis;
 
 /// This is an ugly hack that allows to execute an async body on a specified actix runtime.
 /// You should only call it from a separate thread!
@@ -57,21 +56,9 @@ pub(crate) async fn store_genesis_records(
     tokio::task::spawn_blocking(move || {
         let actix_arbiter = actix_system.arbiter();
 
-        let mut accounts_to_store: Vec<crate::models::accounts::Account> = vec![];
         let mut access_keys_to_store: Vec<crate::models::access_keys::AccessKey> = vec![];
 
         near_config.genesis.for_each_record(|record| {
-            if accounts_to_store.len() == 5_000 {
-                let mut accounts_to_store_chunk = vec![];
-                std::mem::swap(&mut accounts_to_store, &mut accounts_to_store_chunk);
-                let pool = pool.clone();
-                block_on(
-                    actix_arbiter,
-                    store_accounts_from_genesis(pool, accounts_to_store_chunk),
-                )
-                .expect("storing accounts from genesis failed")
-                .expect("storing accounts from genesis failed");
-            }
             if access_keys_to_store.len() == 5_000 {
                 let mut access_keys_to_store_chunk = vec![];
                 std::mem::swap(&mut access_keys_to_store, &mut access_keys_to_store_chunk);
@@ -84,34 +71,22 @@ pub(crate) async fn store_genesis_records(
                 .expect("storing access keys from genesis failed");
             }
 
-            match record {
-                near_indexer::near_primitives::state_record::StateRecord::Account {
-                    account_id,
-                    ..
-                } => {
-                    accounts_to_store.push(crate::models::accounts::Account::new_from_genesis(
-                        account_id,
-                        genesis_height,
-                    ));
-                }
-                near_indexer::near_primitives::state_record::StateRecord::AccessKey {
-                    account_id,
+            if let near_indexer::near_primitives::state_record::StateRecord::AccessKey {
+                account_id,
+                public_key,
+                access_key,
+            } = record
+            {
+                access_keys_to_store.push(crate::models::access_keys::AccessKey::from_genesis(
                     public_key,
+                    account_id,
                     access_key,
-                } => {
-                    access_keys_to_store.push(crate::models::access_keys::AccessKey::from_genesis(
-                        public_key,
-                        account_id,
-                        access_key,
-                        genesis_height,
-                    ));
-                }
-                _ => {}
+                    genesis_height,
+                ));
             };
         });
 
         let fut = || async move {
-            store_accounts_from_genesis(pool.clone(), accounts_to_store).await?;
             store_access_keys_from_genesis(pool, access_keys_to_store).await?;
             anyhow::Result::<()>::Ok(())
         };

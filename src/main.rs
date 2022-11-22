@@ -55,57 +55,13 @@ async fn handle_message(
         target: INDEXER_FOR_EXPLORER,
         "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
     );
-    db_adapters::blocks::store_block(pool, &streamer_message.block).await?;
 
-    // Chunks
-    db_adapters::chunks::store_chunks(
-        pool,
-        &streamer_message.shards,
-        &streamer_message.block.header.hash,
-    )
-    .await?;
-
-    // Transactions
-    let transactions_future = db_adapters::transactions::store_transactions(
-        pool,
-        &streamer_message.shards,
-        &streamer_message.block.header.hash,
-        streamer_message.block.header.timestamp,
-        streamer_message.block.header.height,
-        std::sync::Arc::clone(&receipts_cache),
-    );
-
-    // Receipts
-    let receipts_future = db_adapters::receipts::store_receipts(
-        pool,
-        &streamer_message.shards,
-        &streamer_message.block.header.hash,
-        streamer_message.block.header.timestamp,
-        strict_mode,
-        std::sync::Arc::clone(&receipts_cache),
-    );
-
-    // We can process transactions and receipts in parallel
-    // because most of receipts depend on transactions from previous blocks,
-    // so we can save up some time here.
-    // In case of local receipts (they are stored in the same block with corresponding transaction),
-    // we hope retry logic will cover it fine
-    try_join!(transactions_future, receipts_future)?;
-
-    // ExecutionOutcomes
-    let execution_outcomes_future = db_adapters::execution_outcomes::store_execution_outcomes(
-        pool,
-        &streamer_message.shards,
-        streamer_message.block.header.timestamp,
-        std::sync::Arc::clone(&receipts_cache),
-    );
-
-    // Accounts
-    let accounts_future = async {
+    // AccessKeys
+    let access_keys_future = async {
         let futures = streamer_message.shards.iter().map(|shard| {
-            db_adapters::accounts::handle_accounts(
+            db_adapters::access_keys::handle_access_keys(
                 pool,
-                &shard.receipt_execution_outcomes,
+                &shard.state_changes,
                 streamer_message.block.header.height,
             )
         });
@@ -113,45 +69,8 @@ async fn handle_message(
         try_join_all(futures).await.map(|_| ())
     };
 
-    // Event-based entities (FT, NFT)
-    let assets_events_future = db_adapters::assets::events::store_events(pool, &streamer_message);
+    try_join!(access_keys_future)?;
 
-    if strict_mode {
-        // AccessKeys
-        let access_keys_future = async {
-            let futures = streamer_message.shards.iter().map(|shard| {
-                db_adapters::access_keys::handle_access_keys(
-                    pool,
-                    &shard.state_changes,
-                    streamer_message.block.header.height,
-                )
-            });
-
-            try_join_all(futures).await.map(|_| ())
-        };
-
-        // StateChange related to Account
-        let account_changes_future = db_adapters::account_changes::store_account_changes(
-            pool,
-            &streamer_message.shards,
-            &streamer_message.block.header.hash,
-            streamer_message.block.header.timestamp,
-        );
-
-        try_join!(
-            execution_outcomes_future,
-            accounts_future,
-            access_keys_future,
-            assets_events_future,
-            account_changes_future,
-        )?;
-    } else {
-        try_join!(
-            execution_outcomes_future,
-            accounts_future,
-            assets_events_future
-        )?;
-    }
     Ok(())
 }
 

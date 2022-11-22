@@ -82,20 +82,20 @@ pub(crate) async fn handle_access_keys(
 
     let update_access_keys_future = async {
         for value in access_keys_to_update {
-            let target = schema::access_keys::table
-                .filter(schema::access_keys::dsl::public_key.eq(value.public_key.clone()))
+            let target = schema::access_keys_reindexed::table
+                .filter(schema::access_keys_reindexed::dsl::public_key.eq(value.public_key.clone()))
                 .filter(
-                    schema::access_keys::dsl::last_update_block_height
+                    schema::access_keys_reindexed::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 )
-                .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
+                .filter(schema::access_keys_reindexed::dsl::account_id.eq(value.account_id));
 
             crate::await_retry_or_panic!(
                 diesel::update(target.clone())
                     .set((
-                        schema::access_keys::dsl::deleted_by_receipt_id
+                        schema::access_keys_reindexed::dsl::deleted_by_receipt_id
                             .eq(value.deleted_by_receipt_id.clone()),
-                        schema::access_keys::dsl::last_update_block_height
+                        schema::access_keys_reindexed::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
                     .execute_async(pool),
@@ -109,7 +109,7 @@ pub(crate) async fn handle_access_keys(
 
     let add_access_keys_future = async {
         crate::await_retry_or_panic!(
-            diesel::insert_into(schema::access_keys::table)
+            diesel::insert_into(schema::access_keys_reindexed::table)
                 .values(access_keys_to_insert.clone())
                 .on_conflict_do_nothing()
                 .execute_async(pool),
@@ -119,22 +119,22 @@ pub(crate) async fn handle_access_keys(
         );
 
         for value in access_keys_to_insert {
-            let target = schema::access_keys::table
-                .filter(schema::access_keys::dsl::public_key.eq(value.public_key.clone()))
+            let target = schema::access_keys_reindexed::table
+                .filter(schema::access_keys_reindexed::dsl::public_key.eq(value.public_key.clone()))
                 .filter(
-                    schema::access_keys::dsl::last_update_block_height
+                    schema::access_keys_reindexed::dsl::last_update_block_height
                         .lt(value.last_update_block_height.clone()),
                 )
-                .filter(schema::access_keys::dsl::account_id.eq(value.account_id));
+                .filter(schema::access_keys_reindexed::dsl::account_id.eq(value.account_id));
 
             crate::await_retry_or_panic!(
                 diesel::update(target.clone())
                     .set((
-                        schema::access_keys::dsl::created_by_receipt_id
+                        schema::access_keys_reindexed::dsl::created_by_receipt_id
                             .eq(value.created_by_receipt_id.clone()),
-                        schema::access_keys::dsl::deleted_by_receipt_id
+                        schema::access_keys_reindexed::dsl::deleted_by_receipt_id
                             .eq(value.deleted_by_receipt_id.clone()),
-                        schema::access_keys::dsl::last_update_block_height
+                        schema::access_keys_reindexed::dsl::last_update_block_height
                             .eq(value.last_update_block_height.clone()),
                     ))
                     .execute_async(pool),
@@ -161,7 +161,7 @@ pub(crate) async fn store_access_keys_from_genesis(
     );
 
     crate::await_retry_or_panic!(
-        diesel::insert_into(schema::access_keys::table)
+        diesel::insert_into(schema::access_keys_reindexed::table)
             .values(access_keys_models.clone())
             .on_conflict_do_nothing()
             .execute_async(&pool),

@@ -31,6 +31,20 @@ table! {
     use diesel::sql_types::*;
     use crate::models::enums::*;
 
+    access_keys_reindexed (public_key, account_id) {
+        public_key -> Text,
+        account_id -> Text,
+        created_by_receipt_id -> Nullable<Text>,
+        deleted_by_receipt_id -> Nullable<Text>,
+        permission_kind -> Access_key_permission_kind,
+        last_update_block_height -> Numeric,
+    }
+}
+
+table! {
+    use diesel::sql_types::*;
+    use crate::models::enums::*;
+
     account_changes (id) {
         id -> Int8,
         affected_account_id -> Text,

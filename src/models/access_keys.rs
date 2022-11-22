@@ -1,10 +1,10 @@
 use bigdecimal::BigDecimal;
 
 use crate::models::enums::AccessKeyPermission;
-use crate::schema;
-use schema::access_keys;
+use crate::schema::access_keys_reindexed;
 
 #[derive(Insertable, Clone, Debug)]
+#[table_name = "access_keys_reindexed"]
 pub struct AccessKey {
     pub public_key: String,
     pub account_id: String,
