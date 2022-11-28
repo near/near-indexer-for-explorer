@@ -834,7 +834,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "circulating_supply"
+name = "circulating-supply"
 version = "0.1.0"
 dependencies = [
  "actix",
@@ -1626,7 +1626,7 @@ dependencies = [
 
 [[package]]
 name = "indexer-explorer-lake"
-version = "0.10.1"
+version = "0.10.3"
 dependencies = [
  "actix",
  "actix-rt",

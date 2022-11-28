@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.3
+
+* Extract database logic to library crate
+
 ## 0.10.2
 
 * Avoid recreating access key on transfer to implicit account
