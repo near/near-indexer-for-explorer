@@ -66,7 +66,7 @@ $ cargo install diesel_cli --no-default-features --features "postgres"
 And apply migrations
 
 ```bash
-$ diesel migration run
+$ cd database && diesel migration run
 ```
 
 ### Compile NEAR Indexer for Explorer

@@ -1,0 +1,1 @@
+DROP INDEX action_receipt_actions_args_amount_idx;
