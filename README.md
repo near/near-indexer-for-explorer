@@ -52,8 +52,8 @@ You need to provide credentials via `.env` file for:
   ```
 - AWS S3 (permission to read from buckets):
   ```bash
-  $ echo "LAKE_AWS_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE" >> .env
-  $ echo "LAKE_AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  $ echo "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE" >> .env
+  $ echo "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" >> .env
   ```
 
 Then you need to apply migrations to create necessary database structure. For this you'll need `diesel-cli`, you can install it like so:

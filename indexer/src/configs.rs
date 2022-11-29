@@ -22,12 +22,6 @@ pub(crate) struct Opts {
     /// Connection string to connect to the PostgreSQL Database to fetch AlertRules from
     #[clap(long, env)]
     pub database_url: String,
-    /// AWS Access Key with the rights to read from AWS S3
-    #[clap(long, env)]
-    pub lake_aws_access_key: String,
-    /// AWS Secret Access Key with the rights to read from AWS S3
-    #[clap(long, env)]
-    pub lake_aws_secret_access_key: String,
     /// Enabled Indexer for Explorer debug level of logs
     #[clap(long)]
     pub debug: bool,
@@ -69,26 +63,6 @@ impl Opts {
         }
     }
 
-    // Creates AWS Credentials for NEAR Lake
-    fn lake_credentials(&self) -> aws_types::credentials::SharedCredentialsProvider {
-        let provider = aws_types::Credentials::new(
-            self.lake_aws_access_key.clone(),
-            self.lake_aws_secret_access_key.clone(),
-            None,
-            None,
-            "alertexer_lake",
-        );
-        aws_types::credentials::SharedCredentialsProvider::new(provider)
-    }
-
-    /// Creates AWS Shared Config for NEAR Lake
-    pub fn lake_aws_sdk_config(&self) -> aws_types::sdk_config::SdkConfig {
-        aws_types::sdk_config::SdkConfig::builder()
-            .credentials_provider(self.lake_credentials())
-            .region(aws_types::region::Region::new("eu-central-1"))
-            .build()
-    }
-
     pub fn rpc_url(&self) -> &str {
         match self.chain_id {
             ChainId::Mainnet(_) => "https://rpc.mainnet.near.org",
@@ -99,9 +73,7 @@ impl Opts {
 
 impl Opts {
     pub async fn to_lake_config(&self) -> near_lake_framework::LakeConfig {
-        let s3_config = aws_sdk_s3::config::Builder::from(&self.lake_aws_sdk_config()).build();
-
-        let config_builder = near_lake_framework::LakeConfigBuilder::default().s3_config(s3_config);
+        let config_builder = near_lake_framework::LakeConfigBuilder::default();
 
         match &self.chain_id {
             ChainId::Mainnet(_) => config_builder
