@@ -50,6 +50,13 @@ You should expect someone to comment on the issue within 48 hours after it is cr
 
 We enforce formatting with rustfmt, so your code should be formatted with `cargo fmt` and checked with `cargo clippy` to pass CI. Additionally, we extend those default rules with some extras.
 
+### Cargo.toml Formatting Checklist
+- Empty line at the EOF
+- Sort the imports in the order:
+    1. all the external imports
+    2. 1 empty line
+    3. all NEAR imports
+
 ### Imports Ordering and Grouping
 
 We use the following order to group our imports (use statements):
