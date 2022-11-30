@@ -140,10 +140,15 @@ pub(crate) fn init_tracing(debug: bool) -> anyhow::Result<()> {
         }
     }
 
-    tracing_subscriber::fmt::Subscriber::builder()
+    let subscriber = tracing_subscriber::fmt::Subscriber::builder()
         .with_env_filter(env_filter)
-        .with_writer(std::io::stderr)
-        .init();
+        .with_writer(std::io::stderr);
+
+    if std::env::var("ENABLE_JSON_LOGS").is_ok() {
+        subscriber.json().init();
+    } else {
+        subscriber.compact().init();
+    }
 
     Ok(())
 }

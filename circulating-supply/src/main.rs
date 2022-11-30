@@ -24,9 +24,14 @@ const CIRCULATING_SUPPLY: &str = "circulating_supply";
 async fn main() {
     dotenv::dotenv().ok();
 
-    tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+    let subscriber = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env());
+
+    if std::env::var("ENABLE_JSON_LOGS").is_ok() {
+        subscriber.json().init()
+    } else {
+        subscriber.compact().init()
+    }
 
     let pool = models::establish_connection(
         &std::env::var("DATABASE_URL")

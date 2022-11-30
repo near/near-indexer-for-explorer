@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1
+
+* Add capability to output logs in JSON format
+
 ## 0.11.0
 
 * `indexer-explorer-lake` now uses the default AWS credentials provider. Credentials can no longer be set via command line arguments and environment variables need to be updated as follows:
