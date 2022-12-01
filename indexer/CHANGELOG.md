@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.2
+
+* Expose prometheus metrics via HTTP server
+
 ## 0.11.1
 
 * Add capability to output logs in JSON format

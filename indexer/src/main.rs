@@ -11,6 +11,7 @@ use explorer_database::{adapters, models, receipts_cache};
 use crate::configs::Opts;
 
 mod configs;
+mod metrics;
 
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
@@ -21,6 +22,9 @@ async fn handle_message(
     strict_mode: bool,
     receipts_cache: receipts_cache::ReceiptsCache,
 ) -> anyhow::Result<()> {
+    metrics::BLOCK_COUNT.inc();
+    metrics::LATEST_BLOCK_HEIGHT.set(streamer_message.block.header.height.try_into().unwrap());
+
     debug!(
         target: INDEXER_FOR_EXPLORER,
         "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
@@ -153,34 +157,32 @@ async fn main() -> anyhow::Result<()> {
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
     let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
-    let (sender, stream) = near_lake_framework::streamer(config);
+    let (_, stream) = near_lake_framework::streamer(config);
 
-    tracing::info!(
-        target: INDEXER_FOR_EXPLORER,
-        "Starting Indexer for Explorer (lake)...",
-    );
-    let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
-        .map(|streamer_message| {
-            info!(
-                target: crate::INDEXER_FOR_EXPLORER,
-                "Block height {}", &streamer_message.block.header.height
-            );
-            handle_message(
-                &pool,
-                streamer_message,
-                strict_mode,
-                std::sync::Arc::clone(&receipts_cache),
-            )
-        })
-        .buffer_unordered(1usize);
+    tokio::spawn(async move {
+        tracing::info!(
+            target: INDEXER_FOR_EXPLORER,
+            "Starting Indexer for Explorer (lake)...",
+        );
+        let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
+            .map(|streamer_message| {
+                info!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "Block height {}", &streamer_message.block.header.height
+                );
+                handle_message(
+                    &pool,
+                    streamer_message,
+                    strict_mode,
+                    std::sync::Arc::clone(&receipts_cache),
+                )
+            })
+            .buffer_unordered(1usize);
 
-    while let Some(_handle_message) = handlers.next().await {}
-    drop(handlers); // close the channel so the sender will stop
+        while let Some(_handle_message) = handlers.next().await {}
+    });
 
-    // propagate errors from the sender
-    match sender.await {
-        Ok(Ok(())) => Ok(()),
-        Ok(Err(e)) => Err(e),
-        Err(e) => Err(anyhow::Error::from(e)), // JoinError
-    }
+    metrics::init_server().await?;
+
+    Ok(())
 }
