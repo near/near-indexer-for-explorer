@@ -118,10 +118,9 @@ The rationale behind this is that there are plenty of different `Account` types 
 Use specific versioning when specifying dependencies. It helps to mitigate potential security vulnerabilities and reason through code better.
 
 #### Choosing Secure Crates
-1. Use crates from reputable sources (crates.io)
-2. Check the crate's dependencies to ensure that they are also reputable and secure
-3. If possible, use crates that have been audited by a third-party security firm.
-4. Consider using crates that have been around for a while and have a large active user base, as this can indicate that they have stood the test of time and are likely to be stable and secure.
+- Check the crate's dependencies to ensure that they are also reputable and secure
+- Check the crate's source repository for the latest issues that are related to security
+- Consider using crates that have been around for a while and have a large active user base, as this can indicate that they have stood the test of time and are likely to be stable and secure.
 
 #### Dependency Ordering
 We use the following order to group our dependencies in Cargo.toml: 
