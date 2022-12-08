@@ -31,6 +31,9 @@ pub(crate) struct Opts {
     /// Sets the concurrency for indexing. Note: concurrency (set to 2+) may lead to warnings due to tight constraints between transactions and receipts (those will get resolved eventually, but unless it is the second pass of indexing, concurrency won't help at the moment).
     #[clap(long, default_value = "1")]
     pub concurrency: std::num::NonZeroU16,
+    /// Port to enable metrics/health service
+    #[clap(long, short, env, default_value_t = 3030)]
+    pub port: u16,
     /// Chain ID: testnet or mainnet
     #[clap(subcommand)]
     pub chain_id: ChainId,
