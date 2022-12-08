@@ -50,13 +50,6 @@ You should expect someone to comment on the issue within 48 hours after it is cr
 
 We enforce formatting with rustfmt, so your code should be formatted with `cargo fmt` and checked with `cargo clippy` to pass CI. Additionally, we extend those default rules with some extras.
 
-### Cargo.toml Formatting Checklist
-- Empty line at the EOF
-- Sort the imports in the order:
-    1. all the external imports
-    2. 1 empty line
-    3. all NEAR imports
-
 ### Imports Ordering and Grouping
 
 We use the following order to group our imports (use statements):
@@ -120,6 +113,18 @@ fn my_func() {
 
 The rationale behind this is that there are plenty of different `Account` types in various contexts (e.g. DB schema, NEAR account, local crate struct).
 
+### Dependencies in Cargo.toml
+
+Use specific versioning when specifying dependencies. It helps with reasoning about bugs in the codebase.
+
+#### Dependency Ordering
+We use the following order to group our dependencies in Cargo.toml: 
+
+1. all external dependencies (e.g. `actix = "0.13.0"`)
+2. all NEAR dependencies (e.g. `near-primitives = "0.14.0"`)
+
+Separate the group of dependencies with an empty line and maintain alphabetical order inside of each group. Additionally, leave one empty line at the end of the file. 
+
 ## Checklist before submitting PR
 
 We created a list of things that should be surely fixed before the review. It will save your time and the time of the reviewer. Here it is:
@@ -131,10 +136,11 @@ We created a list of things that should be surely fixed before the review. It wi
     - Is the code self-explanatory? Can you rewrite it to be so? If not, can you add some comments to make the life of the future you easier? Consider using links to other materials if it's suitable
     - Take care of function parameter types and return values. Do something meaningful if you know Rust; otherwise, simply pass parameters by reference (&)
     - Use as narrow scope as you can. At least change `pub` to `pub(crate)`
-3. Imports
+3. Imports & Dependencies
     - Imports should be frugal. Read about it [above](https://github.com/near/near-indexer-for-explorer/blob/master/CONTRIBUTING.md#module-imports-vs-leaf-item-imports)
     - Use relative import (`super`) if you use the same module
     - Check [imports ordering](https://github.com/near/near-indexer-for-explorer/blob/master/CONTRIBUTING.md#imports-ordering-and-grouping)
+    - Check [dependency ordering](https://github.com/near/near-indexer-for-explorer/blob/master/CONTRIBUTING.md#dependency-ordering)
 4. Types
     - Use `str` instead of `String` if it's possible
     - Use wrapper type instead of a raw one. E.g. `AccountId` instead of `str`, `Duration` instead of `u64`
