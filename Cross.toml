@@ -1,0 +1,6 @@
+[target.x86_64-unknown-linux-gnu]
+# Run the following command to get the build environment:
+# ```
+# docker build --tag cross:x86_64-unknown-linux-gnu ./cross/x86_64-unknown-linux-gnu/
+# ```
+image = "cross:x86_64-unknown-linux-gnu"
