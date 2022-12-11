@@ -1858,7 +1858,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "indexer-explorer-lake"
+name = "indexer-explorer"
 version = "0.11.0"
 dependencies = [
  "actix",

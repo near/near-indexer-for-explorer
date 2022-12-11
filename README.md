@@ -104,7 +104,7 @@ By default NEAR Indexer for Explorer processes only a single block at a time. Yo
 So final command to run NEAR Indexer for Explorer can look like:
 
 ```bash
-$ ./target/release/indexer-explorer-lake \
+$ ./target/release/indexer-explorer \
   --non-strict-mode \
   --concurrency 1 \
   from-latest
