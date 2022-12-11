@@ -86,10 +86,9 @@ You can choose NEAR Indexer for Explorer start options:
 
 Unlike the original NEAR Indexer for Explorer you **can't** tell Indexer to store data from genesis (Accounts and Access Keys) by adding key `--store-genesis` to the `run` command. So please, ensure you took care about the genesis data in your database in order this indexer to work properly. This capability will be implemented eventually, it's progress can be tracked here: #327.
 
-NEAR Indexer for Explorer works in strict mode by default, but you can disable it. The strict mode means that every piece of data
-will be retried to store to database in case of error. Errors may occur when the parent piece of data is still processed but the child piece is already trying to be stored. So Indexer keeps retrying to store the data until success. However, if you're running Indexer not from the genesis it is possible that you really miss some of parent data and it'll be impossible to store a child one, so you can disable strict mode to ensure you've passed the strong relation data area and you're running Indexer where it is impossible to loose any piece of data.
+NEAR Indexer for Explorer works in strict mode by default. In strict mode, the Indexer will ensure parent data exists before storing children, infinitely retrying until this condition is met. This is necessary as a parent (i.e. `block`) may still be processing while a child (i.e. `receipt`) is ready to be stored. This scenario will likely occur if you have not stored the genesis file or do not have all data prior to the block you start indexing from. In this case, you can disable strict mode to store data prior to the block you are concerned about, and then re-enable it once you have passed this block.
 
-To disable strict mode you need to provide:
+To disable strict mode provide the following command arugment:
 
 ```
 --non-strict-mode
