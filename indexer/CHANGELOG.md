@@ -2,7 +2,13 @@
 
 ## 0.11.0
 
-* Migrate to NEAR Lake Framework
+* Migrate to NEAR Lake Framework, `indexer-explorer` no longer runs a NEAR node and instead consumes block from [near-lake-indexer](https://github.com/near/near-lake-indexer).
+
+### Breaking Changes
+
+* Storing genesis file is no longer possible (#327)
+* Command line arguments for starting the indexer have changed slightly, see [Readme](../README.md) for updated reference
+* AWS credentials are now required for reading data from S3
 
 ## 0.10.32
 
