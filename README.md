@@ -103,6 +103,7 @@ So final command to run NEAR Indexer for Explorer can look like:
 $ ./target/release/indexer-explorer \
   --non-strict-mode \
   --concurrency 1 \
+  mainnet \
   from-latest
 ```
 
