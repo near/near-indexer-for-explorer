@@ -17,7 +17,7 @@ NOTE: Please, keep in mind that the access to the database is shared across ever
 
 The final setup consists of the following components:
 * PostgreSQL database (you can run it locally or in the cloud), which can hold the whole history of the blockchain (as of August 2022, mainnet takes 3TB of data in PostgreSQL storage, and testnet takes 1TB)
-* NEAR Indexer for Explorer binary that operates as a NEAR Lake Framework based indexer, it requires [AWS S3 credentials](https://near-indexers.io/tutorials/lake/credentials)
+* NEAR Indexer for Explorer binary that operates as a NEAR Lake Framework based indexer, it requires [AWS S3 credentials](https://docs.near.org/tutorials/indexer/credentials)
 
 ### Prepare Development Environment
 
