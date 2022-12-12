@@ -113,6 +113,23 @@ fn my_func() {
 
 The rationale behind this is that there are plenty of different `Account` types in various contexts (e.g. DB schema, NEAR account, local crate struct).
 
+### Dependencies in Cargo.toml
+
+Use specific versioning when specifying dependencies. It helps to mitigate potential security vulnerabilities and reason through code better.
+
+#### Choosing Secure Crates
+- Check the crate's dependencies to ensure that they are also reputable and secure
+- Check the crate's source repository for the latest issues that are related to security
+- Consider using crates that have been around for a while and have a large active user base, as this can indicate that they have stood the test of time and are likely to be stable and secure.
+
+#### Dependency Ordering
+We use the following order to group our dependencies in Cargo.toml: 
+
+1. all external dependencies (e.g. `actix = "0.13.0"`)
+2. all NEAR dependencies (e.g. `near-primitives = "0.14.0"`)
+
+Separate the group of dependencies with an empty line and maintain alphabetical order inside of each group. Additionally, leave one empty line at the end of the file. 
+
 ## Checklist before submitting PR
 
 We created a list of things that should be surely fixed before the review. It will save your time and the time of the reviewer. Here it is:
@@ -124,10 +141,11 @@ We created a list of things that should be surely fixed before the review. It wi
     - Is the code self-explanatory? Can you rewrite it to be so? If not, can you add some comments to make the life of the future you easier? Consider using links to other materials if it's suitable
     - Take care of function parameter types and return values. Do something meaningful if you know Rust; otherwise, simply pass parameters by reference (&)
     - Use as narrow scope as you can. At least change `pub` to `pub(crate)`
-3. Imports
+3. Imports & Dependencies
     - Imports should be frugal. Read about it [above](https://github.com/near/near-indexer-for-explorer/blob/master/CONTRIBUTING.md#module-imports-vs-leaf-item-imports)
     - Use relative import (`super`) if you use the same module
     - Check [imports ordering](https://github.com/near/near-indexer-for-explorer/blob/master/CONTRIBUTING.md#imports-ordering-and-grouping)
+    - Check [dependency ordering](https://github.com/near/near-indexer-for-explorer/blob/master/CONTRIBUTING.md#dependency-ordering)
 4. Types
     - Use `str` instead of `String` if it's possible
     - Use wrapper type instead of a raw one. E.g. `AccountId` instead of `str`, `Duration` instead of `u64`
