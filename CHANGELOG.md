@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.33
+
+* Upgrade Indexer Framework to be based on [`nearcore` version `1.30.0`](https://github.com/near/nearcore/releases/tag/1.30.0)
+
 ## 0.10.32
 
 * Avoid recreating access key on transfer to implicit account
