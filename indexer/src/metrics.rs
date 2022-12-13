@@ -45,15 +45,14 @@ async fn get_metrics() -> impl Responder {
     String::from_utf8(buffer.clone()).unwrap()
 }
 
-pub(crate) async fn init_server(port: u16) -> anyhow::Result<()> {
+pub(crate) fn init_server(port: u16) -> anyhow::Result<actix_web::dev::Server> {
     info!(
         target: crate::INDEXER_FOR_EXPLORER,
         "Starting metrics server on http://0.0.0.0:{port}"
     );
 
-    HttpServer::new(|| App::new().service(get_metrics))
+    Ok(HttpServer::new(|| App::new().service(get_metrics))
         .bind(("0.0.0.0", port))?
-        .run()
-        .await
-        .map_err(|e| anyhow::anyhow!("Error starting metrics server: {}", e))
+        .disable_signals()
+        .run())
 }

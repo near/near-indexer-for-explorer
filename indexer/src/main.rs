@@ -159,28 +159,30 @@ async fn main() -> anyhow::Result<()> {
     let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
     let (_, stream) = near_lake_framework::streamer(config);
 
-    tokio::spawn(async move {
-        tracing::info!(
-            target: INDEXER_FOR_EXPLORER,
-            "Starting Indexer for Explorer (lake)...",
-        );
-        let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
-            .map(|streamer_message| {
-                info!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "Block height {}", &streamer_message.block.header.height
-                );
-                handle_message(
-                    &pool,
-                    streamer_message,
-                    strict_mode,
-                    std::sync::Arc::clone(&receipts_cache),
-                )
-            })
-            .buffer_unordered(1usize);
+    tokio::spawn(metrics::init_server(opts.port).expect("Failed to start metrics server"));
 
-        while let Some(_handle_message) = handlers.next().await {}
-    });
+    tracing::info!(
+        target: INDEXER_FOR_EXPLORER,
+        "Starting Indexer for Explorer (lake)...",
+    );
 
-    metrics::init_server(opts.port).await
+    let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
+        .map(|streamer_message| {
+            info!(
+                target: crate::INDEXER_FOR_EXPLORER,
+                "Block height {}", &streamer_message.block.header.height
+            );
+            handle_message(
+                &pool,
+                streamer_message,
+                strict_mode,
+                std::sync::Arc::clone(&receipts_cache),
+            )
+        })
+        .buffer_unordered(1usize);
+
+    while let Some(_handle_message) = handlers.next().await {}
+
+    // unreachable statement, loop above is endless
+    Ok(())
 }
