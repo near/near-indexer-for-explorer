@@ -79,13 +79,10 @@ impl Opts {
         let config_builder = near_lake_framework::LakeConfigBuilder::default();
 
         match &self.chain_id {
-            ChainId::Mainnet(_) => config_builder
-                .mainnet()
-                .start_block_height(get_start_block_height(self).await),
-            ChainId::Testnet(_) => config_builder
-                .testnet()
-                .start_block_height(get_start_block_height(self).await),
+            ChainId::Mainnet(_) => config_builder.mainnet(),
+            ChainId::Testnet(_) => config_builder.testnet(),
         }
+        .start_block_height(get_start_block_height(self).await)
         .build()
         .expect("Failed to build LakeConfig")
     }
