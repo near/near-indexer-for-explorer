@@ -9,7 +9,7 @@ pub mod receipts_cache;
 
 mod schema;
 #[macro_use]
-mod retriable;
+mod retryable;
 
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const EXPLORER_DATABASE: &str = "explorer_database";
