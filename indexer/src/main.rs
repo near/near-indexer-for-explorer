@@ -181,7 +181,16 @@ async fn main() -> anyhow::Result<()> {
         })
         .buffer_unordered(1usize);
 
-    while let Some(_handle_message) = handlers.next().await {}
+    while let Some(handle_message) = handlers.next().await {
+        if let Err(e) = handle_message {
+            tracing::error!(
+                target: crate::INDEXER_FOR_EXPLORER,
+                "Encountered error while indexing: {}",
+                e
+            );
+            anyhow::bail!(e)
+        }
+    }
 
     // unreachable statement, loop above is endless
     Ok(())
