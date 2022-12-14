@@ -56,7 +56,7 @@ We use the following order to group our imports (use statements):
 
 1. standard Rust library imports (e.g. `std::sync::Arc`)
 2. external crates (e.g. `tokio::time`)
-3. near-* crates (e.g. `near_indexer::near_primitives::types`)
+3. near-* crates (e.g. `near_lake_framework::near_indexer_primitives::types`)
 4. local crate modules (e.g. `crate::db`)
 5. local modules (e.g. `self::access_keys`)
 6. `mod` statements
@@ -104,7 +104,7 @@ fn my_func() {
 over:
 
 ```rust
-use near_indexer::near_primitives::types::Account;
+use near_lake_framework::near_indexer_primitives::types::Account;
 
 fn my_func() {
     let my_account = Account::from("test.near");

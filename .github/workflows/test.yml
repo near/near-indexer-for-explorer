@@ -1,0 +1,51 @@
+name: ci
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  # schedule:
+  # - cron: '00 01 * * *'
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    env:
+      # For some builds, we disable ledger support
+      FEATURES_FLAGS:
+      # Emit backtraces on panics.
+      RUST_BACKTRACE: 1
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Build indexer-explorer-lake and all crates
+      run: cargo build --verbose --all ${{ env.FEATURES_FLAGS }}
+
+    - name: Run tests
+      run: cargo test --verbose --all ${{ env.FEATURES_FLAGS }}
+
+  rustfmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        profile: minimal
+        components: rustfmt
+    - name: Check formatting
+      run: |
+        cargo fmt --all -- --check
