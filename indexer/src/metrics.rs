@@ -5,15 +5,12 @@ use tracing::info;
 
 lazy_static! {
     pub(crate) static ref LATEST_BLOCK_HEIGHT: IntGauge = try_create_int_gauge(
-        "indexer_explorer_lake_latest_block_height",
+        "indexer_explorer_latest_block_height",
         "Height of last processed block"
     )
     .unwrap();
-    pub(crate) static ref BLOCK_COUNT: IntCounter = try_create_int_counter(
-        "indexer_explorer_lake_block_count",
-        "Number of indexed blocks"
-    )
-    .unwrap();
+    pub(crate) static ref BLOCK_COUNT: IntCounter =
+        try_create_int_counter("indexer_explorer_block_count", "Number of indexed blocks").unwrap();
 }
 
 fn try_create_int_gauge(name: &str, help: &str) -> prometheus::Result<IntGauge> {
