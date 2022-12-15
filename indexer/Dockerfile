@@ -6,10 +6,10 @@ COPY indexer indexer
 # Copy 'circulating-supply' because is member of the workspace but is not compiled or added to the
 # output image.
 COPY circulating-supply circulating-supply
-RUN cargo build -p indexer-explorer-lake --release
+RUN cargo build -p indexer-explorer --release
 
 FROM ubuntu:20.04
 RUN apt update && apt install -yy openssl ca-certificates
 RUN apt-get install libpq5 -y
-COPY --from=builder /tmp/target/release/indexer-explorer-lake .
-ENTRYPOINT [ "./indexer-explorer-lake" ]
+COPY --from=builder /tmp/target/release/indexer-explorer .
+ENTRYPOINT [ "./indexer-explorer" ]
