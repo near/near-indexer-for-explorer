@@ -20,7 +20,7 @@ const RETRY_DURATION: Duration = Duration::from_secs(60 * 60 * 2);
 
 const CIRCULATING_SUPPLY: &str = "circulating_supply";
 
-#[actix::main]
+#[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
 
@@ -44,69 +44,17 @@ async fn main() {
 
     info!(target: crate::CIRCULATING_SUPPLY, "Starting calculations");
 
-    run_circulating_supply_computation(rpc_client, pool).await;
+    check_and_collect_daily_circulating_supply(&rpc_client, &pool).await;
 }
 
-// Compute circulating supply on a daily basis, starting from 13 Oct 2020
-// (Transfers enabled moment on the Mainnet), and put it to the Indexer DB.
-// Circulating supply is calculated by the formula:
-// total_supply - sum(locked_tokens_on_each_lockup) - sum(locked_foundation_account)
-// The value is always computed for the last block in a day (UTC).
-pub async fn run_circulating_supply_computation(
-    rpc_client: JsonRpcClient,
-    pool: explorer_database::actix_diesel::Database<explorer_database::diesel::PgConnection>,
-) {
-    // We perform actual computations 00:10 UTC each day to be sure that the data is finalized
-    let mut day_to_compute = lockup::TRANSFERS_ENABLED
-        .sub(Duration::from_secs(
-            lockup::TRANSFERS_ENABLED.as_secs() % DAY.as_secs(),
-        ))
-        .add(DAY)
-        .add(Duration::from_secs(10 * 60));
-
-    loop {
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("Time went backwards");
-
-        if now < day_to_compute {
-            info!(
-                target: crate::CIRCULATING_SUPPLY,
-                "Waiting until {} to resume calculations",
-                NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0)
-            );
-            tokio::time::sleep_until(tokio::time::Instant::now().add(day_to_compute.sub(now)))
-                .await;
-        }
-        wait_for_loading_needed_blocks(&rpc_client, &day_to_compute).await;
-
-        match check_and_collect_daily_circulating_supply(&rpc_client, &pool, &day_to_compute).await
-        {
-            Ok(_) => {
-                day_to_compute = day_to_compute.add(DAY);
-            }
-            Err(err) => {
-                error!(
-                    target: crate::CIRCULATING_SUPPLY,
-                    "Failed to compute circulating supply for {}: {:#}. Retry in {} hours",
-                    NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0).date(),
-                    err,
-                    RETRY_DURATION.as_secs() / 60 / 60,
-                );
-                tokio::time::sleep(RETRY_DURATION).await;
-            }
-        };
-    }
-}
-
+/// Instead of running the computation on a schedule within the program, we can run it on an external schedule.
+/// Duration logic and execution will exported and handled as a Cloud Run Job allowing it to run its computation
+/// on a schedule with built-in retry logic. Enabling the calculaiton on an external event instead of
+/// utilizing the program's resources to keep track the previous execution time will save time and resources.
 async fn check_and_collect_daily_circulating_supply(
     rpc_client: &JsonRpcClient,
     pool: &explorer_database::actix_diesel::Database<explorer_database::diesel::PgConnection>,
-    request_datetime: &Duration,
 ) -> anyhow::Result<Option<models::aggregated::circulating_supply::CirculatingSupply>> {
-    let start_of_day =
-        request_datetime.as_nanos() - request_datetime.as_nanos() % crate::DAY.as_nanos();
-    let printable_date = NaiveDateTime::from_timestamp(request_datetime.as_secs() as i64, 0).date();
     let block =
         adapters::blocks::get_latest_block_before_timestamp(pool, start_of_day as u64).await?;
     let block_timestamp = block
