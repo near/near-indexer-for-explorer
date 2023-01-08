@@ -6,6 +6,7 @@ use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_sdk::borsh::BorshDeserialize;
 use near_sdk::json_types::{U128, U64};
+use tracing::info;
 
 use super::lockup_types::{
     LockupContract, TransfersInformation, VestingInformation, VestingSchedule, WrappedBalance, U256,
@@ -87,13 +88,16 @@ pub(super) fn is_bug_inside_contract(
         "DiC9bKCqUHqoYqUXovAnqugiuntHWnM3cAc7KrgaHTu" => Ok(true),
         // Another 5 lockups created in May/June 2021, assume they are OK
         "Cw7bnyp4B6ypwvgZuMmJtY6rHsxP2D4PC8deqeJ3HP7D" => Ok(false),
-        // The most fresh one
+        // Most recent contracts
         "4Pfw2RU6e35dUsHQQoFYfwX8KFFvSRNwMSNLXuSFHXrC" => Ok(false),
-        other => anyhow::bail!(
-            "Unable to recognise the version of contract {}, code hash {}",
-            account_id,
-            other
-        ),
+        "3skHaUtj85RPdUZwx6M4Jp4PfC9qJHqnsyuWLtuq2xBT" => Ok(false),
+        _ => {
+            info!(
+                target: crate::CIRCULATING_SUPPLY,
+                "Assuming contract {} for account {} is not buggy", code_hash, account_id
+            );
+            Ok(false)
+        }
     }
 }
 
