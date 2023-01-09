@@ -80,23 +80,23 @@ pub(super) async fn get_lockup_contract_state(
 pub(super) fn is_bug_inside_contract(
     code_hash: &near_indexer_primitives::CryptoHash,
     account_id: &near_indexer_primitives::types::AccountId,
-) -> anyhow::Result<bool> {
+) -> bool {
     match &*code_hash.to_string() {
         // The first implementation, with the bug
-        "3kVY9qcVRoW3B5498SMX6R3rtSLiCdmBzKs7zcnzDJ7Q" => Ok(true),
+        "3kVY9qcVRoW3B5498SMX6R3rtSLiCdmBzKs7zcnzDJ7Q" => true,
         // We have 6 lockups created at 6th of April 2021, assume it's buggy
-        "DiC9bKCqUHqoYqUXovAnqugiuntHWnM3cAc7KrgaHTu" => Ok(true),
+        "DiC9bKCqUHqoYqUXovAnqugiuntHWnM3cAc7KrgaHTu" => true,
         // Another 5 lockups created in May/June 2021, assume they are OK
-        "Cw7bnyp4B6ypwvgZuMmJtY6rHsxP2D4PC8deqeJ3HP7D" => Ok(false),
+        "Cw7bnyp4B6ypwvgZuMmJtY6rHsxP2D4PC8deqeJ3HP7D" => false,
         // Most recent contracts
-        "4Pfw2RU6e35dUsHQQoFYfwX8KFFvSRNwMSNLXuSFHXrC" => Ok(false),
-        "3skHaUtj85RPdUZwx6M4Jp4PfC9qJHqnsyuWLtuq2xBT" => Ok(false),
+        "4Pfw2RU6e35dUsHQQoFYfwX8KFFvSRNwMSNLXuSFHXrC" => false,
+        "3skHaUtj85RPdUZwx6M4Jp4PfC9qJHqnsyuWLtuq2xBT" => false,
         _ => {
             info!(
                 target: crate::CIRCULATING_SUPPLY,
                 "Assuming contract {} for account {} is not buggy", code_hash, account_id
             );
-            Ok(false)
+            false
         }
     }
 }
