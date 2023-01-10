@@ -189,7 +189,7 @@ async fn compute_circulating_supply_for_block(
         let code_hash =
             account_details::get_contract_code_hash(rpc_client, lockup_account_id, &block_height)
                 .await?;
-        let is_lockup_with_bug = lockup::is_bug_inside_contract(&code_hash, lockup_account_id)?;
+        let is_lockup_with_bug = lockup::is_bug_inside_contract(&code_hash, lockup_account_id);
         let locked_amount = state
             .get_locked_amount(block_timestamp, is_lockup_with_bug)
             .0;
