@@ -11,6 +11,8 @@ actix-rt = "2.2.0"
 actix-web = "=4.0.1"
 anyhow = "1.0.51"
 aws-types = "0.13.0"
+aws-config = "0.13.0"
+aws-endpoint = "0.13.0"
 aws-sdk-s3 = "0.13.0"
 borsh = "0.7.1"
 cached = "0.23.0"
@@ -35,3 +37,4 @@ near-jsonrpc-client = "0.4.0-beta.0"
 near-lake-framework = "0.5.2"
 
 explorer-database = { path = "../database" }
+http = "0.2.8"
