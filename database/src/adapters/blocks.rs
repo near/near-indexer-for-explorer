@@ -43,10 +43,10 @@ pub async fn get_latest_block_before_timestamp(
     pool: &actix_diesel::Database<PgConnection>,
     timestamp: u64,
 ) -> anyhow::Result<models::Block> {
-    Ok(schema::blocks::table
+    schema::blocks::table
         .filter(schema::blocks::dsl::block_timestamp.le(BigDecimal::from(timestamp)))
         .order(schema::blocks::dsl::block_timestamp.desc())
         .first_async::<models::Block>(pool)
         .await
-        .context("DB Error")?)
+        .context("DB Error")
 }

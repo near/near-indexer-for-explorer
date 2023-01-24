@@ -216,7 +216,7 @@ async fn compute_circulating_supply_for_block(
 
     Ok(models::aggregated::circulating_supply::CirculatingSupply {
         computed_at_block_timestamp: BigDecimal::from(block_timestamp),
-        computed_at_block_hash: (&block.block_hash).to_string(),
+        computed_at_block_hash: block.block_hash.to_string(),
         circulating_tokens_supply: BigDecimal::from_str(&circulating_supply.to_string())
             .context("`circulating_tokens_supply` expected to be u128")?,
         total_tokens_supply: BigDecimal::from_str(&total_supply.to_string())
