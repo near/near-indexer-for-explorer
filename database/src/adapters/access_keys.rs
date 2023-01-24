@@ -34,7 +34,7 @@ pub async fn handle_access_keys(
                         (public_key.to_string(), account_id.to_string()),
                         models::access_keys::AccessKey::from_action_view(
                             public_key,
-                            &account_id,
+                            account_id,
                             access_key,
                             &receipt_hash,
                             block_height,

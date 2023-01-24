@@ -2,7 +2,7 @@
 macro_rules! await_retry_or_panic {
     ($query: expr, $number_of_retries: expr, $error_message: expr, $debug_structs: expr $(, $is_error_handled:expr)? $(,)?) => {
         {
-            let mut interval = crate::INTERVAL;
+            let mut interval = $crate::INTERVAL;
             let mut retry_attempt = 0usize;
             loop {
                 if retry_attempt == $number_of_retries {
@@ -23,7 +23,7 @@ macro_rules! await_retry_or_panic {
                         })?
 
                         tracing::error!(
-                             target: crate::EXPLORER_DATABASE,
+                             target: $crate::EXPLORER_DATABASE,
                              "Error occurred during {}: \n{:#?} \n{:#?} \n Retrying in {} milliseconds...",
                              async_error,
                              &$error_message,
@@ -31,7 +31,7 @@ macro_rules! await_retry_or_panic {
                              interval.as_millis(),
                          );
                         tokio::time::sleep(interval).await;
-                        if interval < crate::MAX_DELAY_TIME {
+                        if interval < $crate::MAX_DELAY_TIME {
                             interval *= 2;
                         }
                     }
