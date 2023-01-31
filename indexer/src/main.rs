@@ -1,3 +1,5 @@
+use std::fs;
+
 use clap::Parser;
 
 pub use cached::SizedCache;
@@ -147,6 +149,41 @@ async fn main() -> anyhow::Result<()> {
     let pool = models::establish_connection(&opts.database_url);
 
     let strict_mode = !opts.non_strict_mode;
+    if opts.store_genesis {
+        let file = fs::File::open(opts.genesis_file_path.clone()).unwrap();
+        let genesis_json: serde_json::Value = serde_json::from_reader(file).unwrap();
+
+        let mut accounts: Vec<models::accounts::Account> = Vec::new();
+        if let Some(records) = genesis_json["records"].as_array() {
+            for record in records {
+                println!("{}", record);
+                if let Some(account) = record.get("Account") {
+                    let account_id: near_indexer_primitives::types::AccountId = account
+                        ["account_id"]
+                        .as_str()
+                        .expect("There should be account_id here")
+                        .parse()
+                        .unwrap();
+                    println!("{}", account["account_id"]);
+                    accounts.push(models::accounts::Account::new_from_genesis(&account_id, 0));
+                }
+                //{
+                //  "AccessKey":
+                //    {
+                //      "account_id":"foo.bar",
+                //      "public_key":"ed25519:E8DXW7pVD46yxp9Km1mWNhYeReTFnVQx97tam77W7tkB",
+                //      "access_key":{"nonce":0,"permission":"FullAccess"
+                //      }
+                //    }
+                //}
+                if let Some(access_key) = record.get("AccessKey") {
+                    println!("Skipping these for now {}", access_key);
+                }
+            }
+        }
+
+        let _ = adapters::accounts::handle_genesis_accounts(&pool, &accounts).await;
+    }
 
     // We want to prevent unnecessary SELECT queries to the database to find
     // the Transaction hash for the Receipt.

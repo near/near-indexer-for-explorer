@@ -27,6 +27,11 @@ pub(crate) struct Opts {
     /// Enabled Indexer for Explorer debug level of logs
     #[clap(long)]
     pub debug: bool,
+    /// Store genesis accounts
+    #[clap(long)]
+    pub store_genesis: bool,
+    #[clap(long, default_value = "~/.near/genesis.json")]
+    pub genesis_file_path: String,
     /// Switches indexer to non-strict mode (skips Receipts without parent Transaction hash, stops storing AccountChanges and AccessKeys)
     #[clap(long)]
     pub non_strict_mode: bool,

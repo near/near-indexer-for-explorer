@@ -7,9 +7,11 @@ COPY indexer indexer
 # output image.
 COPY circulating-supply circulating-supply
 RUN cargo build -p indexer-explorer --release
+RUN cargo install diesel_cli --no-default-features --features "postgres"
 
 FROM ubuntu:20.04
 RUN apt update && apt install -yy openssl ca-certificates
 RUN apt-get install libpq5 -y
 COPY --from=builder /tmp/target/release/indexer-explorer .
-ENTRYPOINT [ "./indexer-explorer" ]
+COPY --from=builder /usr/local/cargo/bin/diesel .
+COPY ./database/migrations migrations

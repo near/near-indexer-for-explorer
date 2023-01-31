@@ -249,3 +249,19 @@ pub async fn get_lockup_account_ids_at_block_height(
                 .collect()
         })
 }
+
+pub async fn handle_genesis_accounts(
+    pool: &actix_diesel::Database<PgConnection>,
+    accounts: &Vec<models::accounts::Account>,
+) -> anyhow::Result<()> {
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::accounts::table)
+            .values(accounts.clone())
+            .on_conflict_do_nothing()
+            .execute_async(pool),
+        10,
+        "Accounts were created/updated".to_string(),
+        &accounts
+    );
+    Ok(())
+}

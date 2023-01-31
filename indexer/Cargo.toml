@@ -35,6 +35,11 @@ uint = { version = "0.8.3", default-features = false }
 
 near-jsonrpc-client = "0.4.0-beta.0"
 near-lake-framework = "0.5.2"
+near-indexer-primitives = "0.14"
+near-crypto = "0.14"
+near-primitives = "0.14"
 
 explorer-database = { path = "../database" }
 http = "0.2.8"
+serde_json = "1.0.91"
+fs = "0.0.5"
