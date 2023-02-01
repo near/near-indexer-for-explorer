@@ -86,10 +86,8 @@ Command to run NEAR Indexer for Explorer have to include the chain-id and start 
 You can choose NEAR Indexer for Explorer start options:
  - `from-latest` - start indexing blocks from the latest finalized block
  - `from-interruption` - start indexing blocks from the block NEAR Indexer was interrupted last time but earlier for `<number_of_blocks>` if provided
+ - `from-genesis` - download and store accounts/access keys in genesis file and start indexing from the genesis block
  - `from-block --height <block_height>` - start indexing blocks from the specific block height
-
-#### Storing genesis file
-Unlike the original NEAR Indexer for Explorer you **can't** tell Indexer to store data from genesis (Accounts and Access Keys) by adding key `--store-genesis` to the `run` command. So please, ensure you took care about the genesis data in your database in order this indexer to work properly. This capability will be implemented eventually, it's progress can be tracked here: #327.
 
 #### Strict mode
 NEAR Indexer for Explorer works in strict mode by default. In strict mode, the Indexer will ensure parent data exists before storing children, infinitely retrying until this condition is met. This is necessary as a parent (i.e. `block`) may still be processing while a child (i.e. `receipt`) is ready to be stored. This scenario will likely occur if you have not stored the genesis file or do not have all data prior to the block you start indexing from. In this case, you can disable strict mode to store data prior to the block you are concerned about, and then re-enable it once you have passed this block.
