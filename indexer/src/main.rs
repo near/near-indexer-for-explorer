@@ -188,20 +188,20 @@ async fn main() -> anyhow::Result<()> {
     let receipts_cache_arc: receipts_cache::ReceiptsCacheArc =
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
-    let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
-    let (sender, stream) = near_lake_framework::streamer(config);
-
-    tokio::spawn(metrics::init_server(opts.port).expect("Failed to start metrics server"));
-
     tracing::info!(
         target: INDEXER_FOR_EXPLORER,
         "Starting Indexer for Explorer (lake)...",
     );
 
+    tokio::spawn(metrics::init_server(opts.port).expect("Failed to start metrics server"));
+
     if opts.start_options() == &StartOptions::FromGenesis {
         let genesis_file_path = download_genesis_file(&opts).await?;
         adapters::genesis::store_genesis_records(&pool, genesis_file_path).await?;
     }
+
+    let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
+    let (sender, stream) = near_lake_framework::streamer(config);
 
     let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
         .map(|streamer_message| {
