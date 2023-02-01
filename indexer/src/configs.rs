@@ -58,6 +58,8 @@ pub enum StartOptions {
     FromInterruption,
     /// Start from the final block on the network (queries JSON RPC for finality: final)
     FromLatest,
+    /// Store genesis data and start from first block
+    FromGenesis,
 }
 
 impl Opts {
@@ -114,6 +116,9 @@ async fn get_start_block_height(opts: &Opts) -> u64 {
             }
         }
         StartOptions::FromLatest => final_block_height(opts).await,
+        // Since NEAR Lake stores blocks in ascending order, using 0 here forces
+        // near-lake-framework to start from the first block, i.e. genesis
+        StartOptions::FromGenesis => 0,
     }
 }
 
