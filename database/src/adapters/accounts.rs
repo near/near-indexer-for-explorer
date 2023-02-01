@@ -6,6 +6,7 @@ use bigdecimal::BigDecimal;
 
 use diesel::{BoolExpressionMethods, ExpressionMethods, PgConnection, QueryDsl};
 use futures::try_join;
+use tracing::info;
 
 use crate::models;
 use crate::schema;
@@ -248,4 +249,27 @@ pub async fn get_lockup_account_ids_at_block_height(
                         .expect("Selecting lockup account ids bumped into the account_id which is not valid; that should never happen"))
                 .collect()
         })
+}
+
+pub(crate) async fn store_accounts_from_genesis(
+    pool: &actix_diesel::Database<PgConnection>,
+    accounts_models: Vec<models::accounts::Account>,
+) -> anyhow::Result<()> {
+    info!(
+        target: crate::EXPLORER_DATABASE,
+        "Adding/updating {} accounts from genesis...",
+        accounts_models.len(),
+    );
+
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::accounts::table)
+            .values(accounts_models.clone())
+            .on_conflict_do_nothing()
+            .execute_async(pool),
+        10,
+        "Failed to store Accounts from genesis".to_string(),
+        &accounts_models
+    );
+
+    Ok(())
 }

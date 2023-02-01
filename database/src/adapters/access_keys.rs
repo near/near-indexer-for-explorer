@@ -4,6 +4,7 @@ use actix_diesel::dsl::AsyncRunQueryDsl;
 
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::try_join;
+use tracing::info;
 
 use crate::models;
 use crate::schema;
@@ -142,6 +143,29 @@ pub async fn handle_access_keys(
     };
 
     try_join!(update_access_keys_future, add_access_keys_future)?;
+
+    Ok(())
+}
+
+pub(crate) async fn store_access_keys_from_genesis(
+    pool: &actix_diesel::Database<PgConnection>,
+    access_keys_models: Vec<models::access_keys::AccessKey>,
+) -> anyhow::Result<()> {
+    info!(
+        target: crate::EXPLORER_DATABASE,
+        "Adding/updating {} access keys from genesis...",
+        access_keys_models.len(),
+    );
+
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::access_keys::table)
+            .values(access_keys_models.clone())
+            .on_conflict_do_nothing()
+            .execute_async(pool),
+        10,
+        "Failed to store AccessKeys from genesis".to_string(),
+        &access_keys_models
+    );
 
     Ok(())
 }
