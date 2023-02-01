@@ -25,6 +25,7 @@ actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c8
 near-indexer-primitives = "0.16.0"
 near-primitives = "0.16.0"
 near-crypto = "0.16.0"
+near-chain-configs = "0.16.0"
 
 [features]
 default = []

@@ -200,6 +200,7 @@ async fn main() -> anyhow::Result<()> {
 
     if opts.start_options() == &StartOptions::FromGenesis {
         let genesis_file_path = download_genesis_file(&opts).await?;
+        adapters::genesis::store_genesis_records(&pool, genesis_file_path).await?;
     }
 
     let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
