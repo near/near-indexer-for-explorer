@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use clap::Parser;
 
 pub use cached::SizedCache;
@@ -8,7 +10,7 @@ use tracing::{debug, info};
 
 use explorer_database::{adapters, models, receipts_cache};
 
-use crate::configs::Opts;
+use crate::configs::{ChainId, Opts, StartOptions};
 
 mod configs;
 mod metrics;
@@ -139,6 +141,27 @@ async fn handle_message(
     Ok(())
 }
 
+async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
+    let chain = match opts.chain_id {
+        ChainId::Mainnet(_) => "mainnet",
+        ChainId::Testnet(_) => "testnet",
+    };
+
+    info!(
+        target: INDEXER_FOR_EXPLORER,
+        "Downloading {} genesis file", chain
+    );
+
+    let resp = reqwest::get(opts.genesis_file_url()).await?;
+
+    let file_path = format!("{}-genesis.json", chain);
+
+    let mut file = std::fs::File::create(&file_path)?;
+    file.write_all(&resp.bytes().await?)?;
+
+    Ok(file_path.to_string())
+}
+
 #[actix::main]
 async fn main() -> anyhow::Result<()> {
     // We use it to automatically search the for root certificates to perform HTTPS calls
@@ -174,6 +197,10 @@ async fn main() -> anyhow::Result<()> {
         target: INDEXER_FOR_EXPLORER,
         "Starting Indexer for Explorer (lake)...",
     );
+
+    if opts.start_options() == &StartOptions::FromGenesis {
+        let genesis_file_path = download_genesis_file(&opts).await?;
+    }
 
     let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
         .map(|streamer_message| {
