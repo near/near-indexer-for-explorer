@@ -1,0 +1,26 @@
+-- These changes should be applied manually if needed
+
+-- CREATE UNIQUE INDEX CONCURRENTLY assets__non_fungible_idx_tmp
+--     ON assets__non_fungible_token_events (emitted_for_receipt_id,
+--                                           emitted_at_block_timestamp,
+--                                           emitted_in_shard_id,
+--                                           emitted_index_of_event_entry_in_shard,
+--                                           emitted_by_contract_account_id,
+--                                           token_id,
+--                                           event_kind,
+--                                           token_old_owner_account_id,
+--                                           token_new_owner_account_id,
+--                                           token_authorized_account_id,
+--                                           event_memo);
+--
+-- CREATE UNIQUE INDEX CONCURRENTLY assets__non_fungible_token_events_unique
+--     ON assets__non_fungible_token_events (emitted_for_receipt_id, emitted_index_of_event_entry_in_shard);
+--
+-- -- This block runs ~1 sec
+-- BEGIN TRANSACTION;
+-- ALTER TABLE assets__non_fungible_token_events
+--     DROP CONSTRAINT assets__non_fungible_token_events_pkey;
+-- -- This command will automatically rename assets__non_fungible_idx_tmp to assets__non_fungible_token_events_pkey
+-- ALTER TABLE assets__non_fungible_token_events
+--     ADD CONSTRAINT assets__non_fungible_token_events_pkey PRIMARY KEY USING INDEX assets__non_fungible_idx_tmp;
+-- COMMIT;
