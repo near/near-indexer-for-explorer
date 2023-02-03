@@ -1,0 +1,16 @@
+-- These changes should be applied manually
+
+-- -- Without CONCURRENTLY, this command will block the table for more than 1 hour
+-- -- With CONCURRENTLY, it does not block anything, but it couldn't be applied as migration
+-- -- So we have to apply all these changes manually
+-- CREATE UNIQUE INDEX CONCURRENTLY assets__fungible_idx_tmp
+--     ON assets__fungible_token_events (emitted_for_receipt_id, emitted_index_of_event_entry_in_shard);
+--
+-- -- This block runs ~1 sec
+-- BEGIN TRANSACTION;
+-- ALTER TABLE assets__fungible_token_events DROP CONSTRAINT assets__fungible_token_events_pkey;
+-- ALTER TABLE assets__fungible_token_events DROP CONSTRAINT assets__fungible_token_events_unique;
+-- -- This command will automatically rename assets__fungible_idx_tmp to assets__fungible_token_events_pkey
+-- ALTER TABLE assets__fungible_token_events
+--     ADD CONSTRAINT assets__fungible_token_events_pkey PRIMARY KEY USING INDEX assets__fungible_idx_tmp;
+-- COMMIT;
