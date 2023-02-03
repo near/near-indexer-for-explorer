@@ -69,9 +69,9 @@ And apply migrations
 $ cd database && diesel migration run
 ```
 
-Unfortunately, some migrations should be applied manually: [[1]](database/migrations/2021-08-06-123500_account_changes_ordering_column/up.sql), [[2]](database/migrations/2023-02-02-100000_fungible_token_events_pk_changed/up.sql), [[3]](database/migrations/2023-02-02-110000_non_fungible_token_events_pk_changed/up.sql).  
-If you have the DB with some data collected, and you forgot to apply some migrations to it, we suggest you to apply the changes manually with [`CONCURRENTLY` option](https://www.postgresql.org/docs/current/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY) enabled.
-This will help you not to block the tables while heavy operations are being applied.
+If you have the DB with some data collected, and you need to apply the next migration, we highly recommend to read the migration contents.  
+Some migrations have the explanations what should be done, e.g. [[1]](database/migrations/2021-08-06-123500_account_changes_ordering_column/up.sql), [[2]](database/migrations/2023-02-02-100000_fungible_token_events_pk_changed/up.sql), [[3]](database/migrations/2023-02-02-110000_non_fungible_token_events_pk_changed/up.sql).  
+General advice is to add [`CONCURRENTLY` option](https://www.postgresql.org/docs/current/sql-createindex.html#SQL-CREATEINDEX-CONCURRENTLY) to all indexes creation and apply such changes manually.
 
 ### Compile NEAR Indexer for Explorer
 
