@@ -157,7 +157,7 @@ async fn main() -> anyhow::Result<()> {
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
     let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
-    let (_, stream) = near_lake_framework::streamer(config);
+    let (sender, stream) = near_lake_framework::streamer(config);
 
     tokio::spawn(metrics::init_server(opts.port).expect("Failed to start metrics server"));
 
@@ -192,6 +192,10 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    // unreachable statement, loop above is endless
-    Ok(())
+    drop(handlers); // close the channel so the sender will stop
+    match sender.await {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(e),
+        Err(e) => Err(anyhow::Error::from(e)),
+    }
 }
