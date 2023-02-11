@@ -41,6 +41,7 @@ pub(crate) async fn detect_db_error(
     false
 }
 
+#[cfg(feature = "load_fungible_token_events")]
 async fn collect_and_store_events(
     pool: &Database<PgConnection>,
     shard: &near_indexer_primitives::IndexerShard,
@@ -76,6 +77,37 @@ async fn collect_and_store_events(
         &nft_events_with_outcomes,
     );
     futures::try_join!(ft_future, nft_future)?;
+    Ok(())
+}
+
+
+#[cfg(not(feature = "load_fungible_token_events"))]
+async fn collect_and_store_events(
+    pool: &Database<PgConnection>,
+    shard: &near_indexer_primitives::IndexerShard,
+    block_timestamp: u64,
+) -> anyhow::Result<()> {
+    let mut nft_events_with_outcomes = Vec::new();
+
+    for outcome in &shard.receipt_execution_outcomes {
+        let events = extract_events(outcome);
+        for event in events {
+            match event {
+                assets::event_types::NearEvent::Nep171(nft_event) => {
+                    nft_events_with_outcomes.push((nft_event, outcome));
+                }
+                _ => ()
+            }
+        }
+    }
+
+    let nft_future = assets::non_fungible_token_events::store_nft_events(
+        pool,
+        shard,
+        block_timestamp,
+        &nft_events_with_outcomes,
+    );
+    futures::try_join!(nft_future)?;
     Ok(())
 }
 

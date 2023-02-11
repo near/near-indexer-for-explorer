@@ -35,3 +35,7 @@ near-jsonrpc-client = "0.4.0-beta.0"
 near-lake-framework = "0.5.2"
 
 explorer-database = { path = "../database" }
+
+[features]
+default = ["load_account_changes"]
+load_account_changes = []

@@ -25,3 +25,7 @@ actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c8
 near-indexer-primitives = "0.14"
 near-primitives = "0.14"
 near-crypto = "0.14"
+
+[features]
+default = ["load_fungible_token_events"]
+load_fungible_token_events = []
