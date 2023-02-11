@@ -80,7 +80,6 @@ async fn collect_and_store_events(
     Ok(())
 }
 
-
 #[cfg(not(feature = "load_fungible_token_events"))]
 async fn collect_and_store_events(
     pool: &Database<PgConnection>,
@@ -96,7 +95,7 @@ async fn collect_and_store_events(
                 assets::event_types::NearEvent::Nep171(nft_event) => {
                     nft_events_with_outcomes.push((nft_event, outcome));
                 }
-                _ => ()
+                _ => (),
             }
         }
     }
