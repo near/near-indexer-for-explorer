@@ -46,7 +46,7 @@ async fn collect_and_store_events(
     shard: &near_indexer_primitives::IndexerShard,
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
-    #[cfg(feature = "load_fungible_token_events")]
+    #[cfg(feature = "fungible_token_events")]
     let mut ft_events_with_outcomes = Vec::new();
     let mut nft_events_with_outcomes = Vec::new();
 
@@ -54,20 +54,20 @@ async fn collect_and_store_events(
         let events = extract_events(outcome);
         for event in events {
             match event {
-                #[cfg(feature = "load_fungible_token_events")]
+                #[cfg(feature = "fungible_token_events")]
                 assets::event_types::NearEvent::Nep141(ft_event) => {
                     ft_events_with_outcomes.push((ft_event, outcome));
                 }
                 assets::event_types::NearEvent::Nep171(nft_event) => {
                     nft_events_with_outcomes.push((nft_event, outcome));
                 }
-                #[cfg(not(feature = "load_fungible_token_events"))]
+                #[cfg(not(feature = "fungible_token_events"))]
                 _ => (),
             }
         }
     }
 
-    #[cfg(feature = "load_fungible_token_events")]
+    #[cfg(feature = "fungible_token_events")]
     let ft_future = assets::fungible_token_events::store_ft_events(
         pool,
         shard,
@@ -80,9 +80,9 @@ async fn collect_and_store_events(
         block_timestamp,
         &nft_events_with_outcomes,
     );
-    #[cfg(feature = "load_fungible_token_events")]
+    #[cfg(feature = "fungible_token_events")]
     futures::try_join!(ft_future, nft_future)?;
-    #[cfg(not(feature = "load_fungible_token_events"))]
+    #[cfg(not(feature = "fungible_token_events"))]
     futures::try_join!(nft_future)?;
     Ok(())
 }

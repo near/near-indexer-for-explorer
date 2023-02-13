@@ -27,5 +27,5 @@ near-primitives = "0.14"
 near-crypto = "0.14"
 
 [features]
-default = ["load_fungible_token_events"]
-load_fungible_token_events = []
+default = []
+fungible_token_events = []

@@ -105,14 +105,14 @@ async fn handle_message(
         };
 
         // StateChange related to Account
-        #[cfg(feature = "load_account_changes")]
+        #[cfg(feature = "account_changes")]
         let account_changes_future = adapters::account_changes::store_account_changes(
             pool,
             &streamer_message.shards,
             &streamer_message.block.header.hash,
             streamer_message.block.header.timestamp,
         );
-        #[cfg(feature = "load_account_changes")]
+        #[cfg(feature = "account_changes")]
         try_join!(
             execution_outcomes_future,
             accounts_future,
@@ -121,7 +121,7 @@ async fn handle_message(
             account_changes_future
         )?;
 
-        #[cfg(not(feature = "load_account_changes"))]
+        #[cfg(not(feature = "account_changes"))]
         try_join!(
             execution_outcomes_future,
             accounts_future,

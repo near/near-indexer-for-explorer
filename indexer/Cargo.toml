@@ -37,5 +37,5 @@ near-lake-framework = "0.5.2"
 explorer-database = { path = "../database" }
 
 [features]
-default = ["load_account_changes"]
-load_account_changes = []
+default = []
+account_changes = []
