@@ -39,3 +39,4 @@ explorer-database = { path = "../database" }
 [features]
 default = []
 account_changes = []
+fungible_token_events = []

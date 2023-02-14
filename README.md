@@ -162,10 +162,12 @@ $ docker build -f ./indexer/Dockerfile .
 $ docker build -f ./circulating-supply/Dockerfile .
 ```
 
-## Features
-The tables `account_changes` and `assets__fungible_token_events` can be enabled by [features](https://doc.rust-lang.org/cargo/reference/features.html) config in their `Cargo.toml`s files. Example:
+## Deprecated features
+The tables `account_changes` and/or `assets__fungible_token_events` can be still enabled by [features](https://doc.rust-lang.org/cargo/reference/features.html) on the compile stage:
+
+```bash
+cargo build --release --features "account_changes fungible_token_events"
 ```
-[features]
-default = ["account_changes"]
-account_changes = []
-```
+
+Note, we no longer support these tables.
+We highly recommend you to use [Enhanced API](https://console.pagoda.co/apis?tab=enhancedApi#/) instead.
