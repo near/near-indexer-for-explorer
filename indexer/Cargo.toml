@@ -37,6 +37,6 @@ near-lake-framework = "0.5.2"
 explorer-database = { path = "../database" }
 
 [features]
-default = []
+default = ["account_changes", "fungible_token_events"]
 account_changes = []
 fungible_token_events = ["explorer-database/fungible_token_events"]
