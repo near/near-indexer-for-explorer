@@ -1,7 +1,7 @@
 use actix_diesel::dsl::AsyncRunQueryDsl;
 use anyhow::Context;
 use bigdecimal::{BigDecimal, ToPrimitive};
-use diesel::{ExpressionMethods, PgConnection, QueryDsl};
+use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
 
 use crate::models;
 use crate::schema;
@@ -26,11 +26,16 @@ pub async fn store_block(
 }
 
 /// Gets the latest block's height from database
+/// Hacked version to track deprecated tables
 pub async fn latest_block_height(
     pool: &actix_diesel::Database<PgConnection>,
 ) -> anyhow::Result<Option<u64>> {
     tracing::debug!(target: crate::EXPLORER_DATABASE, "fetching latest");
     Ok(schema::blocks::table
+        .inner_join(
+            schema::assets__fungible_token_events::table.on(schema::blocks::dsl::block_timestamp
+                .eq(schema::assets__fungible_token_events::dsl::emitted_at_block_timestamp)),
+        )
         .select((schema::blocks::dsl::block_height,))
         .order(schema::blocks::dsl::block_height.desc())
         .limit(1)
