@@ -3,12 +3,14 @@
 ## 0.11.0
 
 * Migrate to NEAR Lake Framework, `indexer-explorer` no longer runs a NEAR node and instead consumes block from [near-lake-indexer](https://github.com/near/near-lake-indexer).
+* Stop tracking the data for `account_changes` and `assets__fungible_token_events`. See more details in the [discussion](https://github.com/near/near-indexer-for-explorer/discussions/351)
 
 ### Breaking Changes
 
 * Storing genesis file is no longer possible (#327)
 * Command line arguments for starting the indexer have changed slightly, see [Readme](../README.md) for updated reference
 * AWS credentials are now required for reading data from S3
+* Tracking tables `account_changes` and `assets__fungible_token_events` require enabling [feature flags](https://github.com/near/near-indexer-for-explorer#deprecated-features). 
 
 ## 0.10.32
 
