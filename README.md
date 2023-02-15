@@ -155,9 +155,19 @@ $ PGPASSWORD="password" psql -h 127.0.0.1 -U explorer databasename
 ```
 
 ## Deployments
-Both `indexer-explorer` and `circulating-supply` binaries are run within Docker, their `Dockerfile`s can be found within their respective directoires/workspaces. Docker images are built using Google Cloud Build and then deployed to Google Cloud Run. The following commands can be used to build the Docker images:
+Both `indexer-explorer` and `circulating-supply` binaries are run within Docker, their `Dockerfile`s can be found within their respective directories/workspaces. Docker images are built using Google Cloud Build and then deployed to Google Cloud Run. The following commands can be used to build the Docker images:
 
 ```bash
 $ docker build -f ./indexer/Dockerfile .
 $ docker build -f ./circulating-supply/Dockerfile .
 ```
+
+## Deprecated features
+The tables `account_changes` and/or `assets__fungible_token_events` can be still enabled by [features](https://doc.rust-lang.org/cargo/reference/features.html) on the compile stage:
+
+```bash
+cargo build --release --features "account_changes fungible_token_events"
+```
+
+Note, we no longer support these tables.
+We highly recommend you to use [Enhanced API](https://console.pagoda.co/apis?tab=enhancedApi#/) instead.

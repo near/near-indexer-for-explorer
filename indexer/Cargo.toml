@@ -35,3 +35,8 @@ near-jsonrpc-client = "0.4.0-beta.0"
 near-lake-framework = "0.5.2"
 
 explorer-database = { path = "../database" }
+
+[features]
+default = []
+account_changes = []
+fungible_token_events = []
