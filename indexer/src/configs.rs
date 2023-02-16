@@ -101,8 +101,8 @@ async fn get_start_block_height(opts: &Opts) -> u64 {
                 last_indexed_block.saturating_sub(500)
             } else {
                 tracing::warn!(
-                    target: "indexer-for-explorer",
-                    "It seems the database is empty. Will start from the beginning",
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "It seems the database is empty. Will start indexing from the beginning",
                 );
                 0 // S3 should return the first available block_height
             }
