@@ -51,6 +51,9 @@ pub(crate) struct RunArgs {
     pub concurrency: std::num::NonZeroU16,
     #[clap(subcommand)]
     pub sync_mode: SyncModeSubCommand,
+    /// Tells whether to validate the genesis file before starting
+    #[clap(long)]
+    pub validate_genesis: bool,
 }
 
 #[allow(clippy::enum_variant_names)] // we want commands to be more explicit
@@ -122,6 +125,8 @@ pub(crate) struct InitConfigArgs {
     /// Specify a custom download URL for the genesis-file.
     #[clap(long)]
     pub download_genesis_url: Option<String>,
+    /// Specify a custom download URL for the records file.
+    pub download_records_url: Option<String>,
     /// Customize max_gas_burnt_view runtime limit.  If not specified, value
     /// from genesis configuration will be taken.
     #[clap(long)]

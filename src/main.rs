@@ -271,6 +271,7 @@ async fn construct_near_indexer_config(
         } else {
             near_indexer::AwaitForNodeSyncedEnum::WaitForFullSync
         },
+        validate_genesis: args.validate_genesis,
     }
 }
 
@@ -377,6 +378,7 @@ fn main() {
             config.genesis.as_ref().map(AsRef::as_ref),
             config.download_genesis,
             config.download_genesis_url.as_ref().map(AsRef::as_ref),
+            config.download_records_url.as_ref().map(AsRef::as_ref),
             config.download_config,
             config.download_config_url.as_ref().map(AsRef::as_ref),
             config.boot_nodes.as_ref().map(AsRef::as_ref),

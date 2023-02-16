@@ -11,6 +11,7 @@ use diesel::PgConnection;
 use tracing::{error, info, warn};
 
 use near_indexer::near_primitives;
+use near_o11y::WithSpanContextExt;
 
 use crate::aggregated::{account_details, circulating_supply};
 use crate::db_adapters::accounts;
@@ -235,7 +236,7 @@ async fn get_final_block_timestamp(
 ) -> anyhow::Result<Duration> {
     let block_reference =
         near_primitives::types::BlockReference::Finality(near_primitives::types::Finality::Final);
-    let query = near_client::GetBlock(block_reference);
+    let query = near_client::GetBlock(block_reference).with_span_context();
 
     let block_response = view_client
         .send(query)

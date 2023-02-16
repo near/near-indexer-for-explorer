@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.34
+
+* Upgrade Indexer Framework to be based on [`nearcore` version `1.31.0`](https://github.com/near/nearcore/releases/tag/1.31.0)
+
+### Heads-up
+
+Some updates on the `nearcore` side affected the Indexer Framework:
+- `near_client` calls require the usage of `near_o11y::WithSpanContextExt`. Thus we depend on `near-o11y` explicitly since this version
+- `init_configs` function has been extended with a parameter `download_records_url: Option<&str>`. Thus `init` command of NEAR Indexer for Explorer has been extended with the parameter `donwload_records_url`
+- `IndexerConfig` requires new parameter `validate_genesis: bool` so the `run` command has been extended with the key `--validate-genesis`
+
 ## 0.10.33
 
 * Upgrade Indexer Framework to be based on [`nearcore` version `1.30.0`](https://github.com/near/nearcore/releases/tag/1.30.0)

@@ -7,6 +7,7 @@ use near_client::{Query, ViewClientActor};
 use near_indexer::near_primitives;
 use near_sdk::borsh::BorshDeserialize;
 use near_sdk::json_types::{U128, U64};
+use near_o11y::WithSpanContextExt;
 
 use super::lockup_types::{
     LockupContract, TransfersInformation, VestingInformation, VestingSchedule, WrappedBalance, U256,
@@ -29,7 +30,7 @@ pub(super) async fn get_lockup_contract_state(
         prefix: vec![].into(),
         include_proof: false,
     };
-    let query = Query::new(block_reference, request);
+    let query = Query::new(block_reference, request).with_span_context();
 
     let state_response = view_client
         .send(query)
