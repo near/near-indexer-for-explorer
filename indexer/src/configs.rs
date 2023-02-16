@@ -93,24 +93,19 @@ async fn get_start_block_height(opts: &Opts) -> u64 {
         StartOptions::FromBlock { height } => *height,
         StartOptions::FromInterruption => {
             let pool = models::establish_connection(&opts.database_url);
-            let last_indexed_block: u64 = match adapters::blocks::latest_block_height(&pool).await {
-                Ok(last_indexed_block) => {
-                    if let Some(last_indexed_block) = last_indexed_block {
-                        last_indexed_block
-                    } else {
-                        final_block_height(opts).await
-                    }
-                }
-                Err(err) => {
-                    tracing::warn!(
-                        target: "alertexer",
-                        "Failed to get last indexer block from Database. Failing to the latest one...\n{:#?}",
-                        err
-                    );
-                    final_block_height(opts).await
-                }
-            };
-            last_indexed_block
+            let last_indexed_block = adapters::blocks::latest_block_height(&pool)
+                .await
+                .expect("Failed to get last indexer block from Database");
+            if let Some(last_indexed_block) = last_indexed_block {
+                // -500 helps us to be sure we haven't missed anything
+                last_indexed_block.saturating_sub(500)
+            } else {
+                tracing::warn!(
+                    target: crate::INDEXER_FOR_EXPLORER,
+                    "It seems the database is empty. Will start indexing from the beginning",
+                );
+                0 // S3 should return the first available block_height
+            }
         }
         StartOptions::FromLatest => final_block_height(opts).await,
     }
