@@ -3,6 +3,7 @@ use anyhow::Context;
 
 use near_client::{Query, ViewClientActor};
 use near_indexer::near_primitives;
+use near_o11y::WithSpanContextExt;
 
 pub(crate) async fn get_account_balance(
     view_client: &Addr<ViewClientActor>,
@@ -37,7 +38,7 @@ async fn get_account_view_for_block_height(
     let request = near_primitives::views::QueryRequest::ViewAccount {
         account_id: account_id.clone(),
     };
-    let query = Query::new(block_reference, request);
+    let query = Query::new(block_reference, request).with_span_context();
 
     let account_response = view_client
         .send(query)
