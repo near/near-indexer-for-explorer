@@ -3,4 +3,4 @@ members = [
     "indexer",
     "database",
     "circulating-supply"
-]
+]  
