@@ -2,7 +2,7 @@
 name = "indexer-explorer"
 version = "0.10.33"
 authors = ["Near Inc <hello@nearprotocol.com>"]
-edition = "2021"
+edition = "2021" 
 
 [dependencies]
 actix = "0.13.0"
