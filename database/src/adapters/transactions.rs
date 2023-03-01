@@ -22,7 +22,7 @@ pub async fn store_transactions(
         .filter_map(|shard| shard.chunk.as_ref())
         .map(|chunk| {
             tried_to_insert_transactions_count += chunk.transactions.len();
-            store_chunk_transactions(
+            store(
                 pool,
                 chunk.transactions.iter().enumerate().collect::<Vec<(
                     usize,
@@ -54,7 +54,7 @@ pub async fn store_transactions(
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
         .map(|chunk| {
-            store_chunk_transactions(
+            store(
                 pool,
                 chunk
                     .transactions
@@ -96,6 +96,36 @@ async fn collect_converted_to_receipt_ids(
         .get_results_async::<String>(pool)
         .await
         .context("DB Error")
+}
+
+async fn store(
+    pool: &actix_diesel::Database<PgConnection>,
+    enumerated_transactions: Vec<(
+        usize,
+        &near_indexer_primitives::IndexerTransactionWithOutcome,
+    )>,
+    chunk_hash: &near_indexer_primitives::CryptoHash,
+    block_hash: &near_indexer_primitives::CryptoHash,
+    block_timestamp: u64,
+    // hack for supporting duplicated transaction hashes. Empty for most of transactions
+    transaction_hash_suffix: &str,
+    receipts_cache: crate::receipts_cache::ReceiptsCache,
+) -> anyhow::Result<()> {
+    store_chunk_transactions(
+        pool,
+        enumerated_transactions.clone(),
+        chunk_hash,
+        block_hash,
+        block_timestamp,
+        transaction_hash_suffix,
+        receipts_cache,
+    )
+    .await?;
+    let transactions = enumerated_transactions
+        .into_iter()
+        .map(|(_, tx)| tx)
+        .collect();
+    store_chunk_transaction_actions(pool, transactions, transaction_hash_suffix).await
 }
 
 async fn store_chunk_transactions(
@@ -160,16 +190,26 @@ async fn store_chunk_transactions(
         &transaction_models
     );
 
+    Ok(())
+}
+
+async fn store_chunk_transaction_actions(
+    pool: &actix_diesel::Database<PgConnection>,
+    transactions: Vec<&near_indexer_primitives::IndexerTransactionWithOutcome>,
+    // hack for supporting duplicated transaction hashes. Empty for most of transactions
+    transaction_hash_suffix: &str,
+) -> anyhow::Result<()> {
     let transaction_action_models: Vec<models::TransactionAction> = transactions
         .into_iter()
-        .flat_map(|(_, tx)| {
+        .flat_map(|tx| {
+            let transaction_hash = tx.transaction.hash.to_string() + transaction_hash_suffix;
             tx.transaction
                 .actions
                 .iter()
                 .enumerate()
                 .map(move |(index, action)| {
                     models::transactions::TransactionAction::from_action_view(
-                        tx.transaction.hash.to_string(),
+                        transaction_hash.clone(),
                         index as i32,
                         action,
                     )

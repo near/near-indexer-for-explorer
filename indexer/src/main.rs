@@ -46,7 +46,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         streamer_message.block.header.height,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache.clone(),
     );
 
     // Receipts
@@ -56,7 +56,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         strict_mode,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache.clone(),
     );
 
     // We can process transactions and receipts in parallel
@@ -71,7 +71,7 @@ async fn handle_message(
         pool,
         &streamer_message.shards,
         streamer_message.block.header.timestamp,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache.clone(),
     );
 
     // Accounts
@@ -181,12 +181,7 @@ async fn main() -> anyhow::Result<()> {
                 target: crate::INDEXER_FOR_EXPLORER,
                 "Block height {}", &streamer_message.block.header.height
             );
-            handle_message(
-                &pool,
-                streamer_message,
-                strict_mode,
-                std::sync::Arc::clone(&receipts_cache),
-            )
+            handle_message(&pool, streamer_message, strict_mode, receipts_cache.clone())
         })
         .buffer_unordered(1usize);
 
