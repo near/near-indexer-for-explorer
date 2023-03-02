@@ -31,6 +31,7 @@ pub enum ActionKind {
     AddKey,
     DeleteKey,
     DeleteAccount,
+    DelegateAction,
 }
 
 #[derive(Debug, DbEnum, Clone)]

@@ -8,7 +8,8 @@ use diesel::pg::expression::array_comparison::any;
 use diesel::{ExpressionMethods, JoinOnDsl, PgConnection, QueryDsl};
 use futures::future::try_join_all;
 use futures::try_join;
-use num_traits::cast::FromPrimitive;
+use near_primitives::transaction::Action;
+use near_primitives::views::ActionView;
 use tracing::{error, warn};
 
 use crate::models;
@@ -523,36 +524,85 @@ async fn store_action_receipt_actions(
     receipts: &[&near_indexer_primitives::views::ReceiptView],
     block_timestamp: u64,
 ) -> anyhow::Result<()> {
-    let receipt_action_actions: Vec<models::ActionReceiptAction> = receipts
-        .iter()
-        .filter_map(|receipt| {
-            if let near_indexer_primitives::views::ReceiptEnumView::Action { actions, .. } =
-                &receipt.receipt
-            {
-                Some(actions.iter().enumerate().map(move |(index, action)| {
-                    models::ActionReceiptAction::from_action_view(
-                        receipt.receipt_id.to_string(),
-                        i32::from_usize(index).expect("We expect usize to not overflow i32 here"),
-                        action,
-                        receipt.predecessor_id.to_string(),
-                        receipt.receiver_id.to_string(),
-                        block_timestamp,
-                    )
-                }))
-            } else {
-                None
+    let mut action_receipt_actions: Vec<models::ActionReceiptAction> = vec![];
+    for receipt in receipts {
+        if let near_indexer_primitives::views::ReceiptEnumView::Action { actions, .. } =
+            &receipt.receipt
+        {
+            let mut index = 0;
+            for action in actions {
+                let (action_kind, args) =
+                    models::extract_action_type_and_value_from_action_view(&action);
+                match action {
+                    ActionView::Delegate { delegate_action, signature } => {
+                        let parent_index = index;
+                        let delegate_parameters = serde_json::json!({
+                        "signature": signature,
+                        "sender_id": delegate_action.sender_id,
+                        "receiver_id": delegate_action.receiver_id,
+                        "nonce": delegate_action.nonce,
+                        "max_block_height": delegate_action.max_block_height,
+                        "public_key": delegate_action.public_key,
+                    });
+                        action_receipt_actions.push(models::ActionReceiptAction {
+                            receipt_id: receipt.receipt_id.to_string(),
+                            index_in_action_receipt: index,
+                            action_kind,
+                            args,
+                            receipt_predecessor_account_id: receipt.predecessor_id.to_string(),
+                            receipt_receiver_account_id: receipt.receiver_id.to_string(),
+                            receipt_included_in_block_timestamp: block_timestamp.into(),
+                            is_delegate_action: true,
+                            delegate_parameters: Some(delegate_parameters.clone()),
+                            delegate_parent_index_in_action_receipt: None,
+                        });
+                        index += 1;
+                        for non_delegate_action in delegate_action.actions {
+                            let (action_kind, args) =
+                                models::extract_action_type_and_value_from_action_view(&ActionView::from(Action::from(non_delegate_action)));
+                            action_receipt_actions.push(models::ActionReceiptAction {
+                                receipt_id: receipt.receipt_id.to_string(),
+                                index_in_action_receipt: index,
+                                action_kind,
+                                args,
+                                receipt_predecessor_account_id: receipt.predecessor_id.to_string(),
+                                receipt_receiver_account_id: receipt.receiver_id.to_string(),
+                                receipt_included_in_block_timestamp: block_timestamp.into(),
+                                is_delegate_action: true,
+                                delegate_parameters: Some(delegate_parameters.clone()),
+                                delegate_parent_index_in_action_receipt:  Some(parent_index),
+                            });
+                            index += 1;
+                        }
+                    }
+                    _ => {
+                        action_receipt_actions.push(models::ActionReceiptAction {
+                            receipt_id: receipt.receipt_id.to_string(),
+                            index_in_action_receipt: index,
+                            action_kind,
+                            args,
+                            receipt_predecessor_account_id: receipt.predecessor_id.to_string(),
+                            receipt_receiver_account_id: receipt.receiver_id.to_string(),
+                            receipt_included_in_block_timestamp: block_timestamp.into(),
+                            is_delegate_action: false,
+                            delegate_parameters: None,
+                            delegate_parent_index_in_action_receipt:  None,
+                        });
+                        index += 1;
+                    }
+                }
             }
-        })
-        .flatten()
-        .collect();
+        }
+    }
+
     crate::await_retry_or_panic!(
         diesel::insert_into(schema::action_receipt_actions::table)
-            .values(receipt_action_actions.clone())
+            .values(action_receipt_actions.clone())
             .on_conflict_do_nothing()
             .execute_async(pool),
         10,
-        "ReceiptActionActions were stored in database".to_string(),
-        &receipt_action_actions
+        "ActionReceiptActions were stored in database".to_string(),
+        &action_receipt_actions
     );
     Ok(())
 }
