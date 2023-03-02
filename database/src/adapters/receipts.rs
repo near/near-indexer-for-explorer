@@ -21,7 +21,7 @@ pub async fn store_receipts(
     block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let futures = shards
         .iter()
@@ -35,7 +35,7 @@ pub async fn store_receipts(
                 &chunk.header.chunk_hash,
                 block_timestamp,
                 strict_mode,
-                receipts_cache.clone(),
+                receipts_cache_arc.clone(),
             )
         });
 
@@ -49,7 +49,7 @@ async fn store_chunk_receipts(
     chunk_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer_primitives::CryptoHash>::new();
@@ -60,7 +60,7 @@ async fn store_chunk_receipts(
         strict_mode,
         block_hash,
         chunk_hash,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     )
     .await?;
 
@@ -106,7 +106,7 @@ async fn store_chunk_receipts(
     // At the moment we can observe output data in the Receipt it's impossible to know
     // the Receipt Id of that Data Receipt. That's why we insert the pair DataId<>ParentTransactionHash
     // to ReceiptsCache
-    let mut receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache_arc.lock().await;
     for receipt in receipts {
         if let near_indexer_primitives::views::ReceiptEnumView::Action {
             output_data_receivers,
@@ -146,9 +146,9 @@ async fn store_chunk_receipts(
         });
 
     let process_receipt_actions_future =
-        store_receipt_actions(pool, action_receipts, block_timestamp);
+        store_receipt_actions(pool, &action_receipts, block_timestamp);
 
-    let process_receipt_data_future = store_receipt_data(pool, data_receipts);
+    let process_receipt_data_future = store_data_receipts(pool, &data_receipts);
 
     try_join!(process_receipt_actions_future, process_receipt_data_future)?;
     Ok(())
@@ -161,7 +161,7 @@ async fn find_tx_hashes_for_receipts(
     strict_mode: bool,
     block_hash: &near_indexer_primitives::CryptoHash,
     chunk_hash: &near_indexer_primitives::CryptoHash,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<
     HashMap<
         crate::receipts_cache::ReceiptOrDataId,
@@ -173,7 +173,7 @@ async fn find_tx_hashes_for_receipts(
         crate::receipts_cache::ParentTransactionHashString,
     > = HashMap::new();
 
-    let mut receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache_arc.lock().await;
     // add receipt-transaction pairs from the cache to the response
     tx_hashes_for_receipts.extend(receipts.iter().filter_map(|receipt| {
         match receipt.receipt {
@@ -486,14 +486,43 @@ async fn save_receipts(
 
 async fn store_receipt_actions(
     pool: &actix_diesel::Database<PgConnection>,
-    receipts: Vec<&near_indexer_primitives::views::ReceiptView>,
+    receipts: &[&near_indexer_primitives::views::ReceiptView],
     block_timestamp: u64,
+) -> anyhow::Result<()> {
+    try_join!(
+        store_action_receipts(pool, receipts),
+        store_action_receipt_actions(pool, receipts, block_timestamp),
+        store_action_receipt_input_data(pool, receipts),
+        store_action_receipt_output_data(pool, receipts),
+    )?;
+    Ok(())
+}
+
+async fn store_action_receipts(
+    pool: &actix_diesel::Database<PgConnection>,
+    receipts: &[&near_indexer_primitives::views::ReceiptView],
 ) -> anyhow::Result<()> {
     let receipt_actions: Vec<models::ActionReceipt> = receipts
         .iter()
         .filter_map(|receipt| models::ActionReceipt::try_from(*receipt).ok())
         .collect();
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::action_receipts::table)
+            .values(receipt_actions.clone())
+            .on_conflict_do_nothing()
+            .execute_async(pool),
+        10,
+        "Failed to store ReceiptActions in database".to_string(),
+        &receipt_actions
+    );
+    Ok(())
+}
 
+async fn store_action_receipt_actions(
+    pool: &actix_diesel::Database<PgConnection>,
+    receipts: &[&near_indexer_primitives::views::ReceiptView],
+    block_timestamp: u64,
+) -> anyhow::Result<()> {
     let receipt_action_actions: Vec<models::ActionReceiptAction> = receipts
         .iter()
         .filter_map(|receipt| {
@@ -516,7 +545,22 @@ async fn store_receipt_actions(
         })
         .flatten()
         .collect();
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::action_receipt_actions::table)
+            .values(receipt_action_actions.clone())
+            .on_conflict_do_nothing()
+            .execute_async(pool),
+        10,
+        "ReceiptActionActions were stored in database".to_string(),
+        &receipt_action_actions
+    );
+    Ok(())
+}
 
+async fn store_action_receipt_input_data(
+    pool: &actix_diesel::Database<PgConnection>,
+    receipts: &[&near_indexer_primitives::views::ReceiptView],
+) -> anyhow::Result<()> {
     let receipt_action_input_data: Vec<models::ActionReceiptInputData> = receipts
         .iter()
         .filter_map(|receipt| {
@@ -536,7 +580,22 @@ async fn store_receipt_actions(
         })
         .flatten()
         .collect();
+    crate::await_retry_or_panic!(
+        diesel::insert_into(schema::action_receipt_input_data::table)
+            .values(receipt_action_input_data.clone())
+            .on_conflict_do_nothing()
+            .execute_async(pool),
+        10,
+        "ReceiptActionInputData were stored in database".to_string(),
+        &receipt_action_input_data
+    );
+    Ok(())
+}
 
+async fn store_action_receipt_output_data(
+    pool: &actix_diesel::Database<PgConnection>,
+    receipts: &[&near_indexer_primitives::views::ReceiptView],
+) -> anyhow::Result<()> {
     let receipt_action_output_data: Vec<models::ActionReceiptOutputData> = receipts
         .iter()
         .filter_map(|receipt| {
@@ -559,26 +618,6 @@ async fn store_receipt_actions(
         .collect();
 
     crate::await_retry_or_panic!(
-        diesel::insert_into(schema::action_receipts::table)
-            .values(receipt_actions.clone())
-            .on_conflict_do_nothing()
-            .execute_async(pool),
-        10,
-        "ReceiptActions were stored in database".to_string(),
-        &receipt_actions
-    );
-
-    crate::await_retry_or_panic!(
-        diesel::insert_into(schema::action_receipt_actions::table)
-            .values(receipt_action_actions.clone())
-            .on_conflict_do_nothing()
-            .execute_async(pool),
-        10,
-        "ReceiptActionActions were stored in database".to_string(),
-        &receipt_action_actions
-    );
-
-    crate::await_retry_or_panic!(
         diesel::insert_into(schema::action_receipt_output_data::table)
             .values(receipt_action_output_data.clone())
             .on_conflict_do_nothing()
@@ -587,23 +626,12 @@ async fn store_receipt_actions(
         "ReceiptActionOutputData were stored in database".to_string(),
         &receipt_action_output_data
     );
-
-    crate::await_retry_or_panic!(
-        diesel::insert_into(schema::action_receipt_input_data::table)
-            .values(receipt_action_input_data.clone())
-            .on_conflict_do_nothing()
-            .execute_async(pool),
-        10,
-        "ReceiptActionInputData were stored in database".to_string(),
-        &receipt_action_input_data
-    );
-
     Ok(())
 }
 
-async fn store_receipt_data(
+async fn store_data_receipts(
     pool: &actix_diesel::Database<PgConnection>,
-    receipts: Vec<&near_indexer_primitives::views::ReceiptView>,
+    receipts: &[&near_indexer_primitives::views::ReceiptView],
 ) -> anyhow::Result<()> {
     let receipt_data_models: Vec<models::DataReceipt> = receipts
         .iter()

@@ -12,5 +12,5 @@ pub type ParentTransactionHashString = String;
 // touching the database
 // The key is ReceiptID
 // The value is TransactionHash (the very parent of the Receipt)
-pub type ReceiptsCache =
+pub type ReceiptsCacheArc =
     std::sync::Arc<Mutex<SizedCache<ReceiptOrDataId, ParentTransactionHashString>>>;

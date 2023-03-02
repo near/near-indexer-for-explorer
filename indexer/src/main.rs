@@ -20,14 +20,14 @@ async fn handle_message(
     pool: &explorer_database::actix_diesel::Database<explorer_database::diesel::PgConnection>,
     streamer_message: near_lake_framework::near_indexer_primitives::StreamerMessage,
     strict_mode: bool,
-    receipts_cache: receipts_cache::ReceiptsCache,
+    receipts_cache_arc: receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     metrics::BLOCK_COUNT.inc();
     metrics::LATEST_BLOCK_HEIGHT.set(streamer_message.block.header.height.try_into().unwrap());
 
     debug!(
         target: INDEXER_FOR_EXPLORER,
-        "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
+        "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache_arc
     );
     adapters::blocks::store_block(pool, &streamer_message.block).await?;
 
@@ -46,7 +46,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         streamer_message.block.header.height,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // Receipts
@@ -56,7 +56,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         strict_mode,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // We can process transactions and receipts in parallel
@@ -71,7 +71,7 @@ async fn handle_message(
         pool,
         &streamer_message.shards,
         streamer_message.block.header.timestamp,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // Accounts
@@ -162,7 +162,7 @@ async fn main() -> anyhow::Result<()> {
     // Later we need to find the Receipt which is a parent to underlying Receipts.
     // Receipt ID will of the child will be stored as key and parent Transaction hash/Receipt ID
     // will be stored as a value
-    let receipts_cache: receipts_cache::ReceiptsCache =
+    let receipts_cache_arc: receipts_cache::ReceiptsCacheArc =
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
     let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
@@ -185,7 +185,7 @@ async fn main() -> anyhow::Result<()> {
                 &pool,
                 streamer_message,
                 strict_mode,
-                std::sync::Arc::clone(&receipts_cache),
+                receipts_cache_arc.clone(),
             )
         })
         .buffer_unordered(1usize);

@@ -14,7 +14,7 @@ pub async fn store_transactions(
     block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
     block_height: near_indexer_primitives::types::BlockHeight,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let mut tried_to_insert_transactions_count = 0;
     let tx_futures = shards
@@ -22,7 +22,7 @@ pub async fn store_transactions(
         .filter_map(|shard| shard.chunk.as_ref())
         .map(|chunk| {
             tried_to_insert_transactions_count += chunk.transactions.len();
-            store_chunk_transactions(
+            store(
                 pool,
                 chunk.transactions.iter().enumerate().collect::<Vec<(
                     usize,
@@ -32,7 +32,7 @@ pub async fn store_transactions(
                 block_hash,
                 block_timestamp,
                 "",
-                receipts_cache.clone(),
+                receipts_cache_arc.clone(),
             )
         });
 
@@ -54,7 +54,7 @@ pub async fn store_transactions(
         .iter()
         .filter_map(|shard| shard.chunk.as_ref())
         .map(|chunk| {
-            store_chunk_transactions(
+            store(
                 pool,
                 chunk
                     .transactions
@@ -79,7 +79,7 @@ pub async fn store_transactions(
                 block_hash,
                 block_timestamp,
                 &transaction_hash_suffix,
-                receipts_cache.clone(),
+                receipts_cache_arc.clone(),
             )
         });
 
@@ -98,6 +98,36 @@ async fn collect_converted_to_receipt_ids(
         .context("DB Error")
 }
 
+async fn store(
+    pool: &actix_diesel::Database<PgConnection>,
+    enumerated_transactions: Vec<(
+        usize,
+        &near_indexer_primitives::IndexerTransactionWithOutcome,
+    )>,
+    chunk_hash: &near_indexer_primitives::CryptoHash,
+    block_hash: &near_indexer_primitives::CryptoHash,
+    block_timestamp: u64,
+    // hack for supporting duplicated transaction hashes. Empty for most of transactions
+    transaction_hash_suffix: &str,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
+) -> anyhow::Result<()> {
+    store_chunk_transactions(
+        pool,
+        enumerated_transactions.clone(),
+        chunk_hash,
+        block_hash,
+        block_timestamp,
+        transaction_hash_suffix,
+        receipts_cache_arc,
+    )
+    .await?;
+    let transactions = enumerated_transactions
+        .into_iter()
+        .map(|(_, tx)| tx)
+        .collect();
+    store_chunk_transaction_actions(pool, transactions, transaction_hash_suffix).await
+}
+
 async fn store_chunk_transactions(
     pool: &actix_diesel::Database<PgConnection>,
     transactions: Vec<(
@@ -109,9 +139,9 @@ async fn store_chunk_transactions(
     block_timestamp: u64,
     // hack for supporting duplicated transaction hashes. Empty for most of transactions
     transaction_hash_suffix: &str,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
-    let mut receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache_arc.lock().await;
 
     let transaction_models: Vec<models::transactions::Transaction> = transactions
         .iter()
@@ -160,16 +190,26 @@ async fn store_chunk_transactions(
         &transaction_models
     );
 
+    Ok(())
+}
+
+async fn store_chunk_transaction_actions(
+    pool: &actix_diesel::Database<PgConnection>,
+    transactions: Vec<&near_indexer_primitives::IndexerTransactionWithOutcome>,
+    // hack for supporting duplicated transaction hashes. Empty for most of transactions
+    transaction_hash_suffix: &str,
+) -> anyhow::Result<()> {
     let transaction_action_models: Vec<models::TransactionAction> = transactions
         .into_iter()
-        .flat_map(|(_, tx)| {
+        .flat_map(|tx| {
+            let transaction_hash = tx.transaction.hash.to_string() + transaction_hash_suffix;
             tx.transaction
                 .actions
                 .iter()
                 .enumerate()
                 .map(move |(index, action)| {
                     models::transactions::TransactionAction::from_action_view(
-                        tx.transaction.hash.to_string(),
+                        transaction_hash.clone(),
                         index as i32,
                         action,
                     )
