@@ -512,7 +512,7 @@ async fn store_action_receipts(
             .on_conflict_do_nothing()
             .execute_async(pool),
         10,
-        "ReceiptActions were stored in database".to_string(),
+        "Failed to store ReceiptActions in database".to_string(),
         &receipt_actions
     );
     Ok(())
