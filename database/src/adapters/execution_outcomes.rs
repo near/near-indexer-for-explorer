@@ -10,7 +10,7 @@ pub async fn store_execution_outcomes(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_indexer_primitives::IndexerShard],
     block_timestamp: u64,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let futures = shards.iter().map(|shard| {
         store_execution_outcomes_for_chunk(
@@ -18,7 +18,7 @@ pub async fn store_execution_outcomes(
             &shard.receipt_execution_outcomes,
             shard.shard_id,
             block_timestamp,
-            receipts_cache.clone(),
+            receipts_cache_arc.clone(),
         )
     });
 
@@ -31,12 +31,12 @@ pub async fn store_execution_outcomes_for_chunk(
     execution_outcomes: &[near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
     shard_id: near_indexer_primitives::types::ShardId,
     block_timestamp: u64,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let mut outcome_models: Vec<models::execution_outcomes::ExecutionOutcome> = vec![];
     let mut outcome_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> =
         vec![];
-    let mut receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache_arc.lock().await;
     for (index_in_chunk, outcome) in execution_outcomes.iter().enumerate() {
         // Trying to take the parent Transaction hash for the Receipt from ReceiptsCache
         // remove it from cache once found as it is not expected to observe the Receipt for

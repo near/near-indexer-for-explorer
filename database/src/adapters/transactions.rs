@@ -14,7 +14,7 @@ pub async fn store_transactions(
     block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
     block_height: near_indexer_primitives::types::BlockHeight,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let mut tried_to_insert_transactions_count = 0;
     let tx_futures = shards
@@ -32,7 +32,7 @@ pub async fn store_transactions(
                 block_hash,
                 block_timestamp,
                 "",
-                receipts_cache.clone(),
+                receipts_cache_arc.clone(),
             )
         });
 
@@ -79,7 +79,7 @@ pub async fn store_transactions(
                 block_hash,
                 block_timestamp,
                 &transaction_hash_suffix,
-                receipts_cache.clone(),
+                receipts_cache_arc.clone(),
             )
         });
 
@@ -109,7 +109,7 @@ async fn store(
     block_timestamp: u64,
     // hack for supporting duplicated transaction hashes. Empty for most of transactions
     transaction_hash_suffix: &str,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     store_chunk_transactions(
         pool,
@@ -118,7 +118,7 @@ async fn store(
         block_hash,
         block_timestamp,
         transaction_hash_suffix,
-        receipts_cache,
+        receipts_cache_arc,
     )
     .await?;
     let transactions = enumerated_transactions
@@ -139,9 +139,9 @@ async fn store_chunk_transactions(
     block_timestamp: u64,
     // hack for supporting duplicated transaction hashes. Empty for most of transactions
     transaction_hash_suffix: &str,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
-    let mut receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache_arc.lock().await;
 
     let transaction_models: Vec<models::transactions::Transaction> = transactions
         .iter()

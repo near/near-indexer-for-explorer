@@ -21,7 +21,7 @@ pub async fn store_receipts(
     block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let futures = shards
         .iter()
@@ -35,7 +35,7 @@ pub async fn store_receipts(
                 &chunk.header.chunk_hash,
                 block_timestamp,
                 strict_mode,
-                receipts_cache.clone(),
+                receipts_cache_arc.clone(),
             )
         });
 
@@ -49,7 +49,7 @@ async fn store_chunk_receipts(
     chunk_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
     strict_mode: bool,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let mut skipping_receipt_ids =
         std::collections::HashSet::<near_indexer_primitives::CryptoHash>::new();
@@ -60,7 +60,7 @@ async fn store_chunk_receipts(
         strict_mode,
         block_hash,
         chunk_hash,
-        receipts_cache.clone(),
+        receipts_cache_arc.clone(),
     )
     .await?;
 
@@ -106,7 +106,7 @@ async fn store_chunk_receipts(
     // At the moment we can observe output data in the Receipt it's impossible to know
     // the Receipt Id of that Data Receipt. That's why we insert the pair DataId<>ParentTransactionHash
     // to ReceiptsCache
-    let mut receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache_arc.lock().await;
     for receipt in receipts {
         if let near_indexer_primitives::views::ReceiptEnumView::Action {
             output_data_receivers,
@@ -161,7 +161,7 @@ async fn find_tx_hashes_for_receipts(
     strict_mode: bool,
     block_hash: &near_indexer_primitives::CryptoHash,
     chunk_hash: &near_indexer_primitives::CryptoHash,
-    receipts_cache: crate::receipts_cache::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<
     HashMap<
         crate::receipts_cache::ReceiptOrDataId,
@@ -173,7 +173,7 @@ async fn find_tx_hashes_for_receipts(
         crate::receipts_cache::ParentTransactionHashString,
     > = HashMap::new();
 
-    let mut receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache_arc.lock().await;
     // add receipt-transaction pairs from the cache to the response
     tx_hashes_for_receipts.extend(receipts.iter().filter_map(|receipt| {
         match receipt.receipt {
