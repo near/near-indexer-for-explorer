@@ -75,7 +75,7 @@ fn compose_ft_db_events(
                         event_memo: mint_event
                             .memo
                             .clone()
-                            .unwrap_or_else(|| "".to_string())
+                            .unwrap_or_default()
                             .escape_default()
                             .to_string(),
                     });
@@ -102,7 +102,7 @@ fn compose_ft_db_events(
                         event_memo: transfer_event
                             .memo
                             .clone()
-                            .unwrap_or_else(|| "".to_string())
+                            .unwrap_or_default()
                             .escape_default()
                             .to_string(),
                     });
@@ -126,7 +126,7 @@ fn compose_ft_db_events(
                         event_memo: burn_event
                             .memo
                             .clone()
-                            .unwrap_or_else(|| "".to_string())
+                            .unwrap_or_default()
                             .escape_default()
                             .to_string(),
                     });

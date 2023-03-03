@@ -202,11 +202,15 @@ async fn store_chunk_transaction_actions(
     let mut transaction_action_models: Vec<models::TransactionAction> = vec![];
     for tx in transactions {
         let mut index = 0;
-        for action in tx.transaction.actions {
+        for action in &tx.transaction.actions {
+            let transaction_hash = tx.transaction.hash.to_string() + transaction_hash_suffix;
             let (action_kind, args) =
-                models::extract_action_type_and_value_from_action_view(&action);
+                models::extract_action_type_and_value_from_action_view(action);
             match action {
-                ActionView::Delegate { delegate_action, signature } => {
+                ActionView::Delegate {
+                    delegate_action,
+                    signature,
+                } => {
                     let parent_index = index;
                     let delegate_parameters = serde_json::json!({
                         "signature": signature,
@@ -217,7 +221,7 @@ async fn store_chunk_transaction_actions(
                         "public_key": delegate_action.public_key,
                     });
                     transaction_action_models.push(models::transactions::TransactionAction {
-                        transaction_hash: tx.transaction.hash.to_string(),
+                        transaction_hash: transaction_hash.clone(),
                         index_in_transaction: index,
                         args,
                         action_kind,
@@ -226,11 +230,13 @@ async fn store_chunk_transaction_actions(
                         delegate_parent_index_in_transaction: None,
                     });
                     index += 1;
-                    for non_delegate_action in delegate_action.actions {
+                    for non_delegate_action in &delegate_action.actions {
                         let (action_kind, args) =
-                            models::extract_action_type_and_value_from_action_view(&ActionView::from(Action::from(non_delegate_action)));
+                            models::extract_action_type_and_value_from_action_view(
+                                &ActionView::from(Action::from(non_delegate_action.clone())),
+                            );
                         transaction_action_models.push(models::transactions::TransactionAction {
-                            transaction_hash: tx.transaction.hash.to_string(),
+                            transaction_hash: transaction_hash.clone(),
                             index_in_transaction: index,
                             args,
                             action_kind,
@@ -243,7 +249,7 @@ async fn store_chunk_transaction_actions(
                 }
                 _ => {
                     transaction_action_models.push(models::transactions::TransactionAction {
-                        transaction_hash: tx.transaction.hash.to_string(),
+                        transaction_hash: transaction_hash.clone(),
                         index_in_transaction: index,
                         args,
                         action_kind,

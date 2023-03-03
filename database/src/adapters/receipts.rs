@@ -532,18 +532,21 @@ async fn store_action_receipt_actions(
             let mut index = 0;
             for action in actions {
                 let (action_kind, args) =
-                    models::extract_action_type_and_value_from_action_view(&action);
+                    models::extract_action_type_and_value_from_action_view(action);
                 match action {
-                    ActionView::Delegate { delegate_action, signature } => {
+                    ActionView::Delegate {
+                        delegate_action,
+                        signature,
+                    } => {
                         let parent_index = index;
                         let delegate_parameters = serde_json::json!({
-                        "signature": signature,
-                        "sender_id": delegate_action.sender_id,
-                        "receiver_id": delegate_action.receiver_id,
-                        "nonce": delegate_action.nonce,
-                        "max_block_height": delegate_action.max_block_height,
-                        "public_key": delegate_action.public_key,
-                    });
+                            "signature": signature,
+                            "sender_id": delegate_action.sender_id,
+                            "receiver_id": delegate_action.receiver_id,
+                            "nonce": delegate_action.nonce,
+                            "max_block_height": delegate_action.max_block_height,
+                            "public_key": delegate_action.public_key,
+                        });
                         action_receipt_actions.push(models::ActionReceiptAction {
                             receipt_id: receipt.receipt_id.to_string(),
                             index_in_action_receipt: index,
@@ -557,9 +560,11 @@ async fn store_action_receipt_actions(
                             delegate_parent_index_in_action_receipt: None,
                         });
                         index += 1;
-                        for non_delegate_action in delegate_action.actions {
+                        for non_delegate_action in &delegate_action.actions {
                             let (action_kind, args) =
-                                models::extract_action_type_and_value_from_action_view(&ActionView::from(Action::from(non_delegate_action)));
+                                models::extract_action_type_and_value_from_action_view(
+                                    &ActionView::from(Action::from(non_delegate_action.clone())),
+                                );
                             action_receipt_actions.push(models::ActionReceiptAction {
                                 receipt_id: receipt.receipt_id.to_string(),
                                 index_in_action_receipt: index,
@@ -570,7 +575,7 @@ async fn store_action_receipt_actions(
                                 receipt_included_in_block_timestamp: block_timestamp.into(),
                                 is_delegate_action: true,
                                 delegate_parameters: Some(delegate_parameters.clone()),
-                                delegate_parent_index_in_action_receipt:  Some(parent_index),
+                                delegate_parent_index_in_action_receipt: Some(parent_index),
                             });
                             index += 1;
                         }
@@ -586,7 +591,7 @@ async fn store_action_receipt_actions(
                             receipt_included_in_block_timestamp: block_timestamp.into(),
                             is_delegate_action: false,
                             delegate_parameters: None,
-                            delegate_parent_index_in_action_receipt:  None,
+                            delegate_parent_index_in_action_receipt: None,
                         });
                         index += 1;
                     }

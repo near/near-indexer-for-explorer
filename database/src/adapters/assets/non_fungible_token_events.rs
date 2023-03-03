@@ -59,7 +59,7 @@ fn compose_nft_db_events(
         match &event.event_kind {
             event_types::Nep171EventKind::NftMint(mint_events) => {
                 for mint_event in mint_events {
-                    let memo = mint_event.memo.clone().unwrap_or_else(|| "".to_string());
+                    let memo = mint_event.memo.clone().unwrap_or_default();
                     for token_id in &mint_event.token_ids {
                         nft_events.push(
                             models::assets::non_fungible_token_events::NonFungibleTokenEvent {
@@ -84,14 +84,8 @@ fn compose_nft_db_events(
             }
             event_types::Nep171EventKind::NftTransfer(transfer_events) => {
                 for transfer_event in transfer_events {
-                    let authorized_id = transfer_event
-                        .authorized_id
-                        .clone()
-                        .unwrap_or_else(|| "".to_string());
-                    let memo = transfer_event
-                        .memo
-                        .clone()
-                        .unwrap_or_else(|| "".to_string());
+                    let authorized_id = transfer_event.authorized_id.clone().unwrap_or_default();
+                    let memo = transfer_event.memo.clone().unwrap_or_default();
                     for token_id in &transfer_event.token_ids {
                         nft_events.push(
                             models::assets::non_fungible_token_events::NonFungibleTokenEvent {
@@ -121,11 +115,8 @@ fn compose_nft_db_events(
             }
             event_types::Nep171EventKind::NftBurn(burn_events) => {
                 for burn_event in burn_events {
-                    let authorized_id = &burn_event
-                        .authorized_id
-                        .clone()
-                        .unwrap_or_else(|| "".to_string());
-                    let memo = burn_event.memo.clone().unwrap_or_else(|| "".to_string());
+                    let authorized_id = &burn_event.authorized_id.clone().unwrap_or_default();
+                    let memo = burn_event.memo.clone().unwrap_or_default();
                     for token_id in &burn_event.token_ids {
                         nft_events.push(
                             models::assets::non_fungible_token_events::NonFungibleTokenEvent {
