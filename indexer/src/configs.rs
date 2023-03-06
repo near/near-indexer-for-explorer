@@ -88,6 +88,7 @@ impl Opts {
             ChainId::Testnet(_) => config_builder.testnet(),
             ChainId::Betanet(_) => config_builder.betanet(),
         }
+        .s3_region_name("us-east-1") // hack because of the wrong region in lake framework
         .start_block_height(get_start_block_height(self).await)
         .build()
         .expect("Failed to build LakeConfig")
