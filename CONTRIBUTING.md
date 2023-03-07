@@ -174,3 +174,12 @@ We also had success with VSCode with rust-analyzer, see the steps for installati
 Some of us use VIM with [rust.vim](https://github.com/rust-lang/rust.vim) and [rusty-tags](https://github.com/dan-t/rusty-tags). It has fewer features than CLion or VSCode, but overall provides a usable setting.
 
 Refer to [this document](https://docs.nearprotocol.com/docs/contribution/nearcore) for details on setting up your environment.
+
+# Release guide [internal]
+
+Steps to make a new shiny release:
+1. Do something great and merge it to master
+2. Read through all the commits after the last release
+3. Pick the new version, update [`CHANGELOG.md`](indexer/CHANGELOG.md) with all the noticeable changes
+4. Update the version in [`Cargo.toml`](indexer/Cargo.toml) and push the changes
+5. If the team approves your PR, go to [Releases](https://github.com/near/near-indexer-for-explorer/releases) tab and "Draft a new release". You need to create tag as well (available from UI)

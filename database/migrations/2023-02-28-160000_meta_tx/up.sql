@@ -1,5 +1,8 @@
+-- If your DB is not empty, you need to turn off the Indexer, then apply the migration, then switch to 0.12.0
+
 ALTER TYPE action_kind ADD VALUE IF NOT EXISTS 'DELEGATE_ACTION';
 
+-- For all happy users of Postgres 11+, this should run fast
 ALTER TABLE transaction_actions
     ADD COLUMN is_delegate_action BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN delegate_parameters JSONB,

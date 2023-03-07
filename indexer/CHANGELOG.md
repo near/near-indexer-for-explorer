@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.11.1
+## 0.12.0
 
 * Add support of [Meta Transactions](https://github.com/near/NEPs/pull/366) and upgrade near-indexer-primitives to `0.16.0`
+* Add [new columns](../database/migrations/2023-02-28-160000_meta_tx/up.sql) to `transaction_actions` and `action_receipt_actions` for supporting Meta Transactions (as usual, read [the migration](../database/migrations/2023-02-28-160000_meta_tx/up.sql) before applying if your DB is not empty)
 * Add betanet support
 * Change start-from-interruption logic: we fail early (instead of track latest) if something goes wrong
 
