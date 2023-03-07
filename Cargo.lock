@@ -350,9 +350,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.53"
+version = "0.1.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed6aa3524a2dfcf9fe180c51eae2b58738348d819517ceadf95789c51fff7600"
+checksum = "b84f9ebcc6c1f5b8cb160f6990096a5c127f423fcb6e1ccc46c370cbdfb75dfc"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2656,12 +2656,13 @@ dependencies = [
 
 [[package]]
 name = "near-lake-framework"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b03d99da3e10d2722dc880fc03e11198ba3e9e90d7ee657620898ea147ba2755"
+checksum = "31b733c11d21cb97f66721ebea525c1fd4fb6fdd4aeab5c7c9562363230f071e"
 dependencies = [
  "anyhow",
  "async-stream",
+ "async-trait",
  "aws-config",
  "aws-credential-types 0.53.0",
  "aws-sdk-s3 0.23.0",
