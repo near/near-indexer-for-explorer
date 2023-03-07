@@ -1,4 +1,4 @@
-FROM rust:1.64 AS builder
+FROM rust:1.67.1 AS builder
 WORKDIR /tmp/
 COPY Cargo.toml Cargo.lock ./
 COPY database database
