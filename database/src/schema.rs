@@ -6,7 +6,7 @@
 // - Add new migration file
 // - Add new tables to diesel.toml if applicable
 // - Comment patch line in diesel.toml
-// - `diesel migration run`
+// - `cd database && diesel migration run`
 // - (new tables/items appeared in DB, schema.rs is updated)
 // - `git add src/schema.rs && git commit -m "bad schema"`
 // - Fix schema.rs, it should look exactly like you want, it should not produce any warnings.
@@ -70,6 +70,9 @@ table! {
         receipt_predecessor_account_id -> Text,
         receipt_receiver_account_id -> Text,
         receipt_included_in_block_timestamp -> Numeric,
+        is_delegate_action -> Bool,
+        delegate_parameters -> Nullable<Jsonb>,
+        delegate_parent_index_in_action_receipt -> Nullable<Int4>,
     }
 }
 
@@ -124,7 +127,7 @@ table! {
     use crate::models::enums::*;
 
     #[allow(non_snake_case)]
-    assets__fungible_token_events (emitted_for_receipt_id, emitted_at_block_timestamp, emitted_in_shard_id, emitted_index_of_event_entry_in_shard, emitted_by_contract_account_id, amount, event_kind, token_old_owner_account_id, token_new_owner_account_id, event_memo) {
+    assets__fungible_token_events (emitted_for_receipt_id, emitted_index_of_event_entry_in_shard) {
         emitted_for_receipt_id -> Text,
         emitted_at_block_timestamp -> Numeric,
         emitted_in_shard_id -> Numeric,
@@ -143,7 +146,7 @@ table! {
     use crate::models::enums::*;
 
     #[allow(non_snake_case)]
-    assets__non_fungible_token_events (emitted_for_receipt_id, emitted_at_block_timestamp, emitted_in_shard_id, emitted_index_of_event_entry_in_shard, emitted_by_contract_account_id, token_id, event_kind, token_old_owner_account_id, token_new_owner_account_id, token_authorized_account_id, event_memo) {
+    assets__non_fungible_token_events (emitted_for_receipt_id, emitted_index_of_event_entry_in_shard) {
         emitted_for_receipt_id -> Text,
         emitted_at_block_timestamp -> Numeric,
         emitted_in_shard_id -> Numeric,
@@ -159,7 +162,7 @@ table! {
 }
 
 table! {
-     use diesel::sql_types::*;
+    use diesel::sql_types::*;
     #[allow(non_snake_case)]
     aggregated__lockups(account_id) {
         account_id -> Text,
@@ -259,6 +262,9 @@ table! {
         index_in_transaction -> Int4,
         action_kind -> Action_kind,
         args -> Jsonb,
+        is_delegate_action -> Bool,
+        delegate_parameters -> Nullable<Jsonb>,
+        delegate_parent_index_in_transaction -> Nullable<Int4>,
     }
 }
 

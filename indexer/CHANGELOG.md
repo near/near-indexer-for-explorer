@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.1
+
+* Add support of [Meta Transactions](https://github.com/near/NEPs/pull/366) and upgrade near-indexer-primitives to `0.16.0`
+* Add betanet support
+* Change start-from-interruption logic: we fail early (instead of track latest) if something goes wrong
+
 ## 0.11.0
 
 * Migrate to NEAR Lake Framework, `indexer-explorer` no longer runs a NEAR node and instead consumes block from [near-lake-indexer](https://github.com/near/near-lake-indexer).

@@ -3,6 +3,8 @@ use anyhow::Context;
 use cached::Cached;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl};
 use futures::future::try_join_all;
+use near_primitives::transaction::Action;
+use near_primitives::views::ActionView;
 
 use crate::models;
 use crate::schema;
@@ -130,7 +132,7 @@ async fn store(
 
 async fn store_chunk_transactions(
     pool: &actix_diesel::Database<PgConnection>,
-    transactions: Vec<(
+    enumerated_transactions: Vec<(
         usize,
         &near_indexer_primitives::IndexerTransactionWithOutcome,
     )>,
@@ -142,8 +144,7 @@ async fn store_chunk_transactions(
     receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let mut receipts_cache_lock = receipts_cache_arc.lock().await;
-
-    let transaction_models: Vec<models::transactions::Transaction> = transactions
+    let transaction_models: Vec<models::transactions::Transaction> = enumerated_transactions
         .iter()
         .map(|(index, tx)| {
             let transaction_hash = tx.transaction.hash.to_string() + transaction_hash_suffix;
@@ -189,7 +190,6 @@ async fn store_chunk_transactions(
         "Transactions were stored in database".to_string(),
         &transaction_models
     );
-
     Ok(())
 }
 
@@ -199,23 +199,69 @@ async fn store_chunk_transaction_actions(
     // hack for supporting duplicated transaction hashes. Empty for most of transactions
     transaction_hash_suffix: &str,
 ) -> anyhow::Result<()> {
-    let transaction_action_models: Vec<models::TransactionAction> = transactions
-        .into_iter()
-        .flat_map(|tx| {
+    let mut transaction_action_models: Vec<models::TransactionAction> = vec![];
+    for tx in transactions {
+        let mut index = 0;
+        for action in &tx.transaction.actions {
             let transaction_hash = tx.transaction.hash.to_string() + transaction_hash_suffix;
-            tx.transaction
-                .actions
-                .iter()
-                .enumerate()
-                .map(move |(index, action)| {
-                    models::transactions::TransactionAction::from_action_view(
-                        transaction_hash.clone(),
-                        index as i32,
-                        action,
-                    )
-                })
-        })
-        .collect();
+            let (action_kind, args) =
+                models::extract_action_type_and_value_from_action_view(action);
+            match action {
+                ActionView::Delegate {
+                    delegate_action,
+                    signature,
+                } => {
+                    let parent_index = index;
+                    let delegate_parameters = serde_json::json!({
+                        "signature": signature,
+                        "sender_id": delegate_action.sender_id,
+                        "receiver_id": delegate_action.receiver_id,
+                        "nonce": delegate_action.nonce,
+                        "max_block_height": delegate_action.max_block_height,
+                        "public_key": delegate_action.public_key,
+                    });
+                    transaction_action_models.push(models::transactions::TransactionAction {
+                        transaction_hash: transaction_hash.clone(),
+                        index_in_transaction: index,
+                        args,
+                        action_kind,
+                        is_delegate_action: true,
+                        delegate_parameters: Some(delegate_parameters.clone()),
+                        delegate_parent_index_in_transaction: None,
+                    });
+                    index += 1;
+                    for non_delegate_action in &delegate_action.actions {
+                        let (action_kind, args) =
+                            models::extract_action_type_and_value_from_action_view(
+                                &ActionView::from(Action::from(non_delegate_action.clone())),
+                            );
+                        transaction_action_models.push(models::transactions::TransactionAction {
+                            transaction_hash: transaction_hash.clone(),
+                            index_in_transaction: index,
+                            args,
+                            action_kind,
+                            is_delegate_action: true,
+                            delegate_parameters: Some(delegate_parameters.clone()),
+                            delegate_parent_index_in_transaction: Some(parent_index),
+                        });
+                        index += 1;
+                    }
+                }
+                _ => {
+                    transaction_action_models.push(models::transactions::TransactionAction {
+                        transaction_hash: transaction_hash.clone(),
+                        index_in_transaction: index,
+                        args,
+                        action_kind,
+                        is_delegate_action: false,
+                        delegate_parameters: None,
+                        delegate_parent_index_in_transaction: None,
+                    });
+                    index += 1;
+                }
+            }
+        }
+    }
 
     crate::await_retry_or_panic!(
         diesel::insert_into(schema::transaction_actions::table)
@@ -226,6 +272,5 @@ async fn store_chunk_transaction_actions(
         "TransactionActions were stored in database".to_string(),
         &transaction_action_models
     );
-
     Ok(())
 }

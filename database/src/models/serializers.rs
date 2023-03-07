@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use near_indexer_primitives::views::ActionView;
-use near_primitives::serialize::option_u128_dec_format;
+use near_primitives::serialize::dec_format;
 
 use crate::models::enums::ActionKind;
 
@@ -33,7 +33,7 @@ impl From<&near_indexer_primitives::views::AccessKeyView> for AccessKeyView {
 )]
 pub(crate) enum AccessKeyPermissionView {
     FunctionCall {
-        #[serde(with = "option_u128_dec_format")]
+        #[serde(with = "dec_format")]
         allowance: Option<near_indexer_primitives::types::Balance>,
         receiver_id: String,
         method_names: Vec<String>,
@@ -133,6 +133,7 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
                 "beneficiary_id": beneficiary_id,
             }),
         ),
+        ActionView::Delegate { .. } => (ActionKind::DelegateAction, json!({})),
     }
 }
 

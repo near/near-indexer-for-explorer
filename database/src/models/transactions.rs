@@ -68,21 +68,7 @@ pub struct TransactionAction {
     pub index_in_transaction: i32,
     pub action_kind: ActionKind,
     pub args: serde_json::Value,
-}
-
-impl TransactionAction {
-    pub fn from_action_view(
-        transaction_hash: String,
-        index: i32,
-        action_view: &near_indexer_primitives::views::ActionView,
-    ) -> Self {
-        let (action_kind, args) =
-            crate::models::extract_action_type_and_value_from_action_view(action_view);
-        Self {
-            transaction_hash,
-            index_in_transaction: index,
-            args,
-            action_kind,
-        }
-    }
+    pub is_delegate_action: bool,
+    pub delegate_parameters: Option<serde_json::Value>,
+    pub delegate_parent_index_in_transaction: Option<i32>,
 }

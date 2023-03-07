@@ -45,6 +45,8 @@ pub enum ChainId {
     Mainnet(StartOptions),
     #[clap(subcommand)]
     Testnet(StartOptions),
+    #[clap(subcommand)]
+    Betanet(StartOptions),
 }
 
 #[allow(clippy::enum_variant_names)]
@@ -62,7 +64,9 @@ impl Opts {
     /// Returns [StartOptions] for current [Opts]
     pub fn start_options(&self) -> &StartOptions {
         match &self.chain_id {
-            ChainId::Mainnet(start_options) | ChainId::Testnet(start_options) => start_options,
+            ChainId::Mainnet(start_options)
+            | ChainId::Testnet(start_options)
+            | ChainId::Betanet(start_options) => start_options,
         }
     }
 
@@ -70,6 +74,7 @@ impl Opts {
         match self.chain_id {
             ChainId::Mainnet(_) => "https://rpc.mainnet.near.org",
             ChainId::Testnet(_) => "https://rpc.testnet.near.org",
+            ChainId::Betanet(_) => "https://rpc.betanet.near.org",
         }
     }
 }
@@ -81,6 +86,7 @@ impl Opts {
         match &self.chain_id {
             ChainId::Mainnet(_) => config_builder.mainnet(),
             ChainId::Testnet(_) => config_builder.testnet(),
+            ChainId::Betanet(_) => config_builder.betanet(),
         }
         .start_block_height(get_start_block_height(self).await)
         .build()
