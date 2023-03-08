@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.12.0
+## 0.12.1
+
+* Fix serialization issues we have since the switching to newer primitives (handling the pure `Vec<u8>` data as base64-encoded strings)
+
+## 0.12.0 (BROKEN, use 0.12.1)
 
 * Add support of [Meta Transactions](https://github.com/near/NEPs/pull/366) and upgrade near-indexer-primitives to `0.16.0`
 * Add [new columns](../database/migrations/2023-02-28-160000_meta_tx/up.sql) to `transaction_actions` and `action_receipt_actions` for supporting Meta Transactions (as usual, read [the migration](../database/migrations/2023-02-28-160000_meta_tx/up.sql) before applying if your DB is not empty)
