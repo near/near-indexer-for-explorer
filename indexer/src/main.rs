@@ -5,6 +5,8 @@ use clap::Parser;
 pub use cached::SizedCache;
 use futures::future::try_join_all;
 use futures::{try_join, StreamExt};
+use indicatif::{ProgressBar, ProgressState, ProgressStyle};
+use near_jsonrpc_client::methods::chunk;
 use tokio::sync::Mutex;
 use tracing::{debug, info};
 
@@ -142,18 +144,28 @@ async fn handle_message(
 }
 
 async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
+    let res = reqwest::get(opts.genesis_file_url()).await?;
 
-    info!(
-        target: INDEXER_FOR_EXPLORER,
-        "Downloading {} genesis file", chain
-    );
+    let total_size = res.content_length().unwrap();
 
-    let resp = reqwest::get(opts.genesis_file_url()).await?;
     let file_path = format!("{}-genesis.json", opts.chain_id.to_string());
-
-
     let mut file = std::fs::File::create(&file_path)?;
-    file.write_all(&resp.bytes().await?)?;
+
+    let mut downloaded = 0;
+    let mut stream = res.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        downloaded = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
+        info!(
+            "Downloading {}: {}/{}",
+            file_path,
+            indicatif::HumanBytes(downloaded),
+            indicatif::HumanBytes(total_size)
+        );
+        file.write_all(&chunk)?;
+    }
+
+    file.flush()?;
 
     Ok(file_path.to_string())
 }

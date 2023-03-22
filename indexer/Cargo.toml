@@ -18,13 +18,14 @@ chrono = "0.4.19"
 clap = { version = "3.1.6", features = ["color", "derive", "env"] }
 dotenv = "0.15.0"
 futures = "0.3.5"
+indicatif = "0.17.3"
 itertools = "0.10.3"
 lazy_static = "^1.4"
 # syn version conflict, replace with crates.io version once released
 near-sdk = { git = "https://github.com/near/near-sdk-rs", rev="03487c184d37b0382dd9bd41c57466acad58fc1f" }
 openssl-probe = { version = "0.1.2" }
 prometheus = "0.13.0"
-reqwest = "0.11.14"
+reqwest = { version = "0.11.14", features = ["stream"] }
 r2d2 = "0.8.8"
 tokio = { version = "1.1", features = ["sync", "time"] }
 tokio-stream = { version = "0.1" }
