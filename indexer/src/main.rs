@@ -142,10 +142,6 @@ async fn handle_message(
 }
 
 async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
-    let chain = match opts.chain_id {
-        ChainId::Mainnet(_) => "mainnet",
-        ChainId::Testnet(_) => "testnet",
-    };
 
     info!(
         target: INDEXER_FOR_EXPLORER,
@@ -153,8 +149,8 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
     );
 
     let resp = reqwest::get(opts.genesis_file_url()).await?;
+    let file_path = format!("{}-genesis.json", opts.chain_id.to_string());
 
-    let file_path = format!("{}-genesis.json", chain);
 
     let mut file = std::fs::File::create(&file_path)?;
     file.write_all(&resp.bytes().await?)?;
