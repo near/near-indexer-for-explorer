@@ -149,23 +149,30 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
     let total_size = res.content_length().unwrap();
 
     let file_path = format!("{}-genesis.json", opts.chain_id.to_string());
-    let mut file = std::fs::File::create(&file_path)?;
 
-    let mut downloaded = 0;
-    let mut stream = res.bytes_stream();
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk?;
-        downloaded = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
-        info!(
-            "Downloading {}: {}/{}",
-            file_path,
-            indicatif::HumanBytes(downloaded),
-            indicatif::HumanBytes(total_size)
-        );
-        file.write_all(&chunk)?;
+    match std::fs::File::open(&file_path) {
+        Ok(_) => {
+            info!("Using existing genesis file: {}", file_path);
+        }
+        Err(_) => {
+            let mut file = std::fs::File::create(&file_path)?;
+            let mut downloaded = 0;
+            let mut stream = res.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
+                downloaded = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
+                info!(
+                    "Downloading {}: {}/{}",
+                    file_path,
+                    indicatif::HumanBytes(downloaded),
+                    indicatif::HumanBytes(total_size)
+                );
+                file.write_all(&chunk)?;
+            }
+
+            file.flush()?;
+        }
     }
-
-    file.flush()?;
 
     Ok(file_path.to_string())
 }
