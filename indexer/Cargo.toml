@@ -7,7 +7,6 @@ rust-version = "1.64"
 
 [dependencies]
 actix = "0.13.0"
-actix-rt = "2.2.0"
 actix-web = "=4.0.1"
 anyhow = "1.0.51"
 aws-types = "0.54.1"
