@@ -5,14 +5,12 @@ use clap::Parser;
 pub use cached::SizedCache;
 use futures::future::try_join_all;
 use futures::{try_join, StreamExt};
-use indicatif::{ProgressBar, ProgressState, ProgressStyle};
-use near_jsonrpc_client::methods::chunk;
 use tokio::sync::Mutex;
 use tracing::{debug, info};
 
 use explorer_database::{adapters, models, receipts_cache};
 
-use crate::configs::{ChainId, Opts, StartOptions};
+use crate::configs::{Opts, StartOptions};
 
 mod configs;
 mod metrics;
