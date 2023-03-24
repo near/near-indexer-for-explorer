@@ -148,7 +148,7 @@ pub async fn handle_access_keys(
 }
 
 pub(crate) async fn store_access_keys_from_genesis(
-    pool: &actix_diesel::Database<PgConnection>,
+    pool: actix_diesel::Database<PgConnection>,
     access_keys_models: Vec<models::access_keys::AccessKey>,
 ) -> anyhow::Result<()> {
     info!(
@@ -161,7 +161,7 @@ pub(crate) async fn store_access_keys_from_genesis(
         diesel::insert_into(schema::access_keys::table)
             .values(access_keys_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(pool),
+            .execute_async(&pool),
         10,
         "Failed to store AccessKeys from genesis".to_string(),
         &access_keys_models

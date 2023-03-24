@@ -252,7 +252,7 @@ pub async fn get_lockup_account_ids_at_block_height(
 }
 
 pub(crate) async fn store_accounts_from_genesis(
-    pool: &actix_diesel::Database<PgConnection>,
+    pool: actix_diesel::Database<PgConnection>,
     accounts_models: Vec<models::accounts::Account>,
 ) -> anyhow::Result<()> {
     info!(
@@ -265,7 +265,7 @@ pub(crate) async fn store_accounts_from_genesis(
         diesel::insert_into(schema::accounts::table)
             .values(accounts_models.clone())
             .on_conflict_do_nothing()
-            .execute_async(pool),
+            .execute_async(&pool),
         10,
         "Failed to store Accounts from genesis".to_string(),
         &accounts_models

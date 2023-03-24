@@ -210,7 +210,7 @@ async fn main() -> anyhow::Result<()> {
 
     if opts.start_options() == &StartOptions::FromGenesis {
         let genesis_file_path = download_genesis_file(&opts).await?;
-        adapters::genesis::store_genesis_records(&pool, genesis_file_path).await?;
+        adapters::genesis::store_genesis_records(pool.clone(), genesis_file_path).await?;
     }
 
     let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;

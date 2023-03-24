@@ -1886,7 +1886,9 @@ checksum = "77f3309417938f28bf8228fcff79a4a37103981e3e186d2ccd19c74b38f4eb71"
 name = "explorer-database"
 version = "0.1.0"
 dependencies = [
+ "actix",
  "actix-diesel",
+ "actix-rt",
  "anyhow",
  "base64 0.11.0",
  "bigdecimal",
@@ -2317,7 +2319,6 @@ name = "indexer-explorer"
 version = "0.12.1"
 dependencies = [
  "actix",
- "actix-rt",
  "actix-web",
  "anyhow",
  "aws-sdk-s3 0.24.0",
