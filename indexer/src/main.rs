@@ -141,23 +141,25 @@ async fn handle_message(
     Ok(())
 }
 
-async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
+async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<std::path::PathBuf> {
     let res = reqwest::get(opts.genesis_file_url()).await?;
 
     let total_size = res.content_length().unwrap();
 
-    let file_path = "genesis.json";
+    let mut exe_path = std::env::current_exe()?;
+    exe_path.pop();
+    let genesis_path = exe_path.join("genesis.json");
 
-    match std::fs::File::open(file_path) {
+    match std::fs::File::open(genesis_path.clone()) {
         Ok(_) => {
             tracing::info!(
                 target: INDEXER_FOR_EXPLORER,
                 "Using existing genesis file: {}",
-                file_path
+                genesis_path.display()
             );
         }
         Err(_) => {
-            let mut file = std::fs::File::create(file_path)?;
+            let mut file = std::fs::File::create(genesis_path.clone())?;
             let mut downloaded = 0;
             let mut stream = res.bytes_stream();
             while let Some(chunk) = stream.next().await {
@@ -165,8 +167,7 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
                 downloaded = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
                 tracing::info!(
                     target: INDEXER_FOR_EXPLORER,
-                    "Downloading {}: {}/{}",
-                    file_path,
+                    "Downloading genesis.json: {}/{}",
                     indicatif::HumanBytes(downloaded),
                     indicatif::HumanBytes(total_size)
                 );
@@ -177,7 +178,7 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
         }
     }
 
-    Ok(file_path.to_string())
+    Ok(genesis_path)
 }
 
 #[actix::main]

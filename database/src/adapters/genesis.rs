@@ -42,7 +42,7 @@ where
 /// memory usage and minimize database queries
 pub async fn store_genesis_records(
     pool: Database<PgConnection>,
-    genesis_file_path: String,
+    genesis_file_path: std::path::PathBuf,
 ) -> anyhow::Result<()> {
     tracing::info!(
         target: crate::EXPLORER_DATABASE,
