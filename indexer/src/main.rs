@@ -18,6 +18,9 @@ mod metrics;
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
 
+/// 100KB
+const LOG_INTERVAL_BYTES: u64 = 100 * 1024;
+
 async fn handle_message(
     pool: &explorer_database::actix_diesel::Database<explorer_database::diesel::PgConnection>,
     streamer_message: near_lake_framework::near_indexer_primitives::StreamerMessage,
@@ -160,19 +163,37 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<std::path
         }
         Err(_) => {
             let mut file = std::fs::File::create(genesis_path.clone())?;
-            let mut downloaded = 0;
+            let mut downloaded: u64 = 0;
+            let mut downloaded_since_last_log: u64 = 0;
+
             let mut stream = res.bytes_stream();
             while let Some(chunk) = stream.next().await {
                 let chunk = chunk?;
-                downloaded = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
-                tracing::info!(
-                    target: INDEXER_FOR_EXPLORER,
-                    "Downloading genesis.json: {}/{}",
-                    indicatif::HumanBytes(downloaded),
-                    indicatif::HumanBytes(total_size)
-                );
+                let chunk_len = chunk.len() as u64;
+
+                downloaded = std::cmp::min(downloaded + chunk_len, total_size);
+                downloaded_since_last_log += chunk_len;
+
+                if downloaded_since_last_log >= LOG_INTERVAL_BYTES {
+                    downloaded_since_last_log = 0;
+                    tracing::info!(
+                        target: INDEXER_FOR_EXPLORER,
+                        "Downloading genesis.json: {}/{} ({}%)",
+                        indicatif::HumanBytes(downloaded),
+                        indicatif::HumanBytes(total_size),
+                        downloaded * 100 / total_size
+                    );
+                }
+
                 file.write_all(&chunk)?;
             }
+
+            tracing::info!(
+                target: INDEXER_FOR_EXPLORER,
+                "Downloading genesis.json: {}/{} (100%)",
+                indicatif::HumanBytes(total_size),
+                indicatif::HumanBytes(total_size),
+            );
 
             file.flush()?;
         }
