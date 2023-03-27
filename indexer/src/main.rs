@@ -150,7 +150,11 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
 
     match std::fs::File::open(&file_path) {
         Ok(_) => {
-            info!("Using existing genesis file: {}", file_path);
+            tracing::info!(
+                target: INDEXER_FOR_EXPLORER,
+                "Using existing genesis file: {}",
+                file_path
+            );
         }
         Err(_) => {
             let mut file = std::fs::File::create(&file_path)?;
@@ -159,7 +163,8 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
             while let Some(chunk) = stream.next().await {
                 let chunk = chunk?;
                 downloaded = std::cmp::min(downloaded + (chunk.len() as u64), total_size);
-                info!(
+                tracing::info!(
+                    target: INDEXER_FOR_EXPLORER,
                     "Downloading {}: {}/{}",
                     file_path,
                     indicatif::HumanBytes(downloaded),
