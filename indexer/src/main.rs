@@ -146,9 +146,9 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
 
     let total_size = res.content_length().unwrap();
 
-    let file_path = format!("{}-genesis.json", opts.chain_id.to_string());
+    let file_path = "genesis.json";
 
-    match std::fs::File::open(&file_path) {
+    match std::fs::File::open(file_path) {
         Ok(_) => {
             tracing::info!(
                 target: INDEXER_FOR_EXPLORER,
@@ -157,7 +157,7 @@ async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<String> {
             );
         }
         Err(_) => {
-            let mut file = std::fs::File::create(&file_path)?;
+            let mut file = std::fs::File::create(file_path)?;
             let mut downloaded = 0;
             let mut stream = res.bytes_stream();
             while let Some(chunk) = stream.next().await {

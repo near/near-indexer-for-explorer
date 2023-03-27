@@ -49,16 +49,6 @@ pub enum ChainId {
     Betanet(StartOptions),
 }
 
-impl ToString for ChainId {
-    fn to_string(&self) -> String {
-        match self {
-            ChainId::Mainnet(_) => "mainnet".to_string(),
-            ChainId::Testnet(_) => "testnet".to_string(),
-            ChainId::Betanet(_) => "betanet".to_string(),
-        }
-    }
-}
-
 #[allow(clippy::enum_variant_names)]
 #[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
 pub enum StartOptions {
