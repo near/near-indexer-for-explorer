@@ -89,6 +89,9 @@ You can choose NEAR Indexer for Explorer start options:
  - `from-genesis` - download and store accounts/access keys in genesis file and start indexing from the genesis block
  - `from-block --height <block_height>` - start indexing blocks from the specific block height
 
+#### Storing genesis file
+When starting Indexer for Explorer with `from-genesis`, the entire genesis file will be loaded in to memory before iterating the stored accounts/access keys. As of writing this, `mainnet` and `betanet` both have relatively small genesis files (<1GB), but the `testnet` file size is around 5GB. Therefore, if you intend to store the `testnet` genesis records, make sure that your system has sufficient RAM to hande the memory load.
+
 #### Strict mode
 NEAR Indexer for Explorer works in strict mode by default. In strict mode, the Indexer will ensure parent data exists before storing children, infinitely retrying until this condition is met. This is necessary as a parent (i.e. `block`) may still be processing while a child (i.e. `receipt`) is ready to be stored. This scenario will likely occur if you have not stored the genesis file or do not have all data prior to the block you start indexing from. In this case, you can disable strict mode to store data prior to the block you are concerned about, and then re-enable it once you have passed this block.
 
