@@ -1,6 +1,6 @@
 [package]
 name = "indexer-explorer"
-version = "0.12.1"
+version = "0.13.0"
 authors = ["Near Inc <hello@nearprotocol.com>"]
 edition = "2021"
 rust-version = "1.64"

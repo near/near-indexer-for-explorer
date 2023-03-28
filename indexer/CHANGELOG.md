@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.0
+
+* Add `from-genesis` subcommand for storing accounts/access keys from genesis file
+
 ## 0.12.1
 
 * Fix serialization issues we have since the switching to newer primitives (handling the pure `Vec<u8>` data as base64-encoded strings)
