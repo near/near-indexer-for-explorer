@@ -50,7 +50,7 @@ pub enum ChainId {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Subcommand, Debug, Clone)]
+#[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
 pub enum StartOptions {
     /// Start from specific block height
     FromBlock { height: u64 },
@@ -58,6 +58,8 @@ pub enum StartOptions {
     FromInterruption,
     /// Start from the final block on the network (queries JSON RPC for finality: final)
     FromLatest,
+    /// Store genesis data and start from first block
+    FromGenesis,
 }
 
 impl Opts {
@@ -75,6 +77,14 @@ impl Opts {
             ChainId::Mainnet(_) => "https://rpc.mainnet.near.org",
             ChainId::Testnet(_) => "https://rpc.testnet.near.org",
             ChainId::Betanet(_) => "https://rpc.betanet.near.org",
+        }
+    }
+
+    pub fn genesis_file_url(&self) -> &str {
+        match self.chain_id {
+            ChainId::Mainnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/mainnet/genesis.json",
+            ChainId::Testnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/testnet/genesis.json",
+            ChainId::Betanet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/betanet/genesis.json",
         }
     }
 }
@@ -114,6 +124,9 @@ async fn get_start_block_height(opts: &Opts) -> u64 {
             }
         }
         StartOptions::FromLatest => final_block_height(opts).await,
+        // Since NEAR Lake stores blocks in ascending order, using 0 here forces
+        // near-lake-framework to start from the first block, i.e. genesis
+        StartOptions::FromGenesis => 0,
     }
 }
 

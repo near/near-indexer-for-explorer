@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix = "0.13.0"
+actix-rt = "2.2.0"
 anyhow = "1.0.51"
 base64 = "0.11"
 bigdecimal = "=0.1.0"
@@ -25,6 +27,7 @@ actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c8
 near-indexer-primitives = "0.16.0"
 near-primitives = "0.16.0"
 near-crypto = "0.16.0"
+near-chain-configs = "0.16.0"
 
 [features]
 default = []

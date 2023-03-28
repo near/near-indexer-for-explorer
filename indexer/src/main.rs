@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use clap::Parser;
 
 pub use cached::SizedCache;
@@ -8,13 +10,16 @@ use tracing::{debug, info};
 
 use explorer_database::{adapters, models, receipts_cache};
 
-use crate::configs::Opts;
+use crate::configs::{Opts, StartOptions};
 
 mod configs;
 mod metrics;
 
 // Categories for logging
 const INDEXER_FOR_EXPLORER: &str = "indexer_for_explorer";
+
+/// 100KB
+const LOG_INTERVAL_BYTES: u64 = 100 * 1024;
 
 async fn handle_message(
     pool: &explorer_database::actix_diesel::Database<explorer_database::diesel::PgConnection>,
@@ -139,6 +144,64 @@ async fn handle_message(
     Ok(())
 }
 
+async fn download_genesis_file(opts: &configs::Opts) -> anyhow::Result<std::path::PathBuf> {
+    let res = reqwest::get(opts.genesis_file_url()).await?;
+
+    let total_size = res.content_length().unwrap();
+
+    let mut exe_path = std::env::current_exe()?;
+    exe_path.pop();
+    let genesis_path = exe_path.join("genesis.json");
+
+    match std::fs::File::open(genesis_path.clone()) {
+        Ok(_) => {
+            tracing::info!(
+                target: INDEXER_FOR_EXPLORER,
+                "Using existing genesis file: {}",
+                genesis_path.display()
+            );
+        }
+        Err(_) => {
+            let mut file = std::fs::File::create(genesis_path.clone())?;
+            let mut downloaded: u64 = 0;
+            let mut downloaded_since_last_log: u64 = 0;
+
+            let mut stream = res.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
+                let chunk_len = chunk.len() as u64;
+
+                downloaded = std::cmp::min(downloaded + chunk_len, total_size);
+                downloaded_since_last_log += chunk_len;
+
+                if downloaded_since_last_log >= LOG_INTERVAL_BYTES {
+                    downloaded_since_last_log = 0;
+                    tracing::info!(
+                        target: INDEXER_FOR_EXPLORER,
+                        "Downloading genesis.json: {}/{} ({}%)",
+                        indicatif::HumanBytes(downloaded),
+                        indicatif::HumanBytes(total_size),
+                        downloaded * 100 / total_size
+                    );
+                }
+
+                file.write_all(&chunk)?;
+            }
+
+            tracing::info!(
+                target: INDEXER_FOR_EXPLORER,
+                "Downloading genesis.json: {}/{} (100%)",
+                indicatif::HumanBytes(total_size),
+                indicatif::HumanBytes(total_size),
+            );
+
+            file.flush()?;
+        }
+    }
+
+    Ok(genesis_path)
+}
+
 #[actix::main]
 async fn main() -> anyhow::Result<()> {
     // We use it to automatically search the for root certificates to perform HTTPS calls
@@ -165,15 +228,20 @@ async fn main() -> anyhow::Result<()> {
     let receipts_cache_arc: receipts_cache::ReceiptsCacheArc =
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
-    let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
-    let (sender, stream) = near_lake_framework::streamer(config);
-
-    tokio::spawn(metrics::init_server(opts.port).expect("Failed to start metrics server"));
-
     tracing::info!(
         target: INDEXER_FOR_EXPLORER,
         "Starting Indexer for Explorer (lake)...",
     );
+
+    tokio::spawn(metrics::init_server(opts.port).expect("Failed to start metrics server"));
+
+    if opts.start_options() == &StartOptions::FromGenesis {
+        let genesis_file_path = download_genesis_file(&opts).await?;
+        adapters::genesis::store_genesis_records(pool.clone(), genesis_file_path).await?;
+    }
+
+    let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
+    let (sender, stream) = near_lake_framework::streamer(config);
 
     let mut handlers = tokio_stream::wrappers::ReceiverStream::new(stream)
         .map(|streamer_message| {

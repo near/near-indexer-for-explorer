@@ -6,6 +6,7 @@ pub mod assets;
 pub mod blocks;
 pub mod chunks;
 pub mod execution_outcomes;
+pub mod genesis;
 pub mod receipts;
 pub mod transactions;
 
