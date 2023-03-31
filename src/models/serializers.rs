@@ -130,6 +130,7 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
                 "beneficiary_id": beneficiary_id,
             }),
         ),
+        ActionView::Delegate { .. } => (ActionKind::DelegateAction, json!({})),
     }
 }
 
