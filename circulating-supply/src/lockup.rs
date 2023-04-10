@@ -59,10 +59,7 @@ pub(super) async fn get_lockup_contract_state(
         )
     })?;
 
-    let decoded_view_state = base64::decode(&view_state.value)
-        .context(format!("Failed to decode lockup state for: {}", account_id))?;
-
-    let mut state = LockupContract::try_from_slice(&decoded_view_state)
+    let mut state = LockupContract::try_from_slice(&view_state.value)
         .with_context(|| format!("Failed to construct LockupContract for {}", account_id))?;
 
     // If owner of the lockup account didn't call the
