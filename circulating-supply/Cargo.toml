@@ -22,8 +22,6 @@ uint = { version = "0.8.3", default-features = false }
 
 near-indexer-primitives = "0.16.0"
 near-jsonrpc-client = "0.5.0"
-# Remove manual base64 decoding of lockup state when upgrading to 0.15
-# https://github.com/khorolets/near-indexer-for-explorer/blob/master-lake/circulating_supply/src/lockup.rs#L60
 near-jsonrpc-primitives = "0.16.0"
 
 explorer-database = { path = '../database' }
