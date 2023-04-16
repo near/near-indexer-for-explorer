@@ -35,12 +35,12 @@ async fn handle_message(
     pool: &actix_diesel::Database<PgConnection>,
     streamer_message: near_indexer::StreamerMessage,
     strict_mode: bool,
-    receipts_cache: receipts_cache::ReceiptsCache,
+    receipts_cache_arc: receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let _timer = metrics::HANDLE_MESSAGE_TIME.start_timer();
     debug!(
         target: INDEXER_FOR_EXPLORER,
-        "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
+        "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache_arc
     );
     db_adapters::blocks::store_block(pool, &streamer_message.block).await?;
 
@@ -59,7 +59,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         streamer_message.block.header.height,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // Receipts
@@ -69,7 +69,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         strict_mode,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // We can process transactions and receipts in parallel
@@ -84,7 +84,7 @@ async fn handle_message(
         pool,
         &streamer_message.shards,
         streamer_message.block.header.timestamp,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // Accounts
@@ -168,7 +168,7 @@ async fn listen_blocks(
     // Later we need to find the Receipt which is a parent to underlying Receipts.
     // Receipt ID will of the child will be stored as key and parent Transaction hash/Receipt ID
     // will be stored as a value
-    let receipts_cache: receipts_cache::ReceiptsCache =
+    let receipts_cache_arc: receipts_cache::ReceiptsCacheArc =
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
     let handle_messages =
@@ -181,7 +181,7 @@ async fn listen_blocks(
                 &pool,
                 streamer_message,
                 strict_mode,
-                std::sync::Arc::clone(&receipts_cache),
+                receipts_cache_arc.clone(),
             )
         });
     let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
