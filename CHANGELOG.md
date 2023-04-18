@@ -3,6 +3,7 @@
 ## 0.10.35
 
 * Upgrade Indexer Framework to be based on [`nearcore` version `1.32.2`](https://github.com/near/nearcore/releases/tag/1.32.2)
+* Add support of [Meta Transactions](https://github.com/near/NEPs/pull/366)
 
 ## 0.10.34
 
