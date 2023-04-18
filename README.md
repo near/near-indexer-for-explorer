@@ -2,6 +2,8 @@
 
 NEAR Indexer for Explorer is built on top of [NEAR Indexer microframework](https://github.com/nearprotocol/nearcore/tree/master/chain/indexer) to watch the network and store all the events in the PostgreSQL database.
 
+NOTE: @WuTao18 has made impressive progress in maintaining the branch with node-based indexer. We do not recommend using node-based version, but sometimes it's the only option (e.g., AWS is blocked in China, so you can't run lake-based indexer). However, please note that we don’t guarantee to maintain this branch.
+
 ## Shared Public Access
 
 NEAR runs the indexer and maintains it for [NEAR Explorer](https://github.com/near/near-explorer), [NEAR Wallet](https://github.com/near/near-wallet), and some other internal services. It proved to be a great source of data for various analysis and services, so we decided to give a shared read-only public access to the data:
