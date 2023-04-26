@@ -20,6 +20,7 @@ mod db_adapters;
 mod metrics;
 mod models;
 mod schema;
+mod receipts_cache;
 #[macro_use]
 mod retriable;
 
@@ -30,30 +31,16 @@ const AGGREGATED: &str = "aggregated";
 const INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 const MAX_DELAY_TIME: std::time::Duration = std::time::Duration::from_secs(120);
 
-#[derive(Clone, Hash, PartialEq, Eq, Debug)]
-pub enum ReceiptOrDataId {
-    ReceiptId(near_indexer::near_primitives::hash::CryptoHash),
-    DataId(near_indexer::near_primitives::hash::CryptoHash),
-}
-// Creating type aliases to make HashMap types for cache more explicit
-pub type ParentTransactionHashString = String;
-// Introducing a simple cache for Receipts to find their parent Transactions without
-// touching the database
-// The key is ReceiptID
-// The value is TransactionHash (the very parent of the Receipt)
-pub type ReceiptsCache =
-    std::sync::Arc<Mutex<SizedCache<ReceiptOrDataId, ParentTransactionHashString>>>;
-
 async fn handle_message(
     pool: &actix_diesel::Database<PgConnection>,
     streamer_message: near_indexer::StreamerMessage,
     strict_mode: bool,
-    receipts_cache: ReceiptsCache,
+    receipts_cache_arc: receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let _timer = metrics::HANDLE_MESSAGE_TIME.start_timer();
     debug!(
         target: INDEXER_FOR_EXPLORER,
-        "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache
+        "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache_arc
     );
     db_adapters::blocks::store_block(pool, &streamer_message.block).await?;
 
@@ -72,7 +59,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         streamer_message.block.header.height,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // Receipts
@@ -82,7 +69,7 @@ async fn handle_message(
         &streamer_message.block.header.hash,
         streamer_message.block.header.timestamp,
         strict_mode,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // We can process transactions and receipts in parallel
@@ -97,7 +84,7 @@ async fn handle_message(
         pool,
         &streamer_message.shards,
         streamer_message.block.header.timestamp,
-        std::sync::Arc::clone(&receipts_cache),
+        receipts_cache_arc.clone(),
     );
 
     // Accounts
@@ -181,7 +168,7 @@ async fn listen_blocks(
     // Later we need to find the Receipt which is a parent to underlying Receipts.
     // Receipt ID will of the child will be stored as key and parent Transaction hash/Receipt ID
     // will be stored as a value
-    let receipts_cache: ReceiptsCache =
+    let receipts_cache_arc: receipts_cache::ReceiptsCacheArc =
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
     let handle_messages =
@@ -194,7 +181,7 @@ async fn listen_blocks(
                 &pool,
                 streamer_message,
                 strict_mode,
-                std::sync::Arc::clone(&receipts_cache),
+                receipts_cache_arc.clone(),
             )
         });
     let mut handle_messages = if let Some(stop_after_n_blocks) = stop_after_number_of_blocks {
@@ -367,7 +354,7 @@ fn main() {
         }
         SubCommand::Init(config) => near_indexer::init_configs(
             &home_dir,
-            config.chain_id.as_ref().map(AsRef::as_ref),
+            config.chain_id,
             config.account_id.map(|account_id_string| {
                 near_indexer::near_primitives::types::AccountId::try_from(account_id_string)
                     .expect("Received accound_id is not valid")

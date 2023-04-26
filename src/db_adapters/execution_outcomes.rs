@@ -10,7 +10,7 @@ pub(crate) async fn store_execution_outcomes(
     pool: &actix_diesel::Database<PgConnection>,
     shards: &[near_indexer::IndexerShard],
     block_timestamp: u64,
-    receipts_cache: crate::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let _timer = metrics::STORE_TIME
         .with_label_values(&["ExecutionOutcomes"])
@@ -21,7 +21,7 @@ pub(crate) async fn store_execution_outcomes(
             &shard.receipt_execution_outcomes,
             shard.shard_id,
             block_timestamp,
-            std::sync::Arc::clone(&receipts_cache),
+            receipts_cache_arc.clone(),
         )
     });
 
@@ -34,18 +34,18 @@ pub async fn store_execution_outcomes_for_chunk(
     execution_outcomes: &[near_indexer::IndexerExecutionOutcomeWithReceipt],
     shard_id: near_indexer::near_primitives::types::ShardId,
     block_timestamp: u64,
-    receipts_cache: crate::ReceiptsCache,
+    receipts_cache_arc: crate::receipts_cache::ReceiptsCacheArc,
 ) -> anyhow::Result<()> {
     let mut outcome_models: Vec<models::execution_outcomes::ExecutionOutcome> = vec![];
     let mut outcome_receipt_models: Vec<models::execution_outcomes::ExecutionOutcomeReceipt> =
         vec![];
-    let mut receipts_cache_lock = receipts_cache.lock().await;
+    let mut receipts_cache_lock = receipts_cache_arc.lock().await;
     for (index_in_chunk, outcome) in execution_outcomes.iter().enumerate() {
         // Trying to take the parent Transaction hash for the Receipt from ReceiptsCache
         // remove it from cache once found as it is not expected to observe the Receipt for
         // second time
         let parent_transaction_hash = receipts_cache_lock.cache_remove(
-            &crate::ReceiptOrDataId::ReceiptId(outcome.execution_outcome.id),
+            &crate::receipts_cache::ReceiptOrDataId::ReceiptId(outcome.execution_outcome.id),
         );
 
         let model = models::execution_outcomes::ExecutionOutcome::from_execution_outcome(
@@ -69,7 +69,7 @@ pub async fn store_execution_outcomes_for_chunk(
                     // could find their parents in cache
                     if let Some(transaction_hash) = &parent_transaction_hash {
                         receipts_cache_lock.cache_set(
-                            crate::ReceiptOrDataId::ReceiptId(*receipt_id),
+                            crate::receipts_cache::ReceiptOrDataId::ReceiptId(*receipt_id),
                             transaction_hash.clone(),
                         );
                     }

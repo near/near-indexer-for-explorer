@@ -5,9 +5,9 @@ use anyhow::Context;
 
 use near_client::{Query, ViewClientActor};
 use near_indexer::near_primitives;
+use near_o11y::WithSpanContextExt;
 use near_sdk::borsh::BorshDeserialize;
 use near_sdk::json_types::{U128, U64};
-use near_o11y::WithSpanContextExt;
 
 use super::lockup_types::{
     LockupContract, TransfersInformation, VestingInformation, VestingSchedule, WrappedBalance, U256,
