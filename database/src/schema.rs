@@ -313,6 +313,7 @@ allow_tables_to_appear_in_same_query!(
     action_receipt_output_data,
     action_receipts,
     aggregated__circulating_supply,
+    assets__fungible_token_events,
     assets__non_fungible_token_events,
     blocks,
     chunks,
