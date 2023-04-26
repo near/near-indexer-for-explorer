@@ -31,7 +31,7 @@ table! {
     use diesel::sql_types::*;
     use crate::models::enums::*;
 
-    account_changes (id) {
+    deprecated.account_changes (id) {
         id -> Int8,
         affected_account_id -> Text,
         changed_in_block_timestamp -> Numeric,
@@ -127,7 +127,7 @@ table! {
     use crate::models::enums::*;
 
     #[allow(non_snake_case)]
-    assets__fungible_token_events (emitted_for_receipt_id, emitted_index_of_event_entry_in_shard) {
+    deprecated.assets__fungible_token_events (emitted_for_receipt_id, emitted_index_of_event_entry_in_shard) {
         emitted_for_receipt_id -> Text,
         emitted_at_block_timestamp -> Numeric,
         emitted_in_shard_id -> Numeric,
@@ -290,12 +290,8 @@ table! {
     }
 }
 
-joinable!(account_changes -> blocks (changed_in_block_hash));
-joinable!(account_changes -> receipts (caused_by_receipt_id));
-joinable!(account_changes -> transactions (caused_by_transaction_hash));
 joinable!(action_receipt_actions -> receipts (receipt_id));
 joinable!(aggregated__circulating_supply -> blocks (computed_at_block_hash));
-joinable!(assets__fungible_token_events -> receipts (emitted_for_receipt_id));
 joinable!(assets__non_fungible_token_events -> receipts (emitted_for_receipt_id));
 joinable!(chunks -> blocks (included_in_block_hash));
 joinable!(execution_outcome_receipts -> execution_outcomes (executed_receipt_id));
@@ -311,7 +307,6 @@ joinable!(transactions -> chunks (included_in_chunk_hash));
 
 allow_tables_to_appear_in_same_query!(
     access_keys,
-    account_changes,
     accounts,
     action_receipt_actions,
     action_receipt_input_data,
