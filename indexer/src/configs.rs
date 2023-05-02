@@ -1,8 +1,7 @@
 use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_s3::{Endpoint, Region};
+use aws_sdk_s3::Region;
 use clap::{Parser, Subcommand};
 use explorer_database::{adapters, models};
-use http::Uri;
 use tracing_subscriber::EnvFilter;
 
 use near_jsonrpc_client::{methods, JsonRpcClient};
@@ -121,8 +120,8 @@ impl Opts {
                         .or_default_provider()
                         .or_else(Region::new(self.region.clone()));
                 let aws_config = aws_config::from_env().region(region_provider).load().await;
-                let mut s3_conf = aws_sdk_s3::config::Config::Builder::from(&aws_config);
-                s3_conf = s3_conf.endpoint_url(self.endpoint.parse::<Uri>().unwrap());
+                let mut s3_conf = aws_sdk_s3::config::Builder::from(&aws_config);
+                s3_conf = s3_conf.endpoint_url(self.endpoint.clone());
                 config_builder
                     .s3_bucket_name(self.bucket.clone())
                     .s3_region_name(self.region.clone())
