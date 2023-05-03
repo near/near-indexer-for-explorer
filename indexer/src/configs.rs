@@ -73,7 +73,10 @@ pub enum StartOptions {
     /// Start from the final block on the network (queries JSON RPC for finality: final)
     FromLatest,
     /// Store genesis data and start from first block
-    FromGenesis,
+    FromGenesis {
+        from_interuption: bool,
+        genesis_file_path: Option<String>,
+    },
 }
 
 impl Opts {
@@ -96,11 +99,14 @@ impl Opts {
         }
     }
 
-    pub fn genesis_file_url(&self) -> &str {
+    pub fn genesis_file_url(&self) -> String {
         match self.chain_id {
-            ChainId::Mainnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/mainnet/genesis.json",
-            ChainId::Testnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/testnet/genesis.json",
-            ChainId::Betanet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/betanet/genesis.json",
+            ChainId::Mainnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/mainnet/genesis.json".to_string(),
+            ChainId::Testnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/testnet/genesis.json".to_string(),
+            ChainId::Betanet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/betanet/genesis.json".to_string(),
+            ChainId::Custom(_) => {
+                "".to_string()
+            },
         }
     }
 }
@@ -134,29 +140,39 @@ impl Opts {
     }
 }
 
+async fn latest_stored_block(database_url: &String) -> u64 {
+    let pool = models::establish_connection(&database_url);
+    let last_indexed_block = adapters::blocks::latest_block_height(&pool)
+        .await
+        .expect("Failed to get last indexer block from Database");
+    if let Some(last_indexed_block) = last_indexed_block {
+        // -500 helps us to be sure we haven't missed anything
+        last_indexed_block.saturating_sub(500)
+    } else {
+        tracing::warn!(
+            target: crate::INDEXER_FOR_EXPLORER,
+            "It seems the database is empty. Will start indexing from the beginning",
+        );
+        0 // S3 should return the first available block_height
+    }
+}
+
 async fn get_start_block_height(opts: &Opts) -> u64 {
     match opts.start_options() {
         StartOptions::FromBlock { height } => *height,
-        StartOptions::FromInterruption => {
-            let pool = models::establish_connection(&opts.database_url);
-            let last_indexed_block = adapters::blocks::latest_block_height(&pool)
-                .await
-                .expect("Failed to get last indexer block from Database");
-            if let Some(last_indexed_block) = last_indexed_block {
-                // -500 helps us to be sure we haven't missed anything
-                last_indexed_block.saturating_sub(500)
-            } else {
-                tracing::warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "It seems the database is empty. Will start indexing from the beginning",
-                );
-                0 // S3 should return the first available block_height
-            }
-        }
+        StartOptions::FromInterruption => latest_stored_block(&opts.database_url).await,
         StartOptions::FromLatest => final_block_height(opts).await,
         // Since NEAR Lake stores blocks in ascending order, using 0 here forces
         // near-lake-framework to start from the first block, i.e. genesis
-        StartOptions::FromGenesis => 0,
+        StartOptions::FromGenesis {
+            from_interuption,
+            genesis_file_path: _,
+        } => {
+            if !from_interuption {
+                return 0;
+            }
+            latest_stored_block(&opts.database_url).await
+        }
     }
 }
 
