@@ -39,7 +39,7 @@ tracing-subscriber = "0.2.4"
 uint = { version = "0.8.3", default-features = false }
 
 actix-diesel = { git = "https://github.com/frol/actix-diesel", rev = "3a001986c89dfabfc3c448d8bae28525101b4992" }
-near-indexer = { git = "https://github.com/near/nearcore", rev = "a15cd0fffbcf9cf03f90cb70a21809ed87a387b7" }
-near-crypto = { git = "https://github.com/near/nearcore", rev = "a15cd0fffbcf9cf03f90cb70a21809ed87a387b7" }
-near-client = { git = "https://github.com/near/nearcore", rev = "a15cd0fffbcf9cf03f90cb70a21809ed87a387b7" }
-near-o11y = { git = "https://github.com/near/nearcore", rev = "a15cd0fffbcf9cf03f90cb70a21809ed87a387b7" }
+near-indexer = { git = "https://github.com/near/nearcore", rev = "944dd70ebae4b4603677d7969807f11bcd353588" }
+near-crypto = { git = "https://github.com/near/nearcore", rev = "944dd70ebae4b4603677d7969807f11bcd353588" }
+near-client = { git = "https://github.com/near/nearcore", rev = "944dd70ebae4b4603677d7969807f11bcd353588" }
+near-o11y = { git = "https://github.com/near/nearcore", rev = "944dd70ebae4b4603677d7969807f11bcd353588" }

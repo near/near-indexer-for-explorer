@@ -56,7 +56,7 @@ pub(crate) async fn store_transactions(
     // TLDR: it's the hack to store transactions with collided hashes
     // It should not happen, but unfortunately it did,
     // we have ~10 such transactions in Mainnet for now
-    let transaction_hash_suffix = "_issue84_".to_owned() + &block_height.to_string();
+    let transaction_hash_suffix = "_issue84_".to_owned() + block_height.to_string().as_str();
 
     let collided_tx_futures = shards
         .iter()
