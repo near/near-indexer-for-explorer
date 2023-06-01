@@ -29,7 +29,8 @@ r2d2 = "0.8.8"
 tokio = { version = "1.1", features = ["sync", "time"] }
 tokio-stream = { version = "0.1" }
 tracing = "0.1.13"
-tracing-subscriber = "0.2.4"
+tracing-stackdriver = "0.7.2" # GCP logs
+tracing-subscriber = "0.3.15"
 uint = { version = "0.8.3", default-features = false }
 
 near-jsonrpc-client = "0.5.0"
