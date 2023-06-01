@@ -17,7 +17,8 @@ dotenv = "0.15.0"
 near-sdk = { git = "https://github.com/near/near-sdk-rs", rev="03487c184d37b0382dd9bd41c57466acad58fc1f" }
 tokio = { version = "1.1", features = ["sync", "time"] }
 tracing = "0.1.13"
-tracing-subscriber = "0.2.4"
+tracing-stackdriver = "0.7.2" # GCP logs
+tracing-subscriber = "0.3.15"
 uint = { version = "0.8.3", default-features = false }
 
 near-indexer-primitives = "0.16.0"

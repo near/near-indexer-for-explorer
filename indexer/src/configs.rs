@@ -5,6 +5,8 @@ use explorer_database::{adapters, models};
 
 use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_lake_framework::near_indexer_primitives::types::{BlockReference, Finality};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 /// NEAR Indexer for Explorer Lake
 /// Watches for stream of blocks from the chain
@@ -154,14 +156,14 @@ pub(crate) fn init_tracing(debug: bool) -> anyhow::Result<()> {
         }
     }
 
-    let subscriber = tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(env_filter)
-        .with_writer(std::io::stderr);
+    let subscriber = tracing_subscriber::Registry::default().with(env_filter);
 
     if std::env::var("ENABLE_JSON_LOGS").is_ok() {
-        subscriber.json().init();
+        subscriber.with(tracing_stackdriver::layer()).try_init()?;
     } else {
-        subscriber.compact().init();
+        subscriber
+            .with(tracing_subscriber::fmt::Layer::default().compact())
+            .try_init()?;
     }
 
     Ok(())

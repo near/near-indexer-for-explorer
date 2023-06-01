@@ -8,6 +8,8 @@ use chrono::NaiveDateTime;
 use tracing::{error, info, warn};
 
 use near_jsonrpc_client::{methods, JsonRpcClient};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 use explorer_database::{adapters, models};
 
@@ -21,16 +23,18 @@ const RETRY_DURATION: Duration = Duration::from_secs(60 * 60 * 2);
 const CIRCULATING_SUPPLY: &str = "circulating_supply";
 
 #[actix::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 
-    let subscriber = tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env());
+    let subscriber = tracing_subscriber::Registry::default()
+        .with(tracing_subscriber::EnvFilter::from_default_env());
 
     if std::env::var("ENABLE_JSON_LOGS").is_ok() {
-        subscriber.json().init()
+        subscriber.with(tracing_stackdriver::layer()).try_init()?;
     } else {
-        subscriber.compact().init()
+        subscriber
+            .with(tracing_subscriber::fmt::Layer::default().compact())
+            .try_init()?;
     }
 
     let pool = models::establish_connection(
@@ -45,6 +49,7 @@ async fn main() {
     info!(target: crate::CIRCULATING_SUPPLY, "Starting calculations");
 
     run_circulating_supply_computation(rpc_client, pool).await;
+    Ok(())
 }
 
 // Compute circulating supply on a daily basis, starting from 13 Oct 2020
