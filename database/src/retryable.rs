@@ -22,7 +22,7 @@ macro_rules! await_retry_or_panic {
                             break None;
                         })?
 
-                        tracing::error!(
+                        tracing::warn!(
                              target: $crate::EXPLORER_DATABASE,
                              "Error occurred during {}: \n{:#?} \n{:#?} \n Retrying in {} milliseconds...",
                              async_error,
