@@ -82,7 +82,7 @@ pub(crate) fn extract_action_type_and_value_from_action_view(
         } => {
             let mut arguments = json!({
                 "method_name": method_name.escape_default().to_string(),
-                "args_base64": base64::encode(&args),
+                "args_base64": base64::encode(&args.to_vec()),
                 "gas": gas,
                 "deposit": deposit.to_string(),
             });
