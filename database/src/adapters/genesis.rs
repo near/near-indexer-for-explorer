@@ -52,7 +52,7 @@ pub async fn store_genesis_records(
     let genesis = Genesis::new_with_path(
         GenesisConfig::from_file(genesis_file_path.clone())?,
         genesis_file_path,
-    );
+    )?;
     let genesis_height = genesis.config.genesis_height;
 
     // Remember the current actix runtime thread in order to be able to
