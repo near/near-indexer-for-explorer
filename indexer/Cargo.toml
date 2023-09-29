@@ -33,7 +33,7 @@ tracing-stackdriver = "0.7.2" # GCP logs
 tracing-subscriber = "0.3.15"
 uint = { version = "0.8.3", default-features = false }
 
-near-jsonrpc-client = "0.5.0"
+near-jsonrpc-client = { workspace = true }
 near-lake-framework = "0.7.1"
 
 explorer-database = { path = "../database" }
