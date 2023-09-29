@@ -21,8 +21,8 @@ tracing-stackdriver = "0.7.2" # GCP logs
 tracing-subscriber = "0.3.15"
 uint = { version = "0.8.3", default-features = false }
 
-near-indexer-primitives = "0.16.0"
-near-jsonrpc-client = "0.5.0"
-near-jsonrpc-primitives = "0.16.0"
+near-indexer-primitives = { workspace = true }
+near-jsonrpc-client = { workspace = true }
+near-jsonrpc-primitives = { workspace = true }
 
 explorer-database = { path = '../database' }

@@ -4,3 +4,11 @@ members = [
     "database",
     "circulating-supply"
 ]
+
+[workspace.dependencies]
+near-jsonrpc-client = "0.6.0"
+near-primitives = "0.17.0"
+near-crypto = "0.17.0"
+near-chain-configs = "0.17.0"
+near-indexer-primitives = "0.17.0"
+near-jsonrpc-primitives = "0.17.0"
