@@ -243,11 +243,11 @@ async fn wait_for_loading_needed_blocks(rpc_client: &JsonRpcClient, day_to_compu
                     return;
                 }
                 warn!(
-                        target: crate::CIRCULATING_SUPPLY,
-                        "Blocks are not loaded to calculate circulating supply for {}. Wait for {} hours",
-                        NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0).date(),
-                        crate::RETRY_DURATION.as_secs() / 60 / 60,
-                    );
+                    target: crate::CIRCULATING_SUPPLY,
+                    "Blocks are not loaded to calculate circulating supply for {}. Wait for {} hours",
+                    NaiveDateTime::from_timestamp(day_to_compute.as_secs() as i64, 0).date(),
+                    crate::RETRY_DURATION.as_secs() / 60 / 60,
+                );
             }
             Err(err) => {
                 error!(
