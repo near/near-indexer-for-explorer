@@ -2,17 +2,6 @@
 
 NEAR Indexer for Explorer is built on top of [NEAR Lake Framework](https://github.com/near/near-lake-framework-rs) to watch the network and store all the events in the PostgreSQL database.
 
-## Shared Public Access
-
-NEAR runs the indexer and maintains it for [NEAR Explorer](https://github.com/near/near-explorer), [NEAR Wallet](https://github.com/near/near-wallet), and some other internal services. It proved to be a great source of data for various analysis and services, so we decided to give a shared read-only public access to the data:
-
-* testnet credentials: `postgres://public_readonly:nearprotocol@testnet.db.explorer.indexer.near.dev/testnet_explorer`
-* mainnet credentials: `postgres://public_readonly:nearprotocol@mainnet.db.explorer.indexer.near.dev/mainnet_explorer`
-
-WARNING: We may evolve the data schemas, so make sure you follow the release notes of this repository.
-
-NOTE: Please, keep in mind that the access to the database is shared across everyone in the world, so it is better to make sure you limit the amount of queries and individual queries are efficient.
-
 ## Self-hosting
 
 The final setup consists of the following components:
