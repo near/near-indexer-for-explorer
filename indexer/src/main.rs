@@ -265,7 +265,9 @@ async fn main() -> anyhow::Result<()> {
                 "Encountered error while indexing: {}",
                 e
             );
-            anyhow::bail!(e)
+            if strict_mode {
+                anyhow::bail!(e)
+            }
         }
     }
 
