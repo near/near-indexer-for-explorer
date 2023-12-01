@@ -87,7 +87,7 @@ pub async fn store_execution_outcomes_for_chunk(
             .values(outcome_models.clone())
             .on_conflict_do_nothing()
             .execute_async(pool),
-        10,
+        5,
         "ExecutionOutcomes were stored in database".to_string(),
         &outcome_models
     );
@@ -97,7 +97,7 @@ pub async fn store_execution_outcomes_for_chunk(
             .values(outcome_receipt_models.clone())
             .on_conflict_do_nothing()
             .execute_async(pool),
-        10,
+        5,
         "ExecutionOutcomeReceipts were stored in database".to_string(),
         &outcome_receipt_models
     );
