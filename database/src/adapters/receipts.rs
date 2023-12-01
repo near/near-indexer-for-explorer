@@ -287,11 +287,11 @@ async fn find_tx_hashes_for_receipts(
                         }
                         Err(async_error) => {
                             error!(
-                            target: crate::EXPLORER_DATABASE,
-                            "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
-                            interval.as_millis(),
-                            async_error,
-                        );
+                                target: crate::EXPLORER_DATABASE,
+                                "Error occurred while fetching the parent receipt for Receipt. Retrying in {} milliseconds... \n {:#?}",
+                                interval.as_millis(),
+                                async_error,
+                            );
                             tokio::time::sleep(interval).await;
                             if interval < crate::MAX_DELAY_TIME {
                                 interval *= 2;
@@ -464,13 +464,13 @@ async fn find_tx_hashes_for_receipts(
                 }
             }
             warn!(
-            target: crate::EXPLORER_DATABASE,
-            "Going to retry to find parent transactions for receipts in {} milliseconds... \n {:#?}\n block hash {} \nchunk hash {}",
-            find_tx_retry_interval.as_millis(),
-            &receipts,
-            block_hash,
-            chunk_hash
-        );
+                target: crate::EXPLORER_DATABASE,
+                "Going to retry to find parent transactions for receipts in {} milliseconds... \n {:#?}\n block hash {} \nchunk hash {}",
+                find_tx_retry_interval.as_millis(),
+                &receipts,
+                block_hash,
+                chunk_hash
+            );
             tokio::time::sleep(find_tx_retry_interval).await;
             if find_tx_retry_interval < crate::MAX_DELAY_TIME {
                 find_tx_retry_interval *= 2;
