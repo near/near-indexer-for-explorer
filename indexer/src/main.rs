@@ -256,7 +256,7 @@ async fn main() -> anyhow::Result<()> {
                 receipts_cache_arc.clone(),
             )
         })
-        .buffer_unordered(1usize);
+        .buffer_unordered(usize::from(opts.concurrency.get()));
 
     while let Some(handle_message) = handlers.next().await {
         if let Err(e) = handle_message {
