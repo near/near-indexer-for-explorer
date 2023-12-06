@@ -36,6 +36,18 @@ pub(crate) struct Opts {
     /// Port to enable metrics/health service
     #[clap(long, short, env, default_value_t = 3030)]
     pub port: u16,
+    /// Bucket to pull block data from
+    #[clap(long, env, default_value = "")]
+    pub s3_bucket: String,
+    /// Region of s3 bucket
+    #[clap(long, env, default_value = "")]
+    pub s3_region: String,
+    /// Endpoint to send S3 requests to
+    #[clap(long, env, default_value = "")]
+    pub s3_url: String,
+    /// RPC endpoint to connect to
+    #[clap(long, env, default_value = "")]
+    pub rpc_url: String,
     /// Chain ID: testnet or mainnet
     #[clap(subcommand)]
     pub chain_id: ChainId,
@@ -49,6 +61,8 @@ pub enum ChainId {
     Testnet(StartOptions),
     #[clap(subcommand)]
     Betanet(StartOptions),
+    #[clap(subcommand)]
+    Localnet(StartOptions),
 }
 
 #[allow(clippy::enum_variant_names)]
@@ -70,7 +84,8 @@ impl Opts {
         match &self.chain_id {
             ChainId::Mainnet(start_options)
             | ChainId::Testnet(start_options)
-            | ChainId::Betanet(start_options) => start_options,
+            | ChainId::Betanet(start_options)
+            | ChainId::Localnet(start_options) => start_options,
         }
     }
 
@@ -79,6 +94,7 @@ impl Opts {
             ChainId::Mainnet(_) => "https://rpc.mainnet.near.org",
             ChainId::Testnet(_) => "https://rpc.testnet.near.org",
             ChainId::Betanet(_) => "https://rpc.betanet.near.org",
+            ChainId::Localnet(_) => self.rpc_url.as_str(),
         }
     }
 
@@ -87,6 +103,7 @@ impl Opts {
             ChainId::Mainnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/mainnet/genesis.json",
             ChainId::Testnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/testnet/genesis.json",
             ChainId::Betanet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/betanet/genesis.json",
+            ChainId::Localnet(_) => unimplemented!("No genesis file specified for localnet"),
         }
     }
 }
@@ -99,6 +116,16 @@ impl Opts {
             ChainId::Mainnet(_) => config_builder.mainnet(),
             ChainId::Testnet(_) => config_builder.testnet(),
             ChainId::Betanet(_) => config_builder.betanet(),
+            ChainId::Localnet(_) => {
+                let aws_config = aws_config::from_env().load().await;
+                let s3_config = aws_sdk_s3::config::Builder::from(&aws_config)
+                    .endpoint_url(self.s3_url.clone())
+                    .build();
+                config_builder
+                    .s3_config(s3_config)
+                    .s3_region_name(self.s3_region.clone())
+                    .s3_bucket_name(self.s3_bucket.clone())
+            }
         }
         .start_block_height(get_start_block_height(self).await)
         .build()
