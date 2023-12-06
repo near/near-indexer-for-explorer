@@ -5,7 +5,7 @@
 file = "src/schema.rs"
 # Temporary add this if you need to update something in deprecated schema (and comment filter section)
 # schema = "deprecated"
-patch_file = "src/schema.patch"
+# patch_file = "src/schema.patch"
 import_types = ["diesel::sql_types::*", "crate::models::enums::*"]
 # Exclicitly setting `only_tables` to avoid technical tables created by diesel to be included in schema
 filter = { only_tables = [
