@@ -1,7 +1,8 @@
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_s3::Region;
 use clap::{Parser, Subcommand};
-use tracing_subscriber::EnvFilter;
-
 use explorer_database::{adapters, models};
+use tracing_subscriber::EnvFilter;
 
 use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_lake_framework::near_indexer_primitives::types::{BlockReference, Finality};
@@ -36,6 +37,15 @@ pub(crate) struct Opts {
     /// Port to enable metrics/health service
     #[clap(long, short, env, default_value_t = 3030)]
     pub port: u16,
+    /// S3 bucket name
+    #[clap(long)]
+    pub bucket: String,
+    #[clap(long)]
+    pub endpoint: String,
+    #[clap(long)]
+    pub region: String,
+    #[clap(long, default_value = "")]
+    pub rpc_url: String,
     /// Chain ID: testnet or mainnet
     #[clap(subcommand)]
     pub chain_id: ChainId,
@@ -49,6 +59,8 @@ pub enum ChainId {
     Testnet(StartOptions),
     #[clap(subcommand)]
     Betanet(StartOptions),
+    #[clap(subcommand)]
+    Custom(StartOptions),
 }
 
 #[allow(clippy::enum_variant_names)]
@@ -61,7 +73,11 @@ pub enum StartOptions {
     /// Start from the final block on the network (queries JSON RPC for finality: final)
     FromLatest,
     /// Store genesis data and start from first block
-    FromGenesis,
+    FromGenesis {
+        #[clap(parse(try_from_str))]
+        from_interuption: bool,
+        genesis_file_path: Option<String>,
+    },
 }
 
 impl Opts {
@@ -70,23 +86,28 @@ impl Opts {
         match &self.chain_id {
             ChainId::Mainnet(start_options)
             | ChainId::Testnet(start_options)
-            | ChainId::Betanet(start_options) => start_options,
+            | ChainId::Betanet(start_options)
+            | ChainId::Custom(start_options) => start_options,
         }
     }
 
-    pub fn rpc_url(&self) -> &str {
+    pub fn rpc_url(&self) -> String {
         match self.chain_id {
-            ChainId::Mainnet(_) => "https://rpc.mainnet.near.org",
-            ChainId::Testnet(_) => "https://rpc.testnet.near.org",
-            ChainId::Betanet(_) => "https://rpc.betanet.near.org",
+            ChainId::Mainnet(_) => "https://rpc.mainnet.near.org".to_string(),
+            ChainId::Testnet(_) => "https://rpc.testnet.near.org".to_string(),
+            ChainId::Betanet(_) => "https://rpc.betanet.near.org".to_string(),
+            ChainId::Custom(_) => self.rpc_url.clone(),
         }
     }
 
-    pub fn genesis_file_url(&self) -> &str {
+    pub fn genesis_file_url(&self) -> String {
         match self.chain_id {
-            ChainId::Mainnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/mainnet/genesis.json",
-            ChainId::Testnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/testnet/genesis.json",
-            ChainId::Betanet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/betanet/genesis.json",
+            ChainId::Mainnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/mainnet/genesis.json".to_string(),
+            ChainId::Testnet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/testnet/genesis.json".to_string(),
+            ChainId::Betanet(_) => "https://s3-us-west-1.amazonaws.com/build.nearprotocol.com/nearcore-deploy/betanet/genesis.json".to_string(),
+            ChainId::Custom(_) => {
+                "".to_string()
+            },
         }
     }
 }
@@ -99,6 +120,20 @@ impl Opts {
             ChainId::Mainnet(_) => config_builder.mainnet(),
             ChainId::Testnet(_) => config_builder.testnet(),
             ChainId::Betanet(_) => config_builder.betanet(),
+            ChainId::Custom(_) => {
+                println!("aws: region {}", self.region);
+                let region_provider =
+                    RegionProviderChain::first_try(Some(self.region.clone()).map(Region::new))
+                        .or_default_provider()
+                        .or_else(Region::new(self.region.clone()));
+                let aws_config = aws_config::from_env().region(region_provider).load().await;
+                let mut s3_conf = aws_sdk_s3::config::Builder::from(&aws_config);
+                s3_conf = s3_conf.endpoint_url(self.endpoint.clone());
+                config_builder
+                    .s3_bucket_name(self.bucket.clone())
+                    .s3_region_name(self.region.clone())
+                    .s3_config(s3_conf.build())
+            }
         }
         .start_block_height(get_start_block_height(self).await)
         .build()
@@ -106,29 +141,39 @@ impl Opts {
     }
 }
 
+async fn latest_stored_block(database_url: &String) -> u64 {
+    let pool = models::establish_connection(&database_url);
+    let last_indexed_block = adapters::blocks::latest_block_height(&pool)
+        .await
+        .expect("Failed to get last indexer block from Database");
+    if let Some(last_indexed_block) = last_indexed_block {
+        // -500 helps us to be sure we haven't missed anything
+        last_indexed_block.saturating_sub(500)
+    } else {
+        tracing::warn!(
+            target: crate::INDEXER_FOR_EXPLORER,
+            "It seems the database is empty. Will start indexing from the beginning",
+        );
+        0 // S3 should return the first available block_height
+    }
+}
+
 async fn get_start_block_height(opts: &Opts) -> u64 {
     match opts.start_options() {
         StartOptions::FromBlock { height } => *height,
-        StartOptions::FromInterruption => {
-            let pool = models::establish_connection(&opts.database_url);
-            let last_indexed_block = adapters::blocks::latest_block_height(&pool)
-                .await
-                .expect("Failed to get last indexer block from Database");
-            if let Some(last_indexed_block) = last_indexed_block {
-                // -500 helps us to be sure we haven't missed anything
-                last_indexed_block.saturating_sub(500)
-            } else {
-                tracing::warn!(
-                    target: crate::INDEXER_FOR_EXPLORER,
-                    "It seems the database is empty. Will start indexing from the beginning",
-                );
-                0 // S3 should return the first available block_height
-            }
-        }
+        StartOptions::FromInterruption => latest_stored_block(&opts.database_url).await,
         StartOptions::FromLatest => final_block_height(opts).await,
         // Since NEAR Lake stores blocks in ascending order, using 0 here forces
         // near-lake-framework to start from the first block, i.e. genesis
-        StartOptions::FromGenesis => 0,
+        StartOptions::FromGenesis {
+            from_interuption,
+            genesis_file_path: _,
+        } => {
+            if !from_interuption {
+                return 0;
+            }
+            latest_stored_block(&opts.database_url).await
+        }
     }
 }
 

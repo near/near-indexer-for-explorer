@@ -29,6 +29,10 @@ async fn handle_message(
 ) -> anyhow::Result<()> {
     metrics::BLOCK_COUNT.inc();
     metrics::LATEST_BLOCK_HEIGHT.set(streamer_message.block.header.height.try_into().unwrap());
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Message: {:?}", streamer_message
+    );
 
     debug!(
         target: INDEXER_FOR_EXPLORER,
@@ -235,10 +239,33 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(metrics::init_server(opts.port).expect("Failed to start metrics server"));
 
-    if opts.start_options() == &StartOptions::FromGenesis {
-        let genesis_file_path = download_genesis_file(&opts).await?;
-        adapters::genesis::store_genesis_records(pool.clone(), genesis_file_path).await?;
+    match opts.start_options() {
+        StartOptions::FromGenesis {
+            from_interuption: _,
+            genesis_file_path,
+        } => match genesis_file_path {
+            Some(genesis_file_path) => {
+                use std::path::PathBuf;
+                adapters::genesis::store_genesis_records(
+                    pool.clone(),
+                    PathBuf::from(genesis_file_path),
+                )
+                .await?;
+            }
+            None => {
+                let genesis_file_path = download_genesis_file(&opts).await?;
+                adapters::genesis::store_genesis_records(pool.clone(), genesis_file_path).await?;
+            }
+        },
+        StartOptions::FromLatest => {}
+        StartOptions::FromBlock { height: _ } => {}
+        StartOptions::FromInterruption => {}
     }
+    // TODO(mhala) does not work after adding from-interruption flag
+    // if opts.start_options() == &StartOptions::FromGenesis {
+    //     let genesis_file_path = download_genesis_file(&opts).await?;
+    //     adapters::genesis::store_genesis_records(pool.clone(), genesis_file_path).await?;
+    // }
 
     let config: near_lake_framework::LakeConfig = opts.to_lake_config().await;
     let (sender, stream) = near_lake_framework::streamer(config);
