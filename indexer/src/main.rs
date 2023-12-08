@@ -29,12 +29,20 @@ async fn handle_message(
 ) -> anyhow::Result<()> {
     metrics::BLOCK_COUNT.inc();
     metrics::LATEST_BLOCK_HEIGHT.set(streamer_message.block.header.height.try_into().unwrap());
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Handle Message"
+    );
 
     debug!(
         target: INDEXER_FOR_EXPLORER,
         "ReceiptsCache #{} \n {:#?}", streamer_message.block.header.height, &receipts_cache_arc
     );
     adapters::blocks::store_block(pool, &streamer_message.block).await?;
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Stored block"
+    );
 
     // Chunks
     adapters::chunks::store_chunks(
@@ -43,6 +51,10 @@ async fn handle_message(
         &streamer_message.block.header.hash,
     )
     .await?;
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Stored Chunks"
+    );
 
     // Transactions
     let transactions_future = adapters::transactions::store_transactions(
@@ -52,6 +64,10 @@ async fn handle_message(
         streamer_message.block.header.timestamp,
         streamer_message.block.header.height,
         receipts_cache_arc.clone(),
+    );
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Stored Transactions"
     );
 
     // Receipts
@@ -63,13 +79,20 @@ async fn handle_message(
         strict_mode,
         receipts_cache_arc.clone(),
     );
-
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Stored Receipts"
+    );
     // We can process transactions and receipts in parallel
     // because most of receipts depend on transactions from previous blocks,
     // so we can save up some time here.
     // In case of local receipts (they are stored in the same block with corresponding transaction),
     // we hope retry logic will cover it fine
     try_join!(transactions_future, receipts_future)?;
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Joined futures"
+    );
 
     // ExecutionOutcomes
     let execution_outcomes_future = adapters::execution_outcomes::store_execution_outcomes(
@@ -77,6 +100,10 @@ async fn handle_message(
         &streamer_message.shards,
         streamer_message.block.header.timestamp,
         receipts_cache_arc.clone(),
+    );
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Stored Outcomes"
     );
 
     // Accounts
@@ -91,9 +118,17 @@ async fn handle_message(
 
         try_join_all(futures).await.map(|_| ())
     };
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Stored accounts"
+    );
 
     // Event-based entities (FT, NFT)
     let assets_events_future = adapters::assets::events::store_events(pool, &streamer_message);
+    info!(
+        target: crate::INDEXER_FOR_EXPLORER,
+        "Stored Events"
+    );
 
     if strict_mode {
         // AccessKeys
@@ -108,6 +143,10 @@ async fn handle_message(
 
             try_join_all(futures).await.map(|_| ())
         };
+        info!(
+            target: crate::INDEXER_FOR_EXPLORER,
+            "Stored Keys"
+        );
 
         // StateChange related to Account
         #[cfg(feature = "account_changes")]
@@ -133,12 +172,20 @@ async fn handle_message(
             access_keys_future,
             assets_events_future,
         )?;
+        info!(
+            target: crate::INDEXER_FOR_EXPLORER,
+            "Joined Changes"
+        );
     } else {
         try_join!(
             execution_outcomes_future,
             accounts_future,
             assets_events_future
         )?;
+        info!(
+            target: crate::INDEXER_FOR_EXPLORER,
+            "Joined All"
+        );
     }
 
     Ok(())
