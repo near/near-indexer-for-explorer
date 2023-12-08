@@ -74,6 +74,7 @@ pub enum StartOptions {
     FromLatest,
     /// Store genesis data and start from first block
     FromGenesis {
+        #[clap(parse(try_from_str))]
         from_interuption: bool,
         genesis_file_path: Option<String>,
     },
